@@ -19,8 +19,18 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Configurar Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Preparar Android SDK
+        run: |
+          set -e
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          echo "SDK em: $SDK"
+          export PATH="$SDK/cmdline-tools/latest/bin:$SDK/platform-tools:$PATH"
+          if [ -x "$SDK/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" || true
+          fi
+          echo "ANDROID_HOME=$SDK" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$SDK" >> $GITHUB_ENV
 
       - name: Cache do Gradle
         uses: actions/cache@v4
@@ -38,16 +48,19 @@ jobs:
         run: ./gradlew assembleDebug assembleRelease -x lintVitalRelease --no-daemon --stacktrace
 
       - name: Assinar o release
+        if: ${{ env.KEYSTORE_BASE64 != '' }}
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        if: env.KEYSTORE_BASE64 != ''
         run: |
+          set -e
           echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
           BT="$ANDROID_HOME/build-tools/35.0.0"
-          "$BT/zipalign" -f -p 4 app/build/outputs/apk/release/app-release-unsigned.apk app-release-aligned.apk
+          UNSIGNED=$(find app/build/outputs/apk/release -name "*-unsigned.apk" | head -n 1)
+          echo "APK sem assinatura: $UNSIGNED"
+          "$BT/zipalign" -f -p 4 "$UNSIGNED" app-release-aligned.apk
           "$BT/apksigner" sign --ks release.keystore --ks-key-alias "$KEY_ALIAS" \
             --ks-pass "pass:$KEYSTORE_PASSWORD" --key-pass "pass:$KEY_PASSWORD" \
             --v1-signing-enabled true --v2-signing-enabled true \
