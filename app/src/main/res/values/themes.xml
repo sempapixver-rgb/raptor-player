@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Reptor" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/reptor_background</item>
+        <item name="android:statusBarColor">@color/reptor_black</item>
+        <item name="android:navigationBarColor">@color/reptor_black</item>
+        <item name="android:colorAccent">@color/reptor_green</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>
