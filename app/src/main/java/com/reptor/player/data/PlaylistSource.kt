@@ -4,8 +4,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.json.JSONArray
 import java.io.File
 import java.io.IOException
+import java.net.URLDecoder
+import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 /** Fonte de conteúdo: Xtream Codes ou lista M3U (URL ou arquivo local). */
@@ -66,6 +69,131 @@ class M3uSource(private val url: String) : PlaylistSource {
     @Volatile
     private var seriesCache: Map<String, SeriesDetail>? = null
 
+    @Volatile
+    private var seriesMetaCache: Map<String, SeriesMeta>? = null
+
+    /** Dados extras de uma série no painel Xtream (mesmo login do get.php). */
+    private class SeriesMeta(
+        val cover: String?,
+        val rating: Double?,
+        val genre: String?,
+        val releaseDate: String?,
+        val plot: String?,
+        val cast: String?
+    )
+
+    private class Endpoint(val base: String, val user: String, val pass: String)
+
+    /**
+     * Extrai o endpoint Xtream a partir de um link get.php.
+     * Ex.: http://servidor:8080/get.php?username=U&password=P&type=m3u_plus
+     *      -> base http://servidor:8080, user U, pass P.
+     * Retorna null quando a lista não é um link Xtream (arquivo local etc.).
+     */
+    private fun endpoint(): Endpoint? {
+        if (!url.startsWith("http://", true) && !url.startsWith("https://", true)) return null
+        if (!url.contains("get.php", ignoreCase = true)) return null
+
+        val schemeEnd = url.indexOf("://")
+        if (schemeEnd < 0) return null
+        // Base = tudo antes do "get.php" (funciona também com subpasta).
+        val base = url.substringBefore('?').substringBeforeLast('/', "")
+        if (!base.contains("://") || base.length <= schemeEnd + 3) return null
+
+        val query = url.substringAfter('?', "")
+        if (query.isBlank()) return null
+
+        var user: String? = null
+        var pass: String? = null
+        for (part in query.split('&')) {
+            val key = part.substringBefore('=').lowercase()
+            val raw = part.substringAfter('=', "")
+            val value = runCatching { URLDecoder.decode(raw, "UTF-8") }.getOrDefault(raw)
+            when (key) {
+                "username" -> user = value
+                "password" -> pass = value
+            }
+        }
+
+        val u = user?.takeIf { it.isNotBlank() } ?: return null
+        val p = pass?.takeIf { it.isNotBlank() } ?: return null
+        return Endpoint(base, u, p)
+    }
+
+    /**
+     * Busca a lista completa de séries no painel (action=get_series) e indexa
+     * por nome normalizado. É um download único (~8 MB) por sessão; qualquer
+     * falha é silenciosa e o app segue só com os dados da lista M3U.
+     */
+    private suspend fun seriesMeta(): Map<String, SeriesMeta> {
+        seriesMetaCache?.let { return it }
+
+        val ep = endpoint() ?: run {
+            seriesMetaCache = emptyMap()
+            return emptyMap()
+        }
+
+        val map = withContext(Dispatchers.IO) {
+            runCatching { fetchSeriesMeta(ep) }.getOrElse { emptyMap() }
+        }
+
+        seriesMetaCache = map
+        return map
+    }
+
+    private fun fetchSeriesMeta(ep: Endpoint): Map<String, SeriesMeta> {
+        val apiUrl = StringBuilder(ep.base)
+            .append("/player_api.php?username=")
+            .append(URLEncoder.encode(ep.user, "UTF-8"))
+            .append("&password=")
+            .append(URLEncoder.encode(ep.pass, "UTF-8"))
+            .append("&action=get_series")
+            .toString()
+
+        val request = Request.Builder()
+            .url(apiUrl)
+            .header("User-Agent", "Reptor/1.2 (Android)")
+            .build()
+
+        val text = http.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Painel respondeu HTTP ${response.code}")
+            }
+            response.body?.string().orEmpty()
+        }
+
+        val arr = JSONArray(text)
+        val out = LinkedHashMap<String, SeriesMeta>(arr.length())
+        for (i in 0 until arr.length()) {
+            val obj = arr.optJSONObject(i) ?: continue
+            val name = obj.optString("name")
+            if (name.isBlank()) continue
+            val key = metaKey(name)
+            if (key.isBlank() || out.containsKey(key)) continue
+            out[key] = SeriesMeta(
+                cover = obj.optString("cover").takeIf { it.isNotBlank() },
+                rating = obj.optString("rating").toDoubleOrNull(),
+                genre = obj.optString("genre").takeIf { it.isNotBlank() },
+                releaseDate = obj.optString("releaseDate").takeIf { it.isNotBlank() },
+                plot = obj.optString("plot").takeIf { it.isNotBlank() },
+                cast = obj.optString("cast").takeIf { it.isNotBlank() }
+            )
+        }
+        return out
+    }
+
+    /** Tira marcadores de idioma do fim do nome ("[L", "(D)", "Legendado"). */
+    private fun cleanName(value: String): String = value
+        .replace(Regex("\\s*\\[[A-Za-z]{1,10}\\]?\\s*$"), "")
+        .replace(
+            Regex("\\s*\\((?:L|D|Legendado|Dublado)\\)\\s*$", RegexOption.IGNORE_CASE),
+            ""
+        )
+        .trim()
+
+    private fun metaKey(value: String): String =
+        M3uSeries.normalize(cleanName(value))
+
     private suspend fun readPlaylist(): String = withContext(Dispatchers.IO) {
         when {
             url.startsWith("http://", true) || url.startsWith("https://", true) -> {
@@ -98,7 +226,28 @@ class M3uSource(private val url: String) : PlaylistSource {
 
     private suspend fun seriesMap(): Map<String, SeriesDetail> {
         seriesCache?.let { return it }
-        val map = M3uSeries.build(all())
+
+        val base = M3uSeries.build(all())
+        val meta = seriesMeta()
+
+        val map = if (meta.isEmpty()) {
+            base
+        } else {
+            base.mapValues { (_, detail) ->
+                val info = meta[metaKey(detail.name)]
+                    ?: meta[M3uSeries.normalize(detail.name)]
+                    ?: return@mapValues detail
+                detail.copy(
+                    cover = info.cover ?: detail.cover,
+                    rating = info.rating,
+                    displayGenre = info.genre,
+                    releaseDate = info.releaseDate ?: detail.releaseDate,
+                    plot = info.plot ?: detail.plot,
+                    cast = info.cast ?: detail.cast
+                )
+            }
+        }
+
         seriesCache = map
         return map
     }

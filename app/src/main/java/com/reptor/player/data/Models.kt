@@ -104,6 +104,12 @@ data class SeriesDetail(
     val plot: String? = null,
     val cast: String? = null,
     val genre: String? = null,
+    /**
+     * Gênero "de verdade" (ex.: "Comédia, Drama"), vindo do painel Xtream.
+     * [genre] continua guardando a pasta principal da lista, que é o que
+     * alimenta as categorias; este campo é só para exibição.
+     */
+    val displayGenre: String? = null,
     val releaseDate: String? = null,
     val rating: Double? = null,
     val seasons: List<Season> = emptyList(),

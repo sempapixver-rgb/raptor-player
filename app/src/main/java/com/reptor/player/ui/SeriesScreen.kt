@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -249,6 +248,13 @@ fun SeriesScreen(
 
 // --------------------------------------------------------------- detalhe
 
+/** "Series | Netflix" e "Filmes | ..." são pastas da lista, não gêneros. */
+private fun isFolderGenre(value: String): Boolean {
+    val lower = value.lowercase()
+    return lower.startsWith("series |") || lower.startsWith("series|") ||
+        lower.startsWith("filmes |") || lower.startsWith("filmes|")
+}
+
 @Composable
 private fun SeriesDetailView(
     entry: MediaEntry,
@@ -332,75 +338,139 @@ private fun SeriesDetailView(
             else -> Row(Modifier.fillMaxSize()) {
 
                 // -------------------------------------------- capa + sinopse
-                Column(
+                BoxWithConstraints(
                     Modifier
-                        .width(232.dp)
+                        .width(250.dp)
                         .fillMaxHeight()
                         .background(ReptorSurfaceHigh.copy(alpha = 0.3f))
                         .padding(12.dp)
                 ) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(2f / 3f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(ReptorSurfaceHigh)
-                    ) {
-                        val art = detail.cover ?: entry.logo
-                        if (!art.isNullOrBlank()) {
-                            AsyncImage(
-                                model = art,
-                                contentDescription = detail.name,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            Text(
-                                text = detail.name,
-                                color = ReptorTextDim,
-                                fontSize = 12.sp,
-                                modifier = Modifier.align(Alignment.Center).padding(10.dp)
-                            )
-                        }
+                    // Em paisagem sobra pouca altura: a capa ocupa o que resta
+                    // depois de reservar espaço para sinopse e elenco.
+                    val textReserve = 92.dp
+                    val posterHeight = (maxHeight - textReserve)
+                        .coerceIn(96.dp, 168.dp)
+                    val posterWidth = posterHeight / 1.5f
 
-                        if (detail.rating != null && detail.rating > 0) {
+                    Column(Modifier.fillMaxSize()) {
+                        Row(Modifier.fillMaxWidth()) {
                             Box(
                                 Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(6.dp)
-                                    .clip(RoundedCornerShape(5.dp))
-                                    .background(Color(0xFF1E88E5))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    .width(posterWidth)
+                                    .height(posterHeight)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(ReptorSurfaceHigh)
                             ) {
-                                Text(
-                                    text = String.format("%.1f", detail.rating),
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                val art = detail.cover ?: entry.logo
+                                if (!art.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = art,
+                                        contentDescription = detail.name,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Text(
+                                        text = detail.name,
+                                        color = ReptorTextDim,
+                                        fontSize = 11.sp,
+                                        modifier = Modifier.align(Alignment.Center).padding(8.dp)
+                                    )
+                                }
+
+                                if (detail.rating != null && detail.rating > 0) {
+                                    Box(
+                                        Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(5.dp)
+                                            .clip(RoundedCornerShape(5.dp))
+                                            .background(Color(0xFF1E88E5))
+                                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                                    ) {
+                                        Text(
+                                            text = String.format("%.1f", detail.rating),
+                                            color = Color.White,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.width(10.dp))
+
+                            Column(Modifier.weight(1f)) {
+                                val genreText = detail.displayGenre
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?: detail.genre?.takeIf {
+                                        it.isNotBlank() && !isFolderGenre(it)
+                                    }
+                                if (genreText != null) {
+                                    Text(
+                                        "GÊNERO",
+                                        color = ReptorGreen,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        genreText,
+                                        color = ReptorText,
+                                        fontSize = 10.sp,
+                                        maxLines = 3,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Spacer(Modifier.height(6.dp))
+                                }
+
+                                val year = detail.releaseDate?.take(4)?.takeIf { it.isNotBlank() }
+                                if (year != null) {
+                                    Text(
+                                        "ANO",
+                                        color = ReptorGreen,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(year, color = ReptorText, fontSize = 10.sp)
+                                    Spacer(Modifier.height(6.dp))
+                                }
+
+                                if (detail.rating != null && detail.rating > 0) {
+                                    Text(
+                                        "NOTA",
+                                        color = ReptorGreen,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        String.format("%.1f", detail.rating),
+                                        color = ReptorText,
+                                        fontSize = 10.sp
+                                    )
+                                }
                             }
                         }
-                    }
 
-                    Spacer(Modifier.height(10.dp))
+                        if (!detail.plot.isNullOrBlank()) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = detail.plot,
+                                color = ReptorTextDim,
+                                fontSize = 10.sp,
+                                maxLines = 4,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
 
-                    val meta = listOfNotNull(
-                        detail.genre,
-                        detail.releaseDate?.take(4)
-                    ).joinToString(" · ")
-                    if (meta.isNotBlank()) {
-                        Text(meta, color = ReptorGreen, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(6.dp))
-                    }
-
-                    if (!detail.plot.isNullOrBlank()) {
-                        Text(
-                            text = detail.plot,
-                            color = ReptorTextDim,
-                            fontSize = 11.sp,
-                            maxLines = 9,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        if (!detail.cast.isNullOrBlank()) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "Elenco: ${detail.cast}",
+                                color = ReptorTextDim.copy(alpha = 0.85f),
+                                fontSize = 9.sp,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
 
