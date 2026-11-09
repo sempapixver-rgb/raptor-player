@@ -22,13 +22,40 @@ data class Session(
         if (!b.startsWith("http://", true) && !b.startsWith("https://", true)) {
             b = "http://$b"
         }
-        b = b.trimEnd('/')
-        if (b.endsWith("/player_api.php", true)) {
-            b = b.dropLast("/player_api.php".length)
+        // Aceita também um link completo colado no campo "Servidor".
+        b = b.substringBefore('?').substringBefore('#').trimEnd('/')
+        for (suffix in listOf("/player_api.php", "/get.php", "/panel_api.php", "/xmltv.php")) {
+            if (b.endsWith(suffix, ignoreCase = true)) {
+                b = b.dropLast(suffix.length).trimEnd('/')
+                break
+            }
         }
         return b
     }
 }
+
+/** Garante um esquema em links digitados sem "http://". */
+fun normalizeRemoteUrl(raw: String): String {
+    val text = raw.trim()
+    return when {
+        text.startsWith("http://", true) ||
+            text.startsWith("https://", true) ||
+            text.startsWith("file:", true) -> text
+
+        else -> "http://$text"
+    }
+}
+
+/**
+ * Versão http:// de um link https://, ou null quando já é http.
+ * Muitos painéis entregam o link em https, mas só respondem em http.
+ */
+fun httpFallback(url: String): String? =
+    if (url.startsWith("https://", true)) {
+        "http://" + url.substring("https://".length)
+    } else {
+        null
+    }
 
 /** Identidade usada para não duplicar listas salvas. */
 fun Session.key(): String =

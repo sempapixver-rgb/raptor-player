@@ -16,9 +16,18 @@ import java.util.concurrent.TimeUnit
  */
 class XtreamClient(private val session: Session) {
 
-    private val base = session.normalizedBase()
     private val user = session.username
     private val pass = session.password
+
+    /**
+     * Base que realmente funcionou. Se o link vier em https mas o servidor só
+     * responder em http, o [fetch] corrige e passa a usar esta base em todas
+     * as URLs (API, canais, filmes e episódios).
+     */
+    @Volatile
+    private var workingBase: String? = null
+
+    private fun base(): String = workingBase ?: session.normalizedBase()
 
     private val http: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
@@ -29,7 +38,7 @@ class XtreamClient(private val session: Session) {
     private fun enc(value: String): String = URLEncoder.encode(value, "UTF-8")
 
     private fun apiUrl(action: String?, extra: Map<String, String> = emptyMap()): String {
-        val sb = StringBuilder(base)
+        val sb = StringBuilder(base())
         sb.append("/player_api.php?username=").append(enc(user))
         sb.append("&password=").append(enc(pass))
         if (!action.isNullOrBlank()) sb.append("&action=").append(action)
@@ -40,11 +49,23 @@ class XtreamClient(private val session: Session) {
     }
 
     private suspend fun fetch(url: String): String = withContext(Dispatchers.IO) {
+        try {
+            request(url)
+        } catch (first: Exception) {
+            // Link https, mas o servidor só responde em http.
+            val fallback = httpFallback(url) ?: throw first
+            val text = request(fallback)
+            httpFallback(base())?.let { workingBase = it }
+            text
+        }
+    }
+
+    private fun request(url: String): String {
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", "Reptor/1.2 (Android)")
             .build()
-        http.newCall(request).execute().use { response ->
+        return http.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 throw IOException("Servidor respondeu HTTP ${response.code}")
             }
@@ -218,7 +239,7 @@ class XtreamClient(private val session: Session) {
             title = title,
             season = season,
             number = if (number <= 0) 0 else number,
-            url = "$base/series/${enc(user)}/${enc(pass)}/$id.$ext",
+            url = "${base()}/series/${enc(user)}/${enc(pass)}/$id.$ext",
             plot = info.optString("plot").takeIf { it.isNotBlank() },
             duration = info.optString("duration").takeIf { it.isNotBlank() },
             logo = info.optString("movie_image").takeIf { it.isNotBlank() }
@@ -226,11 +247,11 @@ class XtreamClient(private val session: Session) {
     }
 
     fun liveUrl(streamId: String): String =
-        "$base/live/${enc(user)}/${enc(pass)}/$streamId.m3u8"
+        "${base()}/live/${enc(user)}/${enc(pass)}/$streamId.m3u8"
 
     fun vodUrl(entry: MediaEntry): String {
         val ext = entry.containerExtension?.takeIf { it.isNotBlank() } ?: "mp4"
-        return "$base/movie/${enc(user)}/${enc(pass)}/${entry.id}.$ext"
+        return "${base()}/movie/${enc(user)}/${enc(pass)}/${entry.id}.$ext"
     }
 
     private fun parseArray(text: String): JSONArray? {

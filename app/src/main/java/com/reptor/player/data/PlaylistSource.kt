@@ -72,6 +72,15 @@ class M3uSource(private val url: String) : PlaylistSource {
     @Volatile
     private var seriesMetaCache: Map<String, SeriesMeta>? = null
 
+    /** URL que realmente funcionou (pode ter caído de https para http). */
+    @Volatile
+    private var workingUrl: String? = null
+
+    private fun resolvedUrl(): String = normalizeRemoteUrl(workingUrl ?: url)
+
+    private fun isRemote(target: String): Boolean =
+        target.startsWith("http://", true) || target.startsWith("https://", true)
+
     /** Dados extras de uma série no painel Xtream (mesmo login do get.php). */
     private class SeriesMeta(
         val cover: String?,
@@ -91,16 +100,17 @@ class M3uSource(private val url: String) : PlaylistSource {
      * Retorna null quando a lista não é um link Xtream (arquivo local etc.).
      */
     private fun endpoint(): Endpoint? {
-        if (!url.startsWith("http://", true) && !url.startsWith("https://", true)) return null
-        if (!url.contains("get.php", ignoreCase = true)) return null
+        val current = resolvedUrl()
+        if (!isRemote(current)) return null
+        if (!current.contains("get.php", ignoreCase = true)) return null
 
-        val schemeEnd = url.indexOf("://")
+        val schemeEnd = current.indexOf("://")
         if (schemeEnd < 0) return null
         // Base = tudo antes do "get.php" (funciona também com subpasta).
-        val base = url.substringBefore('?').substringBeforeLast('/', "")
+        val base = current.substringBefore('?').substringBeforeLast('/', "")
         if (!base.contains("://") || base.length <= schemeEnd + 3) return null
 
-        val query = url.substringAfter('?', "")
+        val query = current.substringAfter('?', "")
         if (query.isBlank()) return null
 
         var user: String? = null
@@ -150,16 +160,11 @@ class M3uSource(private val url: String) : PlaylistSource {
             .append("&action=get_series")
             .toString()
 
-        val request = Request.Builder()
-            .url(apiUrl)
-            .header("User-Agent", "Reptor/1.2 (Android)")
-            .build()
-
-        val text = http.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw IOException("Painel respondeu HTTP ${response.code}")
-            }
-            response.body?.string().orEmpty()
+        val text = try {
+            fetchText(apiUrl)
+        } catch (first: Exception) {
+            val fallback = httpFallback(apiUrl) ?: throw first
+            fetchText(fallback)
         }
 
         val arr = JSONArray(text)
@@ -195,25 +200,45 @@ class M3uSource(private val url: String) : PlaylistSource {
         M3uSeries.normalize(cleanName(value))
 
     private suspend fun readPlaylist(): String = withContext(Dispatchers.IO) {
-        when {
-            url.startsWith("http://", true) || url.startsWith("https://", true) -> {
-                val request = Request.Builder()
-                    .url(url)
-                    .header("User-Agent", "Reptor/1.2 (Android)")
-                    .build()
-                http.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        throw IOException("Playlist respondeu HTTP ${response.code}")
-                    }
-                    response.body?.string().orEmpty()
-                }
-            }
+        val target = resolvedUrl()
 
-            else -> {
-                val file = File(url.removePrefix("file://"))
-                if (!file.exists()) throw IOException("Arquivo da lista não encontrado")
-                file.readText()
+        if (!isRemote(target)) {
+            val file = File(target.removePrefix("file://"))
+            if (!file.exists()) throw IOException("Arquivo da lista não encontrado")
+            return@withContext file.readText()
+        }
+
+        val first = runCatching { fetchText(target) }
+        first.getOrNull()?.let {
+            workingUrl = target
+            return@withContext it
+        }
+
+        // Alguns provedores entregam o link em https, mas o servidor só
+        // responde em http. Nesse caso tentamos o mesmo endereço em http.
+        val fallback = httpFallback(target)
+        if (fallback != null) {
+            val second = runCatching { fetchText(fallback) }
+            second.getOrNull()?.let {
+                workingUrl = fallback
+                return@withContext it
             }
+            throw second.exceptionOrNull() ?: IOException("Falha ao carregar a lista")
+        }
+
+        throw first.exceptionOrNull() ?: IOException("Falha ao carregar a lista")
+    }
+
+    private fun fetchText(target: String): String {
+        val request = Request.Builder()
+            .url(target)
+            .header("User-Agent", "Reptor/1.2 (Android)")
+            .build()
+        return http.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Playlist respondeu HTTP ${response.code}")
+            }
+            response.body?.string().orEmpty()
         }
     }
 
