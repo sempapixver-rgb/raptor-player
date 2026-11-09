@@ -75,34 +75,36 @@ object M3uParser {
 
     fun classify(url: String, group: String?, title: String): MediaKind {
         val u = url.lowercase()
-        val g = group.orEmpty().lowercase()
+        val g = fold(group.orEmpty())
 
-        // 1) A URL do painel é a prova mais forte.
+        // 1) Grupos que são claramente de canais ao vivo vêm primeiro.
+        //    É o caso de "FILMES SÉRIES", "FUTEBOL", "CANAIS | ...", "ESPORTES".
+        //    Antes eles caíam em Séries só porque o nome tinha "série".
+        if (isLiveCategory(g)) return MediaKind.LIVE
+
+        // 2) A URL do painel é a prova mais forte.
         if (u.contains("/series/")) return MediaKind.SERIES
         if (u.contains("/movie/")) return MediaKind.VOD
         if (u.contains("/live/")) return MediaKind.LIVE
 
-        // 2) Nome com padrão S01E02 / 1x02 é episódio de série.
+        // 3) Nome com padrão S01E02 / 1x02 é episódio de série.
         if (splitEpisode(title) != null) return MediaKind.SERIES
 
-        // 3) Pelo grupo.
-        if (g.contains("serie") || g.contains("série") || g.contains("temporada")) {
+        // 4) Pelo grupo.
+        if (g.hasAny(
+                "serie", "temporada", "novela", "anime", "dorama", "shows", "show "
+            )
+        ) {
             return MediaKind.SERIES
         }
-        if (g.contains("filme") || g.contains("movie") || g.contains("vod") ||
-            g.contains("cinema") || g.contains("lançamento") || g.contains("lancamento")
-        ) {
+        if (g.hasAny("filme", "movie", "vod", "cinema", "lancamento", "trailer")) {
             return MediaKind.VOD
         }
-        if (g.contains("canal") || g.contains("ao vivo") || g.contains("live") ||
-            g.contains("tv ") || g.contains("esporte") || g.contains("noticia") ||
-            g.contains("notícia") || g.contains("infantil") || g.contains("documentario") ||
-            g.contains("documentário")
-        ) {
+        if (g.hasAny("ao vivo", "live", "noticia", "infantil", "documentario")) {
             return MediaKind.LIVE
         }
 
-        // 4) Pela extensão do arquivo.
+        // 5) Pela extensão do arquivo.
         val clean = u.substringBefore('?')
         return when {
             clean.endsWith(".mp4") || clean.endsWith(".mkv") || clean.endsWith(".avi") ||
@@ -111,5 +113,45 @@ object M3uParser {
             clean.endsWith(".m3u8") || clean.endsWith(".ts") -> MediaKind.LIVE
             else -> MediaKind.LIVE
         }
+    }
+
+    /** Minúsculas, sem acentos e sem pontuação, para comparar grupos com segurança. */
+    private fun fold(value: String): String {
+        val lower = value.lowercase()
+        val stripped = java.text.Normalizer.normalize(lower, java.text.Normalizer.Form.NFD)
+            .replace(Regex("\\p{Mn}+"), "")
+        return stripped.replace(Regex("[^a-z0-9]+"), " ").trim()
+    }
+
+    private fun String.hasAny(vararg needles: String): Boolean =
+        needles.any { contains(it) }
+
+    /**
+     * Categorias de canais lineares. Não entram aqui as pastas de séries
+     * ("Series | Netflix", "Series | HBO Max" etc.) nem as de filmes
+     * ("Filmes | Documentarios", "Filmes | Adultos"...).
+     */
+    private fun isLiveCategory(g: String): Boolean {
+        if (g.isEmpty()) return false
+
+        // "FILMES • SÉRIES" é uma pasta de canais; já "Filmes | Drama" é VOD.
+        val movieAndSeries = g.hasAny(
+            "filmes e series", "filmes series", "filmes serie",
+            "series e filmes", "series filmes",
+            "filmes & series", "series & filmes"
+        )
+        if (movieAndSeries) return true
+
+        val looksMovie = g == "filme" || g == "filmes" ||
+            g.startsWith("filme ") || g.startsWith("filmes ")
+        if (looksMovie) return false
+
+        return g.hasAny(
+            "canais", "canal ", "ao vivo", "futebol", "esporte", "noticia", "infantil",
+            "documentario", "variedade", "aberta", "assinatura", "ppv", "adulto",
+            "jogos brasileirao", "brasileirao", "campeonato", "copa", "nba", "nfl", "ufc",
+            "luta", "combate", "premiere", "radio",
+            "24h", "24 horas", "live"
+        )
     }
 }

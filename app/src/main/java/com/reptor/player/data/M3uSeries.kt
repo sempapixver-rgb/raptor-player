@@ -7,11 +7,23 @@ import java.text.Normalizer
  *
  * Muitas listas trazem os episódios soltos ("Nome S01E02", "Nome 1x02",
  * "Nome Temporada 1 Episódio 2"). Aqui eles são agrupados pelo nome da série.
+ *
+ * Uma mesma série pode estar em mais de uma pasta do provedor (por exemplo
+ * "Series | Netflix" e "Series | HBO Max"). Nesse caso a série aparece nas
+ * duas pastas, igual à referência: as contagens de cada pasta continuam certas
+ * e nenhuma série "desaparece".
  */
 object M3uSeries {
 
+    private class Bucket(
+        val title: String,
+        var cover: String? = null,
+        val genres: LinkedHashSet<String> = LinkedHashSet(),
+        val episodes: LinkedHashMap<String, Episode> = LinkedHashMap()
+    )
+
     fun build(entries: List<MediaEntry>): Map<String, SeriesDetail> {
-        val grouped = LinkedHashMap<String, MutableList<Pair<MediaEntry, Triple<String, Int, Int>>>>()
+        val grouped = LinkedHashMap<String, Bucket>()
 
         var looseCounter = 0
         for (entry in entries) {
@@ -23,26 +35,36 @@ object M3uSeries {
             }
             val key = normalize(info.first)
             if (key.isBlank()) continue
-            grouped.getOrPut(key) { ArrayList() }.add(entry to info)
+
+            val bucket = grouped.getOrPut(key) { Bucket(info.first) }
+            if (bucket.cover.isNullOrBlank()) bucket.cover = entry.logo
+            entry.categoryId?.takeIf { it.isNotBlank() }?.let { bucket.genres.add(it) }
+
+            val (_, season, number) = info
+            val episodeNumber = if (number > 0) number else bucket.episodes.size + 1
+            val title = episodeTitle(entry.name, info.first, season, episodeNumber)
+            val episode = Episode(
+                id = entry.id,
+                title = title,
+                season = season,
+                number = episodeNumber,
+                url = entry.directUrl.orEmpty(),
+                logo = entry.logo
+            )
+            // A mesma série repetida em duas pastas costuma repetir os mesmos
+            // episódios (mesma URL). Guardamos só uma vez.
+            val dedupeKey = entry.directUrl?.takeIf { it.isNotBlank() }
+                ?: "s${season}e${episodeNumber}-${title.lowercase()}"
+            if (!bucket.episodes.containsKey(dedupeKey)) {
+                bucket.episodes[dedupeKey] = episode
+            }
         }
 
         val out = LinkedHashMap<String, SeriesDetail>()
-        for ((key, list) in grouped) {
-            val first = list.first().first
-            val title = list.first().second.first
-
+        for ((key, bucket) in grouped) {
             val bySeason = LinkedHashMap<Int, MutableList<Episode>>()
-            list.forEachIndexed { index, (entry, info) ->
-                val (_, season, number) = info
-                val ep = Episode(
-                    id = entry.id,
-                    title = episodeTitle(entry.name, title, season, number),
-                    season = season,
-                    number = if (number > 0) number else index + 1,
-                    url = entry.directUrl.orEmpty(),
-                    logo = entry.logo
-                )
-                bySeason.getOrPut(season) { ArrayList() }.add(ep)
+            bucket.episodes.values.forEach { episode ->
+                bySeason.getOrPut(episode.season) { ArrayList() }.add(episode)
             }
 
             val seasons = bySeason.entries
@@ -57,11 +79,13 @@ object M3uSeries {
                 }
 
             val id = "s-" + key.hashCode().toString(16)
+            val genres = bucket.genres.toList()
             out[id] = SeriesDetail(
                 id = id,
-                name = title,
-                cover = first.logo,
-                genre = first.categoryId,
+                name = bucket.title,
+                cover = bucket.cover,
+                genre = genres.firstOrNull(),
+                genres = genres,
                 seasons = seasons
             )
         }

@@ -210,27 +210,30 @@ fun CategoryPanel(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(Modifier.height(10.dp))
-
-        SideItem("Tudo", filter == Filter.ALL && selectedCategory == null, totalCount) {
-            onFilter(Filter.ALL)
-            onCategory(null)
-        }
-        SideItem("Favoritos", filter == Filter.FAVORITES, favoritesCount) {
-            onFilter(Filter.FAVORITES)
-        }
-        SideItem("Visto recentemente", filter == Filter.RECENTS, recentsCount) {
-            onFilter(Filter.RECENTS)
-        }
-
         Spacer(Modifier.height(8.dp))
-        HorizontalDivider(color = ReptorOutline.copy(alpha = 0.5f))
-        Spacer(Modifier.height(6.dp))
 
+        // Tudo, Favoritos, Visto recentemente e as categorias ficam na MESMA
+        // lista rolável, como na referência: nada fixo, sem traço no meio e
+        // sem rodapé espremendo as categorias.
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
+            item(key = "filters") {
+                Column {
+                    SideItem("Tudo", filter == Filter.ALL && selectedCategory == null, totalCount) {
+                        onFilter(Filter.ALL)
+                        onCategory(null)
+                    }
+                    SideItem("Favoritos", filter == Filter.FAVORITES, favoritesCount) {
+                        onFilter(Filter.FAVORITES)
+                    }
+                    SideItem("Visto recentemente", filter == Filter.RECENTS, recentsCount) {
+                        onFilter(Filter.RECENTS)
+                    }
+                }
+            }
+
             items(count = filtered.size, key = { filtered[it].id }) { index ->
                 val category = filtered[index]
                 SideItem(
@@ -243,14 +246,6 @@ fun CategoryPanel(
                 }
             }
         }
-
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = "${categories.size} categorias",
-            color = ReptorTextDim,
-            fontSize = 10.sp,
-            modifier = Modifier.padding(start = 6.dp)
-        )
     }
 }
 

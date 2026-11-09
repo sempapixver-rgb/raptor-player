@@ -112,10 +112,10 @@ class M3uSource(private val url: String) : PlaylistSource {
     override suspend fun categories(kind: MediaKind): List<Category> {
         if (kind == MediaKind.SERIES) {
             return seriesMap().values.asSequence()
-                .mapNotNull { it.genre }
+                .flatMap { it.allGenres().asSequence() }
                 .distinct()
                 .map { Category(it, it) }
-                .sortedBy { it.name }
+                .sortedBy { it.name.lowercase() }
                 .toList()
         }
         return all().asSequence()
@@ -129,13 +129,15 @@ class M3uSource(private val url: String) : PlaylistSource {
     override suspend fun items(kind: MediaKind, categoryId: String?): List<MediaEntry> {
         if (kind == MediaKind.SERIES) {
             return seriesMap().values.asSequence()
-                .filter { categoryId == null || it.genre == categoryId }
+                .filter { categoryId == null || categoryId in it.allGenres() }
                 .map {
+                    val genres = it.allGenres()
                     MediaEntry(
                         id = it.id,
                         name = it.name,
                         logo = it.cover,
-                        categoryId = it.genre,
+                        categoryId = categoryId ?: genres.firstOrNull(),
+                        categoryIds = genres,
                         kind = MediaKind.SERIES,
                         rating = it.rating,
                         plot = it.plot

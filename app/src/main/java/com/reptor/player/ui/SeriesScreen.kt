@@ -154,18 +154,31 @@ fun SeriesScreen(
         return
     }
 
-    val counts = remember(allItems) { allItems.groupingBy { it.categoryId.orEmpty() }.eachCount() }
+    val counts = remember(allItems) {
+        val map = HashMap<String, Int>()
+        allItems.forEach { entry ->
+            entry.allCategoryIds().forEach { id ->
+                map[id] = (map[id] ?: 0) + 1
+            }
+        }
+        map
+    }
 
     val visible = remember(filter, selectedCategory, query, allItems, favoritesSeries, recentsSeries) {
+        val trimmed = query.trim()
+        val searching = trimmed.isNotBlank()
         val base = when (filter) {
             Filter.FAVORITES -> favoritesSeries
             Filter.RECENTS -> recentsSeries
-            Filter.ALL -> allItems.filter {
-                selectedCategory == null || it.categoryId == selectedCategory
+            // Enquanto digita, a busca varre todas as séries (como na
+            // referência); a pasta escolhida só filtra quando não há busca.
+            Filter.ALL -> if (searching) allItems
+            else allItems.filter {
+                selectedCategory == null || selectedCategory in it.allCategoryIds()
             }
         }
-        if (query.isBlank()) base
-        else base.filter { it.name.contains(query.trim(), ignoreCase = true) }
+        if (!searching) base
+        else base.filter { it.name.contains(trimmed, ignoreCase = true) }
     }
 
     Row(Modifier.fillMaxSize()) {

@@ -70,8 +70,17 @@ data class MediaEntry(
     val directUrl: String? = null,
     val rating: Double? = null,
     val plot: String? = null,
-    val year: String? = null
-)
+    val year: String? = null,
+    /**
+     * Pastas extras em que o item também aparece. Uma série pode estar em
+     * "Series | Netflix" e em "Series | HBO Max" ao mesmo tempo; a pasta
+     * principal continua em [categoryId].
+     */
+    val categoryIds: List<String> = emptyList()
+) {
+    fun allCategoryIds(): List<String> =
+        (listOfNotNull(categoryId) + categoryIds).distinct()
+}
 
 /** Um episódio de série, já com a URL pronta para o player. */
 data class Episode(
@@ -97,8 +106,13 @@ data class SeriesDetail(
     val genre: String? = null,
     val releaseDate: String? = null,
     val rating: Double? = null,
-    val seasons: List<Season> = emptyList()
-)
+    val seasons: List<Season> = emptyList(),
+    /** Todas as pastas (categorias) em que a série aparece. */
+    val genres: List<String> = emptyList()
+) {
+    fun allGenres(): List<String> =
+        (listOfNotNull(genre) + genres).distinct()
+}
 
 // ------------------------------------------------------------------ EPG
 

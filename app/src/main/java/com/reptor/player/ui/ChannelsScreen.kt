@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -136,7 +135,7 @@ fun ChannelsScreen(
             Filter.FAVORITES -> favoritesLive
             Filter.RECENTS -> recentsLive
             Filter.ALL -> allItems.filter {
-                selectedCategory == null || it.categoryId == selectedCategory
+                selectedCategory == null || selectedCategory in it.allCategoryIds()
             }
         }
         if (query.isBlank()) base
@@ -152,7 +151,15 @@ fun ChannelsScreen(
         return
     }
 
-    val counts = remember(allItems) { allItems.groupingBy { it.categoryId.orEmpty() }.eachCount() }
+    val counts = remember(allItems) {
+        val map = HashMap<String, Int>()
+        allItems.forEach { entry ->
+            entry.allCategoryIds().forEach { id ->
+                map[id] = (map[id] ?: 0) + 1
+            }
+        }
+        map
+    }
 
     Row(Modifier.fillMaxSize()) {
         CategoryPanel(
@@ -269,22 +276,16 @@ private fun ChannelDetail(
     val current = epg?.current(nowMinutes.intValue)
     val next = epg?.upcoming(nowMinutes.intValue, 6).orEmpty()
 
-    Column(modifier.fillMaxSize().padding(14.dp)) {
-
-        // ------------------------------------------------------ tela pequena
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
-            // A prévia ocupa no máximo ~44% da altura útil: sobra espaço para
-            // o EPG embaixo mesmo em telas de celular em paisagem.
-            val previewHeight = (maxHeight * 0.44f)
-                .coerceAtMost(maxWidth * 9f / 16f)
-                .coerceAtLeast(110.dp)
-            val previewWidth = previewHeight * 16f / 9f
-
+    Row(
+        modifier = modifier.fillMaxSize().padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // ------------------------------------------- coluna esquerda: prévia
+        Column(Modifier.weight(1f).fillMaxHeight()) {
             Box(
                 Modifier
-                    .align(Alignment.Center)
-                    .width(previewWidth)
-                    .height(previewHeight)
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
                     .clip(RoundedCornerShape(10.dp))
                     .background(Color.Black)
             ) {
@@ -325,32 +326,29 @@ private fun ChannelDetail(
                     Text("AO VIVO", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                 }
             }
-        }
 
-        Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(10.dp))
 
         // ---------------------------------------------------------- cabeçalho
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = channel.name,
-                    color = ReptorText,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = epg?.channelName ?: "Programação não encontrada",
-                    color = ReptorTextDim,
-                    fontSize = 11.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+        Text(
+            text = channel.name,
+            color = ReptorText,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = epg?.channelName ?: "Programação não encontrada",
+            color = ReptorTextDim,
+            fontSize = 11.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
 
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ActionButton(if (isFavorite) "★ Favorito" else "☆ Favoritar") { onStar(channel) }
-            Spacer(Modifier.width(8.dp))
             ActionButton("▶ Assistir", primary = true) { onPlay(channel) }
         }
 
@@ -358,7 +356,23 @@ private fun ChannelDetail(
         HorizontalDivider(color = ReptorOutline.copy(alpha = 0.4f))
         Spacer(Modifier.height(8.dp))
 
-        // ---------------------------------------------------------------- EPG
+        Text("CATEGORIA", color = ReptorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(3.dp))
+        Text(
+            text = channel.categoryId ?: "Canais",
+            color = ReptorText,
+            fontSize = 12.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(Modifier.height(8.dp))
+        Text("SINAL", color = ReptorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(3.dp))
+        Text("Ao vivo", color = ReptorText, fontSize = 12.sp)
+        }
+
+        // ------------------------------------------------ coluna direita: EPG
+        Column(Modifier.width(178.dp).fillMaxHeight()) {
         Text("AGORA", color = ReptorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
 
         if (epgLoading) {
@@ -422,27 +436,28 @@ private fun ChannelDetail(
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.width(46.dp)
                         )
-                        Text(
-                            text = program.title,
-                            color = ReptorText,
-                            fontSize = 12.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-                        if (!program.genre.isNullOrBlank()) {
+                        Column(Modifier.weight(1f)) {
                             Text(
-                                text = program.genre,
-                                color = ReptorTextDim,
-                                fontSize = 9.sp,
+                                text = program.title,
+                                color = ReptorText,
+                                fontSize = 12.sp,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.width(120.dp)
+                                overflow = TextOverflow.Ellipsis
                             )
+                            if (!program.genre.isNullOrBlank()) {
+                                Text(
+                                    text = program.genre,
+                                    color = ReptorTextDim,
+                                    fontSize = 9.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
         }
     }
 }
