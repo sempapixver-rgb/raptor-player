@@ -12,9 +12,18 @@ import java.util.concurrent.TimeUnit
 interface PlaylistSource {
     /** Retorna "" quando o acesso está ok, ou uma mensagem de erro. */
     suspend fun check(): String
+
     suspend fun categories(kind: MediaKind): List<Category>
+
+    /** Canais ao vivo (LIVE) e filmes (VOD). Para séries use [seriesDetail]. */
     suspend fun items(kind: MediaKind, categoryId: String?): List<MediaEntry>
+
+    /** Série completa com temporadas e episódios. */
+    suspend fun seriesDetail(seriesId: String): SeriesDetail?
+
     suspend fun playUrl(entry: MediaEntry): String?
+
+    suspend fun account(): AccountInfo?
 }
 
 fun createSource(session: Session): PlaylistSource =
@@ -29,13 +38,19 @@ class XtreamSource(session: Session) : PlaylistSource {
     override suspend fun categories(kind: MediaKind): List<Category> = client.categories(kind)
 
     override suspend fun items(kind: MediaKind, categoryId: String?): List<MediaEntry> =
-        client.items(kind, categoryId)
+        if (kind == MediaKind.SERIES) client.seriesList(categoryId)
+        else client.items(kind, categoryId)
+
+    override suspend fun seriesDetail(seriesId: String): SeriesDetail? = client.seriesInfo(seriesId)
 
     override suspend fun playUrl(entry: MediaEntry): String? = when (entry.kind) {
         MediaKind.LIVE -> client.liveUrl(entry.id)
         MediaKind.VOD -> client.vodUrl(entry)
-        MediaKind.SERIES -> client.seriesUrl(entry.id)
+        // Série só é reproduzida pelo episódio escolhido na tela de temporadas.
+        MediaKind.SERIES -> null
     }
+
+    override suspend fun account(): AccountInfo? = client.account()
 }
 
 class M3uSource(private val url: String) : PlaylistSource {
@@ -48,12 +63,15 @@ class M3uSource(private val url: String) : PlaylistSource {
     @Volatile
     private var cache: List<MediaEntry>? = null
 
+    @Volatile
+    private var seriesCache: Map<String, SeriesDetail>? = null
+
     private suspend fun readPlaylist(): String = withContext(Dispatchers.IO) {
         when {
             url.startsWith("http://", true) || url.startsWith("https://", true) -> {
                 val request = Request.Builder()
                     .url(url)
-                    .header("User-Agent", "Reptor/1.0 (Android)")
+                    .header("User-Agent", "Reptor/1.2 (Android)")
                     .build()
                 http.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
@@ -78,22 +96,60 @@ class M3uSource(private val url: String) : PlaylistSource {
         return list
     }
 
+    private suspend fun seriesMap(): Map<String, SeriesDetail> {
+        seriesCache?.let { return it }
+        val map = M3uSeries.build(all())
+        seriesCache = map
+        return map
+    }
+
     override suspend fun check(): String = try {
         if (all().isEmpty()) "Playlist vazia ou inválida" else ""
     } catch (e: Exception) {
         "Não foi possível carregar a playlist: ${e.message ?: "erro de rede"}"
     }
 
-    override suspend fun categories(kind: MediaKind): List<Category> =
-        all().asSequence()
+    override suspend fun categories(kind: MediaKind): List<Category> {
+        if (kind == MediaKind.SERIES) {
+            return seriesMap().values.asSequence()
+                .mapNotNull { it.genre }
+                .distinct()
+                .map { Category(it, it) }
+                .sortedBy { it.name }
+                .toList()
+        }
+        return all().asSequence()
             .filter { it.kind == kind }
             .mapNotNull { it.categoryId }
             .distinct()
             .map { Category(it, it) }
             .toList()
+    }
 
-    override suspend fun items(kind: MediaKind, categoryId: String?): List<MediaEntry> =
-        all().filter { it.kind == kind && (categoryId == null || it.categoryId == categoryId) }
+    override suspend fun items(kind: MediaKind, categoryId: String?): List<MediaEntry> {
+        if (kind == MediaKind.SERIES) {
+            return seriesMap().values.asSequence()
+                .filter { categoryId == null || it.genre == categoryId }
+                .map {
+                    MediaEntry(
+                        id = it.id,
+                        name = it.name,
+                        logo = it.cover,
+                        categoryId = it.genre,
+                        kind = MediaKind.SERIES,
+                        rating = it.rating,
+                        plot = it.plot
+                    )
+                }
+                .sortedBy { it.name.lowercase() }
+                .toList()
+        }
+        return all().filter { it.kind == kind && (categoryId == null || it.categoryId == categoryId) }
+    }
+
+    override suspend fun seriesDetail(seriesId: String): SeriesDetail? = seriesMap()[seriesId]
 
     override suspend fun playUrl(entry: MediaEntry): String? = entry.directUrl
+
+    override suspend fun account(): AccountInfo? = null
 }

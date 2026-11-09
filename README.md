@@ -60,20 +60,27 @@ para uma distribuição real.
 
 ```
 app/src/main/java/com/reptor/player/
-├── MainActivity.kt          # navegação raiz (login ↔ home)
+├── MainActivity.kt          # navegação raiz (login ↔ home), tela sempre em paisagem
 ├── ReptorApp.kt
 ├── data/
-│   ├── Models.kt            # Session, Category, MediaEntry, MediaKind
-│   ├── Prefs.kt             # listas salvas + sessão atual
+│   ├── Models.kt            # Session, Category, MediaEntry, Episode, Season, SeriesDetail, EPG
+│   ├── Prefs.kt             # listas salvas, favoritos, histórico, retomada
 │   ├── SmartLink.kt         # detecção de link Xtream/M3U
-│   ├── XtreamClient.kt      # cliente player_api.php
-│   ├── M3uParser.kt         # parser de listas M3U/M3U8
+│   ├── XtreamClient.kt      # player_api.php (canais, filmes e séries hierárquicas)
+│   ├── M3uParser.kt         # parser M3U + classificação canal/filme/série
+│   ├── M3uSeries.kt         # agrupa episódios em série → temporada → episódio
+│   ├── EpgClient.kt         # grade de programação do meuguia.tv
 │   └── PlaylistSource.kt    # abstração Xtream / M3U
 └── ui/
     ├── theme/Theme.kt       # tema verde Reptor (dark-first)
     ├── LoginScreen.kt       # abas Xtream e M3U
-    ├── HomeScreen.kt        # Ao vivo / Filmes / Séries
-    └── PlayerScreen.kt      # Media3 ExoPlayer
+    ├── Components.kt        # topo, menu, categorias, pôsteres, estados
+    ├── ChannelsScreen.kt    # categorias | canais | prévia ao vivo + EPG
+    ├── MoviesScreen.kt      # categorias + busca + ordenação + grade
+    ├── SeriesScreen.kt      # séries → temporadas → episódios
+    ├── SettingsScreen.kt    # conta, listas, limpeza, privacidade
+    ├── HomeScreen.kt        # casca com as 4 abas
+    └── PlayerScreen.kt      # Media3 ExoPlayer em tela cheia
 ```
 
 ## Funcionalidades
@@ -82,28 +89,32 @@ app/src/main/java/com/reptor/player/
 - **Colar inteligente**: cole `get.php?...`, `host:porta` ou qualquer link e o app decide sozinho se é Xtream ou M3U, preenchendo os campos.
 - **Importar arquivo `.m3u`** direto do aparelho (copia para o armazenamento privado do app).
 - **Múltiplas listas salvas**: o cliente troca de provedor sem redigitar nada.
-- Validação de login direto no servidor do usuário.
-- Navegação por categorias em três seções: **Ao vivo**, **Filmes**, **Séries**.
-- Player HLS/DASH com Media3 ExoPlayer, controle em tela cheia e `FLAG_KEEP_SCREEN_ON`.
+- Layout **horizontal (paisagem)**, pensado para TV, box e tablet.
+- Menu principal com **Canais · Filmes · Séries · Ajustes**.
+- **Canais**: painel de categorias com contagem, busca, lista numerada, prévia ao vivo muda,
+  e abaixo dela o **EPG integrado** (programa atual + próximos) da grade gratuita do
+  [meuguia.tv](https://meuguia.tv).
+- **Filmes**: categorias, busca, ordenação (A-Z, Z-A, nota) e grade de pôsteres com nota.
+- **Séries em hierarquia real**: categoria → série → temporada → episódio. Nenhum episódio
+  solto na grade.
+- Favoritos e histórico por seção (ao vivo, filmes, séries).
+- Player HLS/DASH com Media3 ExoPlayer, tela cheia imersiva, retomada de posição,
+  pausa ao sair do app e PiP.
 - Suporte a TV: `LEANBACK_LAUNCHER`, banner, foco por D-pad com destaque verde.
-- Sessão lembrada entre aberturas; botão **Listas** volta à tela de seleção.
 - HTTP e HTTPS (servidores Xtream legados costumam ser HTTP).
 
-## Limitações conhecidas (v1.0.0)
+## Limitações conhecidas (v1.2.0)
 
-- Séries abrem o **primeiro episódio** da primeira temporada; ainda não há seletor de episódios.
-- Sem EPG/guia de programação.
-- Sem busca ou favoritos.
+- O EPG usa o meuguia.tv por aproximação de nome; canais regionais podem casar com a
+  grade do canal nacional equivalente.
+- Listas M3U sem marcação de episódio (`S01E02`) podem gerar séries com um único episódio.
 - Credenciais ficam em `SharedPreferences` privadas do app (sem criptografia adicional).
-- Player não implementa PiP nem legendas manuais.
 
 ## Próximos passos sugeridos
 
-1. Tela de detalhe de série com temporadas/episódios.
-2. EPG via XMLTV (`get_simple_data_table`).
-3. Busca local e favoritos.
-4. Migrar credenciais para `EncryptedSharedPreferences`.
-5. Suporte a múltiplos perfis/playlists.
+1. EPG por XMLTV (`get_simple_data_table`) quando o provedor oferecer.
+2. Migrar credenciais para `EncryptedSharedPreferences`.
+3. Múltiplos perfis/playlists com sincronização opcional.
 
 ## Aviso
 
