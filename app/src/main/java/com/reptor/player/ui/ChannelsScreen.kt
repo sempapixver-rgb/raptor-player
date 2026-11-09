@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -67,6 +68,7 @@ fun ChannelsScreen(
     favorites: List<MediaEntry>,
     recents: List<MediaEntry>,
     refreshKey: Int = 0,
+    previewEnabled: Boolean = true,
     onPlay: (MediaEntry) -> Unit,
     onToggleFavorite: (MediaEntry) -> Unit
 ) {
@@ -214,6 +216,7 @@ fun ChannelsScreen(
         ChannelDetail(
             channel = selected,
             previewUrl = previewUrl,
+            previewEnabled = previewEnabled,
             epg = epg,
             epgLoading = epgLoading,
             isFavorite = selected != null && favoritesLive.any { it.id == selected?.id },
@@ -238,6 +241,7 @@ private fun VerticalSeparator() {
 private fun ChannelDetail(
     channel: MediaEntry?,
     previewUrl: String?,
+    previewEnabled: Boolean,
     epg: ChannelEpg?,
     epgLoading: Boolean,
     isFavorite: Boolean,
@@ -268,47 +272,58 @@ private fun ChannelDetail(
     Column(modifier.fillMaxSize().padding(14.dp)) {
 
         // ------------------------------------------------------ tela pequena
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .aspectRatio(16f / 9f)
-                .clip(RoundedCornerShape(10.dp))
-                .background(Color.Black)
-        ) {
-            LivePreview(
-                url = previewUrl,
-                muted = muted,
-                modifier = Modifier.fillMaxSize()
-            )
-
-            if (previewUrl == null) {
-                Text(
-                    text = "Sem sinal de prévia",
-                    color = ReptorTextDim,
-                    fontSize = 12.sp,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                MiniButton(if (muted) "🔇" else "🔊") { muted = !muted }
-                MiniButton("⛶") { onPlay(channel) }
-            }
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            // A prévia ocupa no máximo ~44% da altura útil: sobra espaço para
+            // o EPG embaixo mesmo em telas de celular em paisagem.
+            val previewHeight = (maxHeight * 0.44f)
+                .coerceAtMost(maxWidth * 9f / 16f)
+                .coerceAtLeast(110.dp)
+            val previewWidth = previewHeight * 16f / 9f
 
             Box(
                 Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp)
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(Color(0xFFD32F2F))
-                    .padding(horizontal = 7.dp, vertical = 2.dp)
+                    .align(Alignment.Center)
+                    .width(previewWidth)
+                    .height(previewHeight)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.Black)
             ) {
-                Text("AO VIVO", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                LivePreview(
+                    url = previewUrl,
+                    muted = muted,
+                    enabled = previewEnabled,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                if (previewUrl == null) {
+                    Text(
+                        text = "Sem sinal de prévia",
+                        color = ReptorTextDim,
+                        fontSize = 12.sp,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    MiniButton(if (muted) "🔇" else "🔊") { muted = !muted }
+                    MiniButton("⛶") { onPlay(channel) }
+                }
+
+                Box(
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(Color(0xFFD32F2F))
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                ) {
+                    Text("AO VIVO", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
 
@@ -465,7 +480,12 @@ private fun ActionButton(label: String, primary: Boolean = false, onClick: () ->
 
 /** Prévia ao vivo (muda de canal sem sair da tela). */
 @Composable
-private fun LivePreview(url: String?, muted: Boolean, modifier: Modifier = Modifier) {
+private fun LivePreview(
+    url: String?,
+    muted: Boolean,
+    enabled: Boolean,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -476,11 +496,11 @@ private fun LivePreview(url: String?, muted: Boolean, modifier: Modifier = Modif
         }
     }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(url, enabled) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> player.pause()
-                Lifecycle.Event.ON_START -> if (url != null) player.play()
+                Lifecycle.Event.ON_START -> if (url != null && enabled) player.play()
                 else -> Unit
             }
         }
@@ -491,8 +511,10 @@ private fun LivePreview(url: String?, muted: Boolean, modifier: Modifier = Modif
         }
     }
 
-    LaunchedEffect(url) {
-        if (url.isNullOrBlank()) {
+    LaunchedEffect(url, enabled) {
+        // Com o player em tela cheia aberto a prévia é descartada para não
+        // ocupar uma conexão do servidor (limite de conexões da conta).
+        if (url.isNullOrBlank() || !enabled) {
             player.stop()
             player.clearMediaItems()
         } else {

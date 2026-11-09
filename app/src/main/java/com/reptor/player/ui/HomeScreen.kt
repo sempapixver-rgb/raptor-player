@@ -120,6 +120,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         favorites = favorites,
                         recents = recents,
                         refreshKey = refreshTick,
+                        previewEnabled = current == null,
                         onPlay = { play(it) },
                         onToggleFavorite = { toggleFavorite(it) }
                     )
