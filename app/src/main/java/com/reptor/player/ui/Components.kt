@@ -30,6 +30,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +38,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -55,6 +58,7 @@ import com.reptor.player.ui.theme.ReptorOutline
 import com.reptor.player.ui.theme.ReptorSurfaceHigh
 import com.reptor.player.ui.theme.ReptorText
 import com.reptor.player.ui.theme.ReptorTextDim
+import kotlinx.coroutines.delay
 
 enum class Tab(val label: String) {
     CHANNELS("Canais"),
@@ -108,14 +112,27 @@ fun TopBar(
         }
         Text(text = clock, color = ReptorTextDim, fontSize = 13.sp)
         Spacer(Modifier.width(10.dp))
+        var refreshFocused by remember { mutableStateOf(false) }
         Box(
             Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(ReptorSurfaceHigh)
+                .background(
+                    if (refreshFocused) ReptorGreen.copy(alpha = 0.18f) else ReptorSurfaceHigh
+                )
+                .border(
+                    width = if (refreshFocused) 1.5.dp else 0.dp,
+                    color = if (refreshFocused) ReptorGreen else Color.Transparent,
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .onFocusChanged { refreshFocused = it.isFocused }
                 .clickable(onClick = onRefresh)
                 .padding(horizontal = 12.dp, vertical = 7.dp)
         ) {
-            Text("⟳  Atualizar", color = ReptorTextDim, fontSize = 12.sp)
+            Text(
+                text = "⟳  Atualizar",
+                color = if (refreshFocused) ReptorGreen else ReptorTextDim,
+                fontSize = 12.sp
+            )
         }
     }
 }
@@ -136,19 +153,26 @@ fun BottomNav(tab: Tab, onTab: (Tab) -> Unit) {
         ) {
             Tab.entries.forEach { entry ->
                 val selected = tab == entry
+                var tabFocused by remember { mutableStateOf(false) }
                 Column(
                     modifier = Modifier
                         .clip(RoundedCornerShape(9.dp))
                         .background(if (selected) ReptorGreen.copy(alpha = 0.16f) else Color.Transparent)
+                        .border(
+                            width = if (tabFocused) 1.5.dp else 0.dp,
+                            color = if (tabFocused) ReptorGreen else Color.Transparent,
+                            shape = RoundedCornerShape(9.dp)
+                        )
+                        .onFocusChanged { tabFocused = it.isFocused }
                         .clickable { onTab(entry) }
                         .padding(horizontal = 30.dp, vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = entry.label,
-                        color = if (selected) ReptorGreen else ReptorTextDim,
+                        color = if (selected || tabFocused) ReptorGreen else ReptorTextDim,
                         fontSize = 13.sp,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (selected || tabFocused) FontWeight.Bold else FontWeight.Normal
                     )
                 }
             }
@@ -197,6 +221,13 @@ fun CategoryPanel(
         query.isBlank() || it.name.contains(query.trim(), ignoreCase = true)
     }
 
+    // Em TV/controle, o foco começa em "Tudo": o D-pad já funciona ao abrir a aba.
+    val firstFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        delay(120)
+        runCatching { firstFocus.requestFocus() }
+    }
+
     Column(
         modifier = modifier
             .fillMaxHeight()
@@ -221,7 +252,7 @@ fun CategoryPanel(
         ) {
             item(key = "filters") {
                 Column {
-                    SideItem("Tudo", filter == Filter.ALL && selectedCategory == null, totalCount) {
+                    SideItem("Tudo", filter == Filter.ALL && selectedCategory == null, totalCount, focusRequester = firstFocus) {
                         onFilter(Filter.ALL)
                         onCategory(null)
                     }
@@ -254,6 +285,7 @@ fun SideItem(
     label: String,
     selected: Boolean,
     count: Int? = null,
+    focusRequester: FocusRequester? = null,
     onClick: () -> Unit
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -268,6 +300,9 @@ fun SideItem(
                     else -> Color.Transparent
                 }
             )
+            .then(
+                if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier
+            )
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 8.dp),
@@ -275,7 +310,7 @@ fun SideItem(
     ) {
         Text(
             text = label,
-            color = if (selected) ReptorGreen else ReptorTextDim,
+            color = if (selected || focused) ReptorGreen else ReptorTextDim,
             fontSize = 12.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             maxLines = 1,
@@ -456,8 +491,12 @@ fun ChannelRow(
                 }
             )
             .border(
-                width = if (selected) 1.dp else 0.dp,
-                color = if (selected) ReptorGreen.copy(alpha = 0.6f) else Color.Transparent,
+                width = if (selected || focused) 1.dp else 0.dp,
+                color = when {
+                    selected -> ReptorGreen.copy(alpha = 0.6f)
+                    focused -> ReptorGreen
+                    else -> Color.Transparent
+                },
                 shape = RoundedCornerShape(8.dp)
             )
             .onFocusChanged { focused = it.isFocused }

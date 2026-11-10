@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -268,6 +269,8 @@ private fun SeriesDetailView(
     onPlayEpisode: (List<PlayItem>, Int) -> Unit
 ) {
     var seasonIndex by remember(detail?.id) { mutableIntStateOf(0) }
+    var backFocused by remember { mutableStateOf(false) }
+    var starFocused by remember { mutableStateOf(false) }
     val seasons: List<Season> = detail?.seasons.orEmpty()
     val safeIndex = seasonIndex.coerceIn(0, (seasons.size - 1).coerceAtLeast(0))
     val season = seasons.getOrNull(safeIndex)
@@ -298,11 +301,22 @@ private fun SeriesDetailView(
             Box(
                 Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(ReptorSurfaceHigh)
+                    .background(if (backFocused) ReptorGreen.copy(alpha = 0.16f) else ReptorSurfaceHigh)
+                    .border(
+                        width = if (backFocused) 1.5.dp else 0.dp,
+                        color = if (backFocused) ReptorGreen else Color.Transparent,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .onFocusChanged { backFocused = it.isFocused }
                     .clickable(onClick = onBack)
                     .padding(horizontal = 12.dp, vertical = 7.dp)
             ) {
-                Text("← Séries", color = ReptorGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "← Séries",
+                    color = if (backFocused) ReptorGreen else ReptorGreen,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
             Spacer(Modifier.width(12.dp))
             Text(
@@ -326,7 +340,13 @@ private fun SeriesDetailView(
             Box(
                 Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(ReptorSurfaceHigh)
+                    .background(if (starFocused) ReptorGreen.copy(alpha = 0.16f) else ReptorSurfaceHigh)
+                    .border(
+                        width = if (starFocused) 1.5.dp else 0.dp,
+                        color = if (starFocused) ReptorGreen else Color.Transparent,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .onFocusChanged { starFocused = it.isFocused }
                     .clickable(onClick = onStar)
                     .padding(horizontal = 12.dp, vertical = 7.dp)
             ) {
@@ -512,15 +532,23 @@ private fun SeriesDetailView(
                         items(count = seasons.size, key = { seasons[it].number }) { index ->
                             val item = seasons[index]
                             val selected = index == safeIndex
+                            var chipFocused by remember { mutableStateOf(false) }
                             Box(
                                 Modifier
                                     .clip(RoundedCornerShape(9.dp))
-                                    .background(if (selected) ReptorGreen.copy(alpha = 0.2f) else ReptorSurfaceHigh)
+                                    .background(
+                                        when {
+                                            selected -> ReptorGreen.copy(alpha = 0.2f)
+                                            chipFocused -> ReptorGreen.copy(alpha = 0.12f)
+                                            else -> ReptorSurfaceHigh
+                                        }
+                                    )
                                     .border(
-                                        width = if (selected) 1.dp else 0.dp,
-                                        color = if (selected) ReptorGreen else Color.Transparent,
+                                        width = if (selected || chipFocused) 1.dp else 0.dp,
+                                        color = if (selected || chipFocused) ReptorGreen else Color.Transparent,
                                         shape = RoundedCornerShape(9.dp)
                                     )
+                                    .onFocusChanged { chipFocused = it.isFocused }
                                     .clickable { seasonIndex = index }
                                     .padding(horizontal = 14.dp, vertical = 8.dp)
                             ) {
@@ -586,11 +614,20 @@ private fun SeriesDetailView(
 
 @Composable
 private fun EpisodeRow(episode: Episode, onPlay: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(ReptorSurfaceHigh.copy(alpha = 0.4f))
+            .background(
+                if (focused) ReptorGreen.copy(alpha = 0.12f) else ReptorSurfaceHigh.copy(alpha = 0.4f)
+            )
+            .border(
+                width = if (focused) 1.dp else 0.dp,
+                color = if (focused) ReptorGreen else Color.Transparent,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onPlay)
             .padding(horizontal = 10.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -634,7 +671,6 @@ private fun EpisodeRow(episode: Episode, onPlay: () -> Unit) {
             Modifier
                 .clip(RoundedCornerShape(7.dp))
                 .background(ReptorGreen)
-                .clickable(onClick = onPlay)
                 .padding(horizontal = 12.dp, vertical = 5.dp)
         ) {
             Text("▶", color = Color(0xFF00210F), fontSize = 11.sp, fontWeight = FontWeight.Bold)

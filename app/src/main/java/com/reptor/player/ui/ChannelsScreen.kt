@@ -1,6 +1,7 @@
 package com.reptor.player.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -464,29 +466,49 @@ private fun ChannelDetail(
 
 @Composable
 private fun MiniButton(label: String, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
     Box(
         Modifier
             .clip(RoundedCornerShape(6.dp))
-            .background(Color.Black.copy(alpha = 0.55f))
+            .background(if (focused) ReptorGreen.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.55f))
+            .border(
+                width = if (focused) 1.5.dp else 0.dp,
+                color = if (focused) ReptorGreen else Color.Transparent,
+                shape = RoundedCornerShape(6.dp)
+            )
+            .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
-        Text(label, color = Color.White, fontSize = 12.sp)
+        Text(label, color = if (focused) ReptorGreen else Color.White, fontSize = 12.sp)
     }
 }
 
 @Composable
 private fun ActionButton(label: String, primary: Boolean = false, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
     Box(
         Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(if (primary) ReptorGreen else ReptorSurfaceHigh)
+            .background(
+                when {
+                    primary -> ReptorGreen
+                    focused -> ReptorGreen.copy(alpha = 0.20f)
+                    else -> ReptorSurfaceHigh
+                }
+            )
+            .border(
+                width = if (focused) 1.5.dp else 0.dp,
+                color = if (focused) ReptorGreen else Color.Transparent,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {
         Text(
             text = label,
-            color = if (primary) Color(0xFF00210F) else ReptorText,
+            color = if (primary) Color(0xFF00210F) else if (focused) ReptorGreen else ReptorText,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )

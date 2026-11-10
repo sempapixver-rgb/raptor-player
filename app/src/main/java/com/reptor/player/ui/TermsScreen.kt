@@ -23,9 +23,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +45,7 @@ import com.reptor.player.ui.theme.ReptorGreen
 import com.reptor.player.ui.theme.ReptorOutline
 import com.reptor.player.ui.theme.ReptorText
 import com.reptor.player.ui.theme.ReptorTextDim
+import kotlinx.coroutines.delay
 
 /** Versão do termo. Se o texto mudar, aumente para pedir o aceite novamente. */
 const val TERMS_VERSION = 1
@@ -81,6 +90,15 @@ fun termsPlainText(): String =
  */
 @Composable
 fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
+    // No controle remoto, o foco já abre em "Aceitar e continuar".
+    var acceptFocused by remember { mutableStateOf(false) }
+    var declineFocused by remember { mutableStateOf(false) }
+    val acceptFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        delay(120)
+        runCatching { acceptFocus.requestFocus() }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -199,10 +217,13 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onDecline) {
+                TextButton(
+                    onClick = onDecline,
+                    modifier = Modifier.onFocusChanged { declineFocused = it.isFocused }
+                ) {
                     Text(
                         text = "Não aceito",
-                        color = ReptorTextDim,
+                        color = if (declineFocused) ReptorText else ReptorTextDim,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -210,7 +231,15 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
                 Spacer(Modifier.width(16.dp))
                 Button(
                     onClick = onAccept,
-                    modifier = Modifier.height(46.dp),
+                    modifier = Modifier
+                        .height(46.dp)
+                        .focusRequester(acceptFocus)
+                        .onFocusChanged { acceptFocused = it.isFocused }
+                        .border(
+                            width = if (acceptFocused) 2.dp else 0.dp,
+                            color = if (acceptFocused) Color.White else Color.Transparent,
+                            shape = RoundedCornerShape(12.dp)
+                        ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(

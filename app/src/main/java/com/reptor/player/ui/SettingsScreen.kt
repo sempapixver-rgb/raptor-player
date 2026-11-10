@@ -33,6 +33,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,6 +53,7 @@ import com.reptor.player.ui.theme.ReptorOutline
 import com.reptor.player.ui.theme.ReptorSurfaceHigh
 import com.reptor.player.ui.theme.ReptorText
 import com.reptor.player.ui.theme.ReptorTextDim
+import kotlinx.coroutines.delay
 
 private data class SettingItem(
     val icon: String,
@@ -73,6 +77,11 @@ fun SettingsScreen(
     var accountLoading by remember { mutableStateOf(true) }
     var message by remember { mutableStateOf<String?>(null) }
     var showTerms by remember { mutableStateOf(false) }
+    val firstFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        delay(120)
+        runCatching { firstFocus.requestFocus() }
+    }
 
     LaunchedEffect(session.key()) {
         accountLoading = true
@@ -238,8 +247,11 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            items(options) { item ->
-                SettingCard(item)
+            items(options.size) { index ->
+                SettingCard(
+                    item = options[index],
+                    focusRequester = if (index == 0) firstFocus else null
+                )
             }
         }
     }
@@ -277,12 +289,23 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingCard(item: SettingItem) {
+private fun SettingCard(item: SettingItem, focusRequester: FocusRequester? = null) {
+    var focused by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(ReptorSurfaceHigh.copy(alpha = 0.55f))
-            .border(1.dp, ReptorOutline.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+            .background(
+                if (focused) ReptorGreen.copy(alpha = 0.12f) else ReptorSurfaceHigh.copy(alpha = 0.55f)
+            )
+            .border(
+                width = if (focused) 1.5.dp else 1.dp,
+                color = if (focused) ReptorGreen else ReptorOutline.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(10.dp)
+            )
+            .then(
+                if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier
+            )
+            .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = item.action)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically

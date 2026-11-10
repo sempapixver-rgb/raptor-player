@@ -1,6 +1,7 @@
 package com.reptor.player.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +29,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -184,11 +187,18 @@ fun MoviesScreen(
 @Composable
 fun SortButton(current: SortMode, onSelect: (SortMode) -> Unit) {
     var open by remember { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(false) }
     Box {
         Box(
             Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(ReptorSurfaceHigh)
+                .background(if (focused) ReptorGreen.copy(alpha = 0.18f) else ReptorSurfaceHigh)
+                .border(
+                    width = if (focused) 1.5.dp else 0.dp,
+                    color = if (focused) ReptorGreen else Color.Transparent,
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .onFocusChanged { focused = it.isFocused }
                 .clickable { open = true }
                 .padding(horizontal = 12.dp, vertical = 9.dp)
         ) {

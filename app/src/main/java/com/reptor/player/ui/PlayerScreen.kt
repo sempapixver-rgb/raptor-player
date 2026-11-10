@@ -10,8 +10,10 @@ import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,8 +46,17 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -299,10 +310,96 @@ fun PlayerScreen(
         }
     }
 
+    // Foco raiz do player: permite usar o D-pad/controle remoto.
+    val rootFocus = remember { FocusRequester() }
+    val playFocus = remember { FocusRequester() }
+    var rootSelfFocused by remember { mutableStateOf(true) }
+    LaunchedEffect(controlsVisible) {
+        delay(60)
+        runCatching {
+            // Controles visíveis: foco no play (D-pad navega os botões).
+            // Controles escondidos: foco no vídeo (qualquer tecla reabre).
+            if (controlsVisible) playFocus.requestFocus() else rootFocus.requestFocus()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
+            .focusRequester(rootFocus)
+            .onFocusChanged { rootSelfFocused = it.isFocused }
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (event.key) {
+                    // Botões de mídia do controle (play/pause e faixas).
+                    Key.MediaPlayPause -> {
+                        if (player.isPlaying) player.pause() else player.play()
+                        controlsVisible = true
+                        true
+                    }
+
+                    Key.MediaNext -> {
+                        if (items.size > 1) go(1)
+                        true
+                    }
+
+                    Key.MediaPrevious -> {
+                        if (items.size > 1) go(-1)
+                        true
+                    }
+
+                    // Esquerda/direita: mostra os controles ou avança/volta 10s.
+                    Key.DirectionLeft -> {
+                        if (!controlsVisible) {
+                            controlsVisible = true
+                            true
+                        } else if (rootSelfFocused) {
+                            player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0))
+                            true
+                        } else {
+                            false
+                        }
+                    }
+
+                    Key.DirectionRight -> {
+                        if (!controlsVisible) {
+                            controlsVisible = true
+                            true
+                        } else if (rootSelfFocused) {
+                            player.seekTo(player.currentPosition + 10_000)
+                            true
+                        } else {
+                            false
+                        }
+                    }
+
+                    // Qualquer direção/OK mostra os controles.
+                    Key.DirectionUp, Key.DirectionDown -> {
+                        if (!controlsVisible) {
+                            controlsVisible = true
+                            true
+                        } else {
+                            false
+                        }
+                    }
+
+                    Key.DirectionCenter, Key.Enter -> {
+                        if (!controlsVisible) {
+                            controlsVisible = true
+                            true
+                        } else if (rootSelfFocused) {
+                            if (player.isPlaying) player.pause() else player.play()
+                            true
+                        } else {
+                            false
+                        }
+                    }
+
+                    else -> false
+                }
+            }
     ) {
         AndroidView(
             factory = { ctx ->
@@ -319,13 +416,14 @@ fun PlayerScreen(
         )
 
         // Toque/clique em qualquer lugar mostra ou esconde os controles.
+        // pointerInput (em vez de clickable) evita que a camada inteira entre
+        // na navegação por D-pad e roube o foco dos botões.
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { toggleControls() }
+                .pointerInput(Unit) {
+                    detectTapGestures { toggleControls() }
+                }
         )
 
         if (controlsVisible) {
@@ -457,16 +555,31 @@ fun PlayerScreen(
                         Text("−10s", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                     }
                     Spacer(Modifier.width(24.dp))
+                    var playFocused by remember { mutableStateOf(false) }
                     Box(
                         modifier = Modifier
                             .size(62.dp)
-                            .background(Color.White.copy(alpha = 0.16f), RoundedCornerShape(50))
-                            .focusable(),
+                            .background(
+                                if (playFocused) Color.White.copy(alpha = 0.30f)
+                                else Color.White.copy(alpha = 0.16f),
+                                RoundedCornerShape(50)
+                            )
+                            .border(
+                                width = if (playFocused) 2.dp else 0.dp,
+                                color = if (playFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                shape = RoundedCornerShape(50)
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
-                        TextButton(onClick = {
-                            if (player.isPlaying) player.pause() else player.play()
-                        }) {
+                        TextButton(
+                            onClick = {
+                                if (player.isPlaying) player.pause() else player.play()
+                            },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .focusRequester(playFocus)
+                                .onFocusChanged { playFocused = it.isFocused }
+                        ) {
                             Text(
                                 text = if (isPlaying) "❚❚" else "▶",
                                 color = Color.White,

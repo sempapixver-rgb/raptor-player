@@ -34,6 +34,7 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +44,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -64,6 +67,7 @@ import com.reptor.player.ui.theme.ReptorBackground
 import com.reptor.player.ui.theme.ReptorGreen
 import com.reptor.player.ui.theme.ReptorTextDim
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -86,6 +90,13 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
+    // No controle remoto, o primeiro campo já abre com foco.
+    val firstField = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        delay(150)
+        runCatching { firstField.requestFocus() }
+    }
 
     fun login(session: Session) {
         if (loading) return
@@ -283,9 +294,10 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                                 Text("Colar", color = ReptorGreen, fontSize = 13.sp)
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(firstField)
                     )
-
                     hint?.let {
                         Spacer(Modifier.height(6.dp))
                         Text(
