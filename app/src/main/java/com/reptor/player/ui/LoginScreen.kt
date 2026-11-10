@@ -215,7 +215,7 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                 letterSpacing = 10.sp
             )
             Text(
-                text = "IPTV PLAYER",
+                text = "VIDEO PLAYER",
                 color = ReptorTextDim,
                 fontSize = 12.sp,
                 letterSpacing = 6.sp

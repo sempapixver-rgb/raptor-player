@@ -51,24 +51,24 @@ val TERMS_SECTIONS: List<Pair<String, String>> = listOf(
         "Não fornecemos, hospedamos, distribuímos, vendemos, transmitimos nem " +
         "indicamos canais, filmes, séries ou qualquer outro conteúdo.",
     "2. Origem do conteúdo" to
-        "Todo o conteúdo exibido vem de listas (M3U), links ou servidores " +
+        "Todo o conteúdo exibido vem de vídeos, links ou servidores " +
         "informados exclusivamente pelo usuário. Não temos vínculo, parceria " +
         "ou responsabilidade sobre esses provedores ou sobre o material que eles oferecem.",
     "3. Responsabilidade do usuário" to
         "O usuário declara que possui as autorizações, assinaturas e licenças " +
-        "necessárias para acessar o conteúdo que cadastra, sendo o único " +
+        "necessárias para reproduzir o conteúdo que cadastra, sendo o único " +
         "responsável por ele e pelo uso que faz do aplicativo.",
     "4. Isenção de responsabilidade" to
         "Não nos responsabilizamos por conteúdo ilegal, violação de direitos " +
         "autorais, indisponibilidade, qualidade, cobranças, bloqueios ou " +
-        "qualquer dano decorrente do uso de listas de terceiros.",
+        "qualquer dano decorrente do uso de vídeos e links de terceiros.",
     "5. Privacidade" to
-        "As listas e credenciais ficam salvas apenas neste aparelho. " +
+        "Seus acessos e credenciais ficam salvos apenas neste aparelho. " +
         "Não enviamos seus dados a terceiros e não temos acesso ao que você assiste.",
     "6. Aceite" to
         "Ao tocar em “Aceitar e continuar”, você confirma que leu e concorda " +
         "com estes termos e assume total responsabilidade pelo uso do " +
-        "aplicativo e pelo conteúdo que nele inserir."
+        "aplicativo e pelo conteúdo que nele reproduzir."
 )
 
 /** Versão em texto corrido, usada no diálogo dos Ajustes. */
@@ -104,7 +104,7 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
                 letterSpacing = 8.sp
             )
             Text(
-                text = "IPTV PLAYER",
+                text = "VIDEO PLAYER",
                 color = ReptorTextDim,
                 fontSize = 11.sp,
                 letterSpacing = 5.sp
