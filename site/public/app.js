@@ -112,8 +112,8 @@
       if (response.ok && data.ok) {
         showResult(
           "ok",
-          "Ativação enviada! Abra a TV: o app entra sozinho em alguns segundos. " +
-          "Se ele já estiver aberto, espere a tela mudar."
+          "Ativação enviada! Na TV, toque em “Verificar agora” ou feche e abra o app. " +
+          "Ele entra sozinho com a configuração que você acabou de enviar."
         );
       } else {
         showResult("err", data.message || "Não foi possível ativar. Tente novamente.");
