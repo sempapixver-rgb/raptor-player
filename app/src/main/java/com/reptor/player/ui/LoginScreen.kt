@@ -231,6 +231,11 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                 fontSize = 12.sp,
                 letterSpacing = 6.sp
             )
+            Spacer(Modifier.height(20.dp))
+
+            // Ativação sem digitar nada: QR Code + código da TV.
+            ActivationCard(onActivated = { login(it) })
+
             Spacer(Modifier.height(24.dp))
 
             // Listas já salvas
