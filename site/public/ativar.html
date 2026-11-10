@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0B0F0C" />
+  <title>Ativar TV — Reptor Player</title>
+  <meta name="description" content="Ative o Reptor Player na sua TV usando o código exibido na tela." />
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo">REPTOR</span>
+      <span class="tag">VIDEO PLAYER</span>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <a class="back" href="/">← Voltar ao site</a>
+    <section class="hero">
+      <h1>Ativar sua TV</h1>
+      <p class="sub">
+        Abra o Reptor Player na TV, veja o código exibido na tela e preencha aqui.
+        A ativação chega no aparelho sozinha, sem digitar nada no controle.
+      </p>
+    </section>
+
+    <form id="form" class="card" novalidate>
+      <label class="field">
+        <span>Código da TV (MAC)</span>
+        <input id="code" name="code" type="text" inputmode="text" autocomplete="off"
+               spellcheck="false" placeholder="AA:BB:CC:DD:EE:FF" required />
+        <small>Aparece na tela de login do app, junto do QR Code.</small>
+      </label>
+
+      <div class="tabs" role="tablist" aria-label="Tipo de acesso">
+        <button type="button" class="tab active" data-mode="XTREAM" role="tab" aria-selected="true">
+          Xtream Codes
+        </button>
+        <button type="button" class="tab" data-mode="M3U" role="tab" aria-selected="false">
+          Link M3U
+        </button>
+      </div>
+
+      <div id="panel-xtream" class="panel">
+        <label class="field">
+          <span>Servidor</span>
+          <input id="host" type="text" autocomplete="off" spellcheck="false"
+                 placeholder="http://servidor.com:8080" />
+        </label>
+        <div class="row">
+          <label class="field">
+            <span>Usuário</span>
+            <input id="user" type="text" autocomplete="off" spellcheck="false" placeholder="usuario" />
+          </label>
+          <label class="field">
+            <span>Senha</span>
+            <input id="pass" type="text" autocomplete="off" spellcheck="false" placeholder="senha" />
+          </label>
+        </div>
+      </div>
+
+      <div id="panel-m3u" class="panel hidden">
+        <label class="field">
+          <span>Link da lista</span>
+          <input id="m3u" type="url" autocomplete="off" spellcheck="false"
+                 placeholder="http://servidor.com/get.php?username=...&type=m3u_plus" />
+        </label>
+      </div>
+
+      <label class="field">
+        <span>Nome (opcional)</span>
+        <input id="label" type="text" maxlength="60" autocomplete="off"
+               placeholder="Ex.: Minha TV da sala" />
+      </label>
+
+      <button id="submit" class="primary" type="submit">Ativar TV</button>
+
+      <div id="result" class="result hidden" role="status" aria-live="polite"></div>
+    </form>
+
+    <section class="steps">
+      <h2>Como funciona</h2>
+      <ol>
+        <li>Instale o <strong>Reptor Player</strong> na TV e abra o app.</li>
+        <li>Na tela de login, leia o <strong>QR Code</strong> com o celular ou anote o código.</li>
+        <li>Preencha esta página com o código e os dados da sua lista.</li>
+        <li>Volte para a TV: o app entra automaticamente em poucos segundos.</li>
+      </ol>
+    </section>
+
+    <section class="legal">
+      <p>
+        O Reptor Player é apenas um tocador de vídeo. Não fornecemos, hospedamos nem
+        vendemos conteúdo. Todo o material exibido é de responsabilidade do usuário,
+        que deve possuir os direitos de uso.
+      </p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Reptor Player</span>
+    <span>Suporte: fale com seu provedor</span>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

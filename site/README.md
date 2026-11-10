@@ -3,6 +3,13 @@
 Site que ativa a TV pelo código (MAC) exibido no app. O cliente não digita nada
 no controle: ele preenche o site e o app busca a configuração sozinho.
 
+## Páginas
+
+- `/` — apresentação (identidade visual, capa e recursos).
+- `/ativar` — formulário de ativação da TV.
+- `/termos` — termo de uso.
+- `/assets/capa.png` — imagem de capa (1200×630) usada no compartilhamento.
+
 ## Como publicar na Netlify
 
 1. Suba este repositório no GitHub (o mesmo do app).

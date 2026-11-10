@@ -48,7 +48,7 @@ import com.reptor.player.ui.theme.ReptorTextDim
 import kotlinx.coroutines.delay
 
 /** Versão do termo. Se o texto mudar, aumente para pedir o aceite novamente. */
-const val TERMS_VERSION = 1
+const val TERMS_VERSION = 2
 
 /**
  * Texto do Termo de Uso. O Reptor é só um tocador de vídeo: não fornece
@@ -72,9 +72,15 @@ val TERMS_SECTIONS: List<Pair<String, String>> = listOf(
         "autorais, indisponibilidade, qualidade, cobranças, bloqueios ou " +
         "qualquer dano decorrente do uso de vídeos e links de terceiros.",
     "5. Privacidade" to
-        "Seus acessos e credenciais ficam salvos apenas neste aparelho. " +
-        "Não enviamos seus dados a terceiros e não temos acesso ao que você assiste.",
-    "6. Aceite" to
+        "Seus acessos e credenciais ficam salvos neste aparelho. Quando você usa " +
+        "a ativação pelo site, esses dados também ficam guardados no servidor de " +
+        "ativação apenas para configurar o aplicativo. Não vendemos, não " +
+        "compartilhamos e não temos acesso ao que você assiste.",
+    "6. Ativação pelo site" to
+        "A ativação é feita pelo código exibido na TV. O código identifica apenas " +
+        "o aparelho para entregar a configuração que você mesmo informou. Você pode " +
+        "substituir a configuração a qualquer momento ativando novamente o mesmo código.",
+    "7. Aceite" to
         "Ao tocar em “Aceitar e continuar”, você confirma que leu e concorda " +
         "com estes termos e assume total responsabilidade pelo uso do " +
         "aplicativo e pelo conteúdo que nele reproduzir."
