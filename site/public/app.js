@@ -34,7 +34,13 @@
   // Preenche o codigo quando o cliente abre pelo QR Code da TV.
   var params = new URLSearchParams(window.location.search);
   var fromUrl = params.get("code");
-  if (fromUrl) codeInput.value = formatCode(fromUrl);
+  if (fromUrl) {
+    codeInput.value = formatCode(fromUrl);
+    var note = document.getElementById("deviceNote");
+    if (note) note.classList.remove("hidden");
+    var next = document.getElementById("host");
+    if (next) next.focus();
+  }
 
   document.querySelectorAll(".tab").forEach(function (tab) {
     tab.addEventListener("click", function () {
