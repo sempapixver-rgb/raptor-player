@@ -17,9 +17,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -68,6 +72,7 @@ fun SettingsScreen(
     var account by remember { mutableStateOf<AccountInfo?>(null) }
     var accountLoading by remember { mutableStateOf(true) }
     var message by remember { mutableStateOf<String?>(null) }
+    var showTerms by remember { mutableStateOf(false) }
 
     LaunchedEffect(session.key()) {
         accountLoading = true
@@ -106,8 +111,11 @@ fun SettingsScreen(
             onDataCleared()
             message = "Histórico removido."
         },
+        SettingItem("📄", "Termos de uso", "Player de vídeo: não fornece conteúdo") {
+            showTerms = true
+        },
         SettingItem("ⓘ", "Sobre o Reptor", "Versão, privacidade e créditos") {
-            message = "Reptor Player 1.2.0 · Tudo fica salvo apenas neste aparelho."
+            message = "Reptor Player 1.2.2 · Tudo fica salvo apenas neste aparelho."
         },
         SettingItem("📺", "Formato de tela", "Paisagem fixa, imersivo") {
             message = "O app foi feito para tela horizontal (TV, box e tablet)."
@@ -234,6 +242,37 @@ fun SettingsScreen(
                 SettingCard(item)
             }
         }
+    }
+
+    if (showTerms) {
+        AlertDialog(
+            onDismissRequest = { showTerms = false },
+            title = {
+                Text(
+                    text = "Termo de uso e responsabilidade",
+                    color = ReptorText,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = termsPlainText(),
+                        color = ReptorTextDim,
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showTerms = false }) {
+                    Text("Fechar", color = ReptorGreen, fontSize = 13.sp)
+                }
+            }
+        )
     }
 }
 

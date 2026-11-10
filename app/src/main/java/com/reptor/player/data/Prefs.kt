@@ -128,6 +128,15 @@ class Prefs(context: Context) {
         sp.edit().remove("pos:${url.hashCode()}").apply()
     }
 
+    // --------------------------------------------------------------- termos
+
+    /** Versão do termo já aceita (0 = nunca aceitou). */
+    fun acceptedTermsVersion(): Int = sp.getInt("terms_version", 0)
+
+    fun acceptTerms(version: Int) {
+        sp.edit().putInt("terms_version", version).apply()
+    }
+
     // ------------------------------------------------------------- interno
 
     private fun readEntries(key: String): List<MediaEntry> {

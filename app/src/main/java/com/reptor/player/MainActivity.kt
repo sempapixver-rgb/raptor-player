@@ -18,6 +18,8 @@ import com.reptor.player.data.Prefs
 import com.reptor.player.data.Session
 import com.reptor.player.ui.HomeScreen
 import com.reptor.player.ui.LoginScreen
+import com.reptor.player.ui.TERMS_VERSION
+import com.reptor.player.ui.TermsScreen
 import com.reptor.player.ui.theme.ReptorTheme
 
 class MainActivity : ComponentActivity() {
@@ -37,24 +39,38 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     var session by remember { mutableStateOf<Session?>(prefs.current()) }
+                    var accepted by remember {
+                        mutableStateOf(prefs.acceptedTermsVersion() >= TERMS_VERSION)
+                    }
 
-                    val current = session
-                    if (current == null) {
-                        LoginScreen(
-                            onLoggedIn = { logged ->
-                                prefs.saveList(logged)
-                                prefs.setCurrent(logged)
-                                session = logged
-                            }
+                    if (!accepted) {
+                        // Primeiro acesso (ou termo novo): só libera depois do aceite.
+                        TermsScreen(
+                            onAccept = {
+                                prefs.acceptTerms(TERMS_VERSION)
+                                accepted = true
+                            },
+                            onDecline = { finish() }
                         )
                     } else {
-                        HomeScreen(
-                            session = current,
-                            onSwitch = {
-                                prefs.setCurrent(null)
-                                session = null
-                            }
-                        )
+                        val current = session
+                        if (current == null) {
+                            LoginScreen(
+                                onLoggedIn = { logged ->
+                                    prefs.saveList(logged)
+                                    prefs.setCurrent(logged)
+                                    session = logged
+                                }
+                            )
+                        } else {
+                            HomeScreen(
+                                session = current,
+                                onSwitch = {
+                                    prefs.setCurrent(null)
+                                    session = null
+                                }
+                            )
+                        }
                     }
                 }
             }

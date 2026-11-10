@@ -420,6 +420,13 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
             )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Player de vídeo: você é responsável pelo conteúdo da sua lista.",
+                color = ReptorTextDim.copy(alpha = 0.75f),
+                fontSize = 10.sp,
+                textAlign = TextAlign.Center
+            )
             Spacer(Modifier.height(20.dp))
         }
     }
