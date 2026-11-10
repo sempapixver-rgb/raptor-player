@@ -1,5 +1,7 @@
 # Site de ativação — Reptor Player
 
+**No ar:** https://reptor-player.netlify.app
+
 Site que ativa a TV pelo código (MAC) exibido no app. O cliente não digita nada
 no controle: ele preenche o site e o app busca a configuração sozinho.
 
@@ -10,7 +12,20 @@ no controle: ele preenche o site e o app busca a configuração sozinho.
 - `/termos` — termo de uso.
 - `/assets/capa.png` — imagem de capa (1200×630) usada no compartilhamento.
 
-## Como publicar na Netlify
+## Publicação atual
+
+Projeto Netlify: `reptor-player` (time `pix-ver-sempa`), ID
+`0843606b-c53b-4da1-9430-055151404dd1`.
+
+Para publicar uma alteração:
+
+```bash
+npm install --prefix site
+netlify deploy --prod --site 0843606b-c53b-4da1-9430-055151404dd1 \
+  --dir site/public --functions site/netlify/functions
+```
+
+## Como publicar na Netlify (do zero)
 
 1. Suba este repositório no GitHub (o mesmo do app).
 2. Na Netlify: **Add new site → Import an existing project**.
@@ -20,7 +35,7 @@ no controle: ele preenche o site e o app busca a configuração sozinho.
    - **Publish directory:** `public`
    - **Functions directory:** `netlify/functions` (já vem do `netlify.toml`)
 4. Publique. A Netlify instala o `@netlify/blobs` e ativa o armazenamento sozinha.
-5. Anote a URL final (ex.: `https://reptor.netlify.app`).
+5. Anote a URL final (ex.: `https://reptor-player.netlify.app`).
 
 ## Ligar o site ao app
 
@@ -29,7 +44,7 @@ No Android, o endereço fica em uma única linha:
 `app/src/main/java/com/reptor/player/data/Activation.kt`
 
 ```kotlin
-const val SITE_BASE = "https://reptor.netlify.app"
+const val SITE_BASE = "https://reptor-player.netlify.app"
 ```
 
 Se o site ficar em outro endereço, troque essa linha e gere o APK de novo.
