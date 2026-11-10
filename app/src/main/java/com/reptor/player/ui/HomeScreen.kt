@@ -203,8 +203,9 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         url = item.url,
                         title = item.title,
                         queue = current.queue,
-                        startIndex = current.index
-                    ) { playing = null }
+                        startIndex = current.index,
+                        onClose = { playing = null }
+                    )
                 }
             }
         }
