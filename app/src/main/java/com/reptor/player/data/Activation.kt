@@ -21,8 +21,8 @@ import java.util.concurrent.TimeUnit
  */
 object Activation {
 
-    /** Troque aqui se o site da Netlify usar outro endereço. */
-    const val SITE_BASE = "https://reptor.netlify.app"
+    /** Endereço do site de ativação (Netlify). */
+    const val SITE_BASE = "https://reptor-player.netlify.app"
 
     private const val SP = "reptor_session"
     private const val KEY_CODE = "device_code"
