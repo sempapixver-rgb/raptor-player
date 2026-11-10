@@ -67,7 +67,7 @@ fun SeriesScreen(
     favorites: List<MediaEntry>,
     recents: List<MediaEntry>,
     refreshKey: Int = 0,
-    onPlayEpisode: (url: String, title: String) -> Unit,
+    onPlayEpisode: (queue: List<PlayItem>, index: Int) -> Unit,
     onToggleFavorite: (MediaEntry) -> Unit
 ) {
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
@@ -265,12 +265,25 @@ private fun SeriesDetailView(
     onBack: () -> Unit,
     onRetry: () -> Unit,
     onStar: () -> Unit,
-    onPlayEpisode: (String, String) -> Unit
+    onPlayEpisode: (List<PlayItem>, Int) -> Unit
 ) {
     var seasonIndex by remember(detail?.id) { mutableIntStateOf(0) }
     val seasons: List<Season> = detail?.seasons.orEmpty()
     val safeIndex = seasonIndex.coerceIn(0, (seasons.size - 1).coerceAtLeast(0))
     val season = seasons.getOrNull(safeIndex)
+
+    // Fila da série inteira: "Próximo" segue para o episódio seguinte,
+    // inclusive na virada de temporada.
+    val flatEpisodes = remember(seasons) { seasons.flatMap { it.episodes } }
+    val playQueue = remember(flatEpisodes, detail?.name) {
+        val seriesName = detail?.name.orEmpty()
+        flatEpisodes.map { ep ->
+            PlayItem(ep.url, "$seriesName · T${ep.season}E${ep.number} · ${ep.title}")
+        }
+    }
+    val indexById = remember(flatEpisodes) {
+        flatEpisodes.withIndex().associate { it.value.id to it.index }
+    }
 
     Column(Modifier.fillMaxSize()) {
 
@@ -560,10 +573,7 @@ private fun SeriesDetailView(
                                 episode = episodes[index],
                                 onPlay = {
                                     val ep = episodes[index]
-                                    onPlayEpisode(
-                                        ep.url,
-                                        "${detail.name} · T${ep.season}E${ep.number} · ${ep.title}"
-                                    )
+                                    onPlayEpisode(playQueue, indexById[ep.id] ?: 0)
                                 }
                             )
                         }

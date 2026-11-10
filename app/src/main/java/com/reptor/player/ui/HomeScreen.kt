@@ -41,6 +41,8 @@ import java.util.Locale
  * Casca do app: topo + uma aba por vez + menu inferior.
  * Canais ao vivo ficam somente em Canais, filmes em Filmes e séries em Séries.
  */
+private data class PlayRequest(val queue: List<PlayItem>, val index: Int)
+
 @Composable
 fun HomeScreen(session: Session, onSwitch: () -> Unit) {
     val context = LocalContext.current
@@ -53,7 +55,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
     var recents by remember { mutableStateOf(prefs.recents()) }
     var refreshTick by remember { mutableIntStateOf(0) }
 
-    var playing by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var playing by remember { mutableStateOf<PlayRequest?>(null) }
     var resolving by remember { mutableStateOf(false) }
     var toast by remember { mutableStateOf<String?>(null) }
 
@@ -81,7 +83,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
             if (!url.isNullOrBlank()) {
                 prefs.addRecent(entry)
                 recents = prefs.recents()
-                playing = url to entry.name
+                playing = PlayRequest(listOf(PlayItem(url, entry.name)), 0)
             }
         }
     }
@@ -91,12 +93,13 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
         favorites = prefs.favorites()
     }
 
-    fun playEpisode(url: String, title: String) {
-        if (url.isBlank()) {
+    fun playEpisode(queue: List<PlayItem>, index: Int) {
+        val item = queue.getOrNull(index)
+        if (item == null || item.url.isBlank()) {
             toast = "Episódio sem link de reprodução"
             return
         }
-        playing = url to title
+        playing = PlayRequest(queue, index)
     }
 
     val current = playing
@@ -139,7 +142,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         favorites = favorites,
                         recents = recents,
                         refreshKey = refreshTick,
-                        onPlayEpisode = { url, title -> playEpisode(url, title) },
+                        onPlayEpisode = { queue, index -> playEpisode(queue, index) },
                         onToggleFavorite = { toggleFavorite(it) }
                     )
 
@@ -193,8 +196,16 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
         // O player fica por cima da casca: assim a aba (série/temporada/episódio
         // escolhido, categoria, rolagem) continua exatamente onde estava.
         if (current != null) {
-            Box(Modifier.fillMaxSize().background(Color.Black)) {
-                PlayerScreen(url = current.first, title = current.second) { playing = null }
+            val item = current.queue.getOrNull(current.index)
+            if (item != null) {
+                Box(Modifier.fillMaxSize().background(Color.Black)) {
+                    PlayerScreen(
+                        url = item.url,
+                        title = item.title,
+                        queue = current.queue,
+                        startIndex = current.index
+                    ) { playing = null }
+                }
             }
         }
     }

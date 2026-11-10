@@ -40,6 +40,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,6 +62,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackGroup
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -70,12 +73,31 @@ private val SPEEDS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
 
 private data class TrackOption(val label: String, val override: TrackSelectionOverride?)
 
+/** Um item reproduzível: episódio ou filme/canal. */
+data class PlayItem(val url: String, val title: String)
+
 @OptIn(UnstableApi::class)
 @Composable
-fun PlayerScreen(url: String, title: String, onClose: () -> Unit) {
+fun PlayerScreen(
+    url: String,
+    title: String,
+    onClose: () -> Unit,
+    queue: List<PlayItem> = emptyList(),
+    startIndex: Int = 0
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val prefs = remember(context) { Prefs(context) }
+
+    // Sem fila (filme/canal) toca um item só. Com fila (série) os botões
+    // Anterior/Próximo trocam o episódio sem fechar o player.
+    val items = remember(queue, url, title) {
+        if (queue.isNotEmpty()) queue else listOf(PlayItem(url, title))
+    }
+    var index by remember(items) {
+        mutableIntStateOf(startIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0)))
+    }
+    val current = items.getOrNull(index) ?: PlayItem(url, title)
 
     var resizeMode by remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
     var speed by remember { mutableFloatStateOf(1f) }
@@ -99,21 +121,39 @@ fun PlayerScreen(url: String, title: String, onClose: () -> Unit) {
         }
     }
 
-    val player = remember(url) {
-        ExoPlayer.Builder(context).build().apply {
-            setMediaItem(ExoMediaItem.fromUri(url))
-            prepare()
-            playWhenReady = true
-        }
+    // Buffer menor que o padrão: abre mais rápido e usa menos memória.
+    val player = remember {
+        ExoPlayer.Builder(context)
+            .setLoadControl(
+                DefaultLoadControl.Builder()
+                    .setBufferDurationsMs(20_000, 45_000, 1_500, 3_000)
+                    .build()
+            )
+            .build()
     }
 
-    // Retoma de onde parou (filmes/séries).
-    LaunchedEffect(player) {
-        val saved = prefs.resumeFor(url)
+    // Troca de episódio: salva a posição do anterior, carrega o novo e
+    // retoma de onde parou (filmes/séries).
+    var lastUrl by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(current.url) {
+        val previous = lastUrl
+        if (previous != null && previous != current.url) {
+            runCatching { prefs.saveResume(previous, player.currentPosition) }
+        }
+        lastUrl = current.url
+        position = 0L
+        duration = 0L
+        isPlaying = true
+        player.setMediaItem(ExoMediaItem.fromUri(current.url))
+        player.prepare()
+        player.playWhenReady = true
+        val saved = prefs.resumeFor(current.url)
         if (saved > 5_000) {
             player.seekTo(saved)
         }
     }
+
+    val currentUrl by rememberUpdatedState(current.url)
 
     // Mantém a tela ligada enquanto o player está aberto.
     DisposableEffect(player) {
@@ -121,7 +161,7 @@ fun PlayerScreen(url: String, title: String, onClose: () -> Unit) {
         window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         onDispose {
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            runCatching { prefs.saveResume(url, player.currentPosition) }
+            runCatching { prefs.saveResume(currentUrl, player.currentPosition) }
             player.release()
         }
     }
@@ -138,13 +178,16 @@ fun PlayerScreen(url: String, title: String, onClose: () -> Unit) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Atualiza a interface periodicamente.
+    // Atualiza a interface periodicamente (só quando o valor muda).
     LaunchedEffect(player) {
         while (true) {
-            isPlaying = player.isPlaying
-            position = player.currentPosition.coerceAtLeast(0)
-            duration = player.duration
-            delay(500)
+            val playingNow = player.isPlaying
+            if (playingNow != isPlaying) isPlaying = playingNow
+            val pos = player.currentPosition.coerceAtLeast(0)
+            if (pos != position) position = pos
+            val dur = player.duration
+            if (dur != duration) duration = dur
+            delay(1000)
         }
     }
 
@@ -153,14 +196,14 @@ fun PlayerScreen(url: String, title: String, onClose: () -> Unit) {
         while (true) {
             delay(10_000)
             if (player.isPlaying) {
-                runCatching { prefs.saveResume(url, player.currentPosition) }
+                runCatching { prefs.saveResume(currentUrl, player.currentPosition) }
             }
         }
     }
 
-    // Esconde os controles sozinhos.
+    // Esconde os controles sozinhos (só enquanto o vídeo está rodando).
     LaunchedEffect(controlsVisible, isPlaying) {
-        if (controlsVisible) {
+        if (controlsVisible && isPlaying) {
             delay(4500)
             controlsVisible = false
         }
@@ -226,6 +269,14 @@ fun PlayerScreen(url: String, title: String, onClose: () -> Unit) {
 
     fun toggleControls() {
         controlsVisible = !controlsVisible
+    }
+
+    fun go(delta: Int) {
+        val target = (index + delta).coerceIn(0, items.lastIndex)
+        if (target != index) {
+            controlsVisible = true
+            index = target
+        }
     }
 
     fun cycleResize() {
@@ -298,7 +349,7 @@ fun PlayerScreen(url: String, title: String, onClose: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = title,
+                        text = current.title,
                         color = Color.White,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -390,6 +441,18 @@ fun PlayerScreen(url: String, title: String, onClose: () -> Unit) {
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (items.size > 1) {
+                        val canPrev = index > 0
+                        TextButton(onClick = { go(-1) }, enabled = canPrev) {
+                            Text(
+                                text = "⏮ Anterior",
+                                color = if (canPrev) Color.White else Color.White.copy(alpha = 0.35f),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(Modifier.width(10.dp))
+                    }
                     TextButton(onClick = { player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0)) }) {
                         Text("−10s", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                     }
@@ -416,6 +479,31 @@ fun PlayerScreen(url: String, title: String, onClose: () -> Unit) {
                     TextButton(onClick = { player.seekTo(player.currentPosition + 10_000) }) {
                         Text("+10s", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                     }
+                    if (items.size > 1) {
+                        Spacer(Modifier.width(10.dp))
+                        val canNext = index < items.lastIndex
+                        TextButton(onClick = { go(1) }, enabled = canNext) {
+                            Text(
+                                text = "Próximo ⏭",
+                                color = if (canNext) Color.White else Color.White.copy(alpha = 0.35f),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                // Posição na fila (ex.: "Episódio 3 de 12").
+                if (items.size > 1) {
+                    Text(
+                        text = "${index + 1} de ${items.size}",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 11.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                        textAlign = TextAlign.Center
+                    )
                 }
 
                 Spacer(Modifier.weight(1f))

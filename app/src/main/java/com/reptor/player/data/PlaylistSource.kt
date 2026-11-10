@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
+import com.reptor.player.ReptorApp
 import java.io.File
 import java.io.IOException
 import java.net.URLDecoder
@@ -88,7 +89,8 @@ class M3uSource(private val url: String) : PlaylistSource {
         val genre: String?,
         val releaseDate: String?,
         val plot: String?,
-        val cast: String?
+        val cast: String?,
+        val key: String = ""
     )
 
     private class Endpoint(val base: String, val user: String, val pass: String)
@@ -144,11 +146,47 @@ class M3uSource(private val url: String) : PlaylistSource {
         }
 
         val map = withContext(Dispatchers.IO) {
-            runCatching { fetchSeriesMeta(ep) }.getOrElse { emptyMap() }
+            readMetaCache(ep) ?: runCatching { fetchSeriesMeta(ep) }
+                .getOrElse { emptyMap() }
+                .also { fresh -> if (fresh.isNotEmpty()) writeMetaCache(ep, fresh) }
         }
 
         seriesMetaCache = map
         return map
+    }
+
+    /** Cache em disco do painel: evita baixar ~8 MB a cada abertura do app. */
+    private fun metaCacheFile(ep: Endpoint): File =
+        File(ReptorApp.instance.cacheDir, "series_meta_${(ep.base + "|" + ep.user).hashCode()}.json")
+
+    private fun readMetaCache(ep: Endpoint): Map<String, SeriesMeta>? {
+        val file = metaCacheFile(ep)
+        if (!file.exists()) return null
+        val age = System.currentTimeMillis() - file.lastModified()
+        if (age > 12L * 60L * 60L * 1000L) return null
+        return runCatching { parseMetaCache(file.readText()) }
+            .getOrNull()
+            ?.takeIf { it.isNotEmpty() }
+    }
+
+    private fun writeMetaCache(ep: Endpoint, map: Map<String, SeriesMeta>) {
+        runCatching {
+            val arr = JSONArray()
+            map.values.forEach { meta ->
+                arr.put(
+                    org.json.JSONObject().apply {
+                        put("cover", meta.cover ?: "")
+                        put("rating", meta.rating ?: 0.0)
+                        put("genre", meta.genre ?: "")
+                        put("releaseDate", meta.releaseDate ?: "")
+                        put("plot", meta.plot ?: "")
+                        put("cast", meta.cast ?: "")
+                        put("key", meta.key)
+                    }
+                )
+            }
+            metaCacheFile(ep).writeText(arr.toString())
+        }
     }
 
     private fun fetchSeriesMeta(ep: Endpoint): Map<String, SeriesMeta> {
@@ -167,6 +205,10 @@ class M3uSource(private val url: String) : PlaylistSource {
             fetchText(fallback)
         }
 
+        return parseSeriesMeta(text)
+    }
+
+    private fun parseSeriesMeta(text: String): Map<String, SeriesMeta> {
         val arr = JSONArray(text)
         val out = LinkedHashMap<String, SeriesMeta>(arr.length())
         for (i in 0 until arr.length()) {
@@ -181,7 +223,28 @@ class M3uSource(private val url: String) : PlaylistSource {
                 genre = obj.optString("genre").takeIf { it.isNotBlank() },
                 releaseDate = obj.optString("releaseDate").takeIf { it.isNotBlank() },
                 plot = obj.optString("plot").takeIf { it.isNotBlank() },
-                cast = obj.optString("cast").takeIf { it.isNotBlank() }
+                cast = obj.optString("cast").takeIf { it.isNotBlank() },
+                key = key
+            )
+        }
+        return out
+    }
+
+    private fun parseMetaCache(text: String): Map<String, SeriesMeta> {
+        val arr = JSONArray(text)
+        val out = LinkedHashMap<String, SeriesMeta>(arr.length())
+        for (i in 0 until arr.length()) {
+            val obj = arr.optJSONObject(i) ?: continue
+            val key = obj.optString("key")
+            if (key.isBlank()) continue
+            out[key] = SeriesMeta(
+                cover = obj.optString("cover").takeIf { it.isNotBlank() },
+                rating = obj.optDouble("rating").takeIf { !it.isNaN() && it > 0 },
+                genre = obj.optString("genre").takeIf { it.isNotBlank() },
+                releaseDate = obj.optString("releaseDate").takeIf { it.isNotBlank() },
+                plot = obj.optString("plot").takeIf { it.isNotBlank() },
+                cast = obj.optString("cast").takeIf { it.isNotBlank() },
+                key = key
             )
         }
         return out
