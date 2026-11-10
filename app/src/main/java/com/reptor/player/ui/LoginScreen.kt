@@ -432,7 +432,7 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
 
             Spacer(Modifier.height(24.dp))
             Text(
-                text = "Nenhuma ativação. Nenhum MAC. Apenas a sua lista.",
+                text = "Ative pelo site ou entre com a sua lista.",
                 color = ReptorTextDim,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
