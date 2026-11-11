@@ -113,15 +113,18 @@ class XtreamClient(private val session: Session) {
             MediaKind.VOD -> "get_vod_categories"
             MediaKind.SERIES -> "get_series_categories"
         }
-        val arr = parseArray(fetch(apiUrl(action))) ?: return emptyList()
-        val out = ArrayList<Category>(arr.length())
-        for (i in 0 until arr.length()) {
-            val obj = arr.optJSONObject(i) ?: continue
-            val id = obj.optString("category_id")
-            if (id.isBlank()) continue
-            out.add(Category(id, obj.optString("category_name").ifBlank { "Sem nome" }))
+        val text = fetch(apiUrl(action))
+        return withContext(Dispatchers.Default) {
+            val arr = parseArray(text) ?: return@withContext emptyList()
+            val out = ArrayList<Category>(arr.length())
+            for (i in 0 until arr.length()) {
+                val obj = arr.optJSONObject(i) ?: continue
+                val id = obj.optString("category_id")
+                if (id.isBlank()) continue
+                out.add(Category(id, obj.optString("category_name").ifBlank { "Sem nome" }))
+            }
+            out
         }
-        return out
     }
 
     /** Canais ao vivo ou filmes. Séries usam [seriesList]. */
@@ -135,27 +138,30 @@ class XtreamClient(private val session: Session) {
         val logoKey = if (kind == MediaKind.SERIES) "cover" else "stream_icon"
 
         val extra = if (!categoryId.isNullOrBlank()) mapOf("category_id" to categoryId) else emptyMap()
-        val arr = parseArray(fetch(apiUrl(action, extra))) ?: return emptyList()
-        val out = ArrayList<MediaEntry>(arr.length())
-        for (i in 0 until arr.length()) {
-            val obj = arr.optJSONObject(i) ?: continue
-            val id = obj.optString(idKey)
-            if (id.isBlank()) continue
-            out.add(
-                MediaEntry(
-                    id = id,
-                    name = obj.optString("name").ifBlank { "Sem título" },
-                    logo = obj.optString(logoKey).takeIf { it.isNotBlank() },
-                    categoryId = obj.optString("category_id").takeIf { it.isNotBlank() },
-                    kind = kind,
-                    containerExtension = obj.optString("container_extension").takeIf { it.isNotBlank() },
-                    rating = obj.optString("rating").toDoubleOrNull(),
-                    plot = obj.optString("plot").takeIf { it.isNotBlank() },
-                    year = obj.optString("year").takeIf { it.isNotBlank() }
+        val text = fetch(apiUrl(action, extra))
+        return withContext(Dispatchers.Default) {
+            val arr = parseArray(text) ?: return@withContext emptyList()
+            val out = ArrayList<MediaEntry>(arr.length())
+            for (i in 0 until arr.length()) {
+                val obj = arr.optJSONObject(i) ?: continue
+                val id = obj.optString(idKey)
+                if (id.isBlank()) continue
+                out.add(
+                    MediaEntry(
+                        id = id,
+                        name = obj.optString("name").ifBlank { "Sem título" },
+                        logo = obj.optString(logoKey).takeIf { it.isNotBlank() },
+                        categoryId = obj.optString("category_id").takeIf { it.isNotBlank() },
+                        kind = kind,
+                        containerExtension = obj.optString("container_extension").takeIf { it.isNotBlank() },
+                        rating = obj.optString("rating").toDoubleOrNull(),
+                        plot = obj.optString("plot").takeIf { it.isNotBlank() },
+                        year = obj.optString("year").takeIf { it.isNotBlank() }
+                    )
                 )
-            )
+            }
+            out
         }
-        return out
     }
 
     /** Lista de séries (somente capa/nome) — a hierarquia vem de [seriesInfo]. */
@@ -165,6 +171,10 @@ class XtreamClient(private val session: Session) {
     suspend fun seriesInfo(seriesId: String): SeriesDetail? {
         val text = runCatching { fetch(apiUrl("get_series_info", mapOf("series_id" to seriesId))) }
             .getOrNull() ?: return null
+        return withContext(Dispatchers.Default) { buildSeriesDetail(seriesId, text) }
+    }
+
+    private fun buildSeriesDetail(seriesId: String, text: String): SeriesDetail? {
         val obj = runCatching { JSONObject(text) }.getOrNull() ?: return null
         val info = obj.optJSONObject("info") ?: JSONObject()
 

@@ -18,13 +18,20 @@ object M3uParser {
         Regex("""^(.*?)[\s._\-]*[Tt]emporada\s*(\d{1,2})[\s._\-]*[Ee]p(?:is[oó]dio)?\s*(\d{1,3})(?:\D.*)?$""")
     )
 
-    fun parse(text: String): List<MediaEntry> {
+    fun parse(text: String): List<MediaEntry> = parseLines(text.lineSequence())
+
+    /**
+     * Mesma leitura, mas consumindo as linhas aos poucos.
+     * Permite ler listas enormes direto do arquivo/rede sem carregar o texto
+     * inteiro na memória (evita o Android fechar o app por falta de memória).
+     */
+    fun parseLines(lines: Sequence<String>): List<MediaEntry> {
         val out = ArrayList<MediaEntry>()
         var name: String? = null
         var logo: String? = null
         var group: String? = null
 
-        for (raw in text.lineSequence()) {
+        for (raw in lines) {
             val line = raw.trim()
             when {
                 line.isEmpty() -> Unit

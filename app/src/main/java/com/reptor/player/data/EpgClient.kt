@@ -67,11 +67,14 @@ object EpgClient {
         val now = System.currentTimeMillis()
         if (!force && boardCache.isNotEmpty() && now - boardAt < TTL) return boardCache
 
-        val result = ArrayList<Entry>()
-        for (category in CATEGORIES) {
-            val html = runCatching { get("/programacao/categoria/$category") }.getOrNull().orEmpty()
-            if (html.isBlank()) continue
-            result.addAll(parseCategory(html))
+        val result = withContext(Dispatchers.Default) {
+            val out = ArrayList<Entry>()
+            for (category in CATEGORIES) {
+                val html = runCatching { get("/programacao/categoria/$category") }.getOrNull().orEmpty()
+                if (html.isBlank()) continue
+                out.addAll(parseCategory(html))
+            }
+            out
         }
 
         if (result.isNotEmpty()) {
@@ -133,22 +136,24 @@ object EpgClient {
         // A página traz vários dias. O HTML também repete o cabeçalho de dia
         // dentro de comentários de template (<% ... %>), então só contamos os
         // cabeçalhos reais e ficamos com o primeiro dia (hoje).
-        val headers = dayHeader.findAll(html).map { it.range.first }.toList()
-        val start = if (headers.isEmpty()) 0 else html.indexOf('>', headers.first()) + 1
-        val end = if (headers.size > 1) headers[1] else html.length
-        val today = if (start in 0..end) html.substring(start, end) else html
+        return withContext(Dispatchers.Default) {
+            val headers = dayHeader.findAll(html).map { it.range.first }.toList()
+            val start = if (headers.isEmpty()) 0 else html.indexOf('>', headers.first()) + 1
+            val end = if (headers.size > 1) headers[1] else html.length
+            val today = if (start in 0..end) html.substring(start, end) else html
 
-        val out = ArrayList<EpgProgram>()
-        timeBlock.findAll(today).forEach { match ->
-            val time = match.groupValues[1]
-            val title = clean(match.groupValues[2])
-            val genre = clean(match.groupValues[3]).takeIf { it.isNotBlank() }
-            if (title.isNotBlank()) {
-                out.add(EpgProgram(toMinutes(time), time, title, genre))
+            val out = ArrayList<EpgProgram>()
+            timeBlock.findAll(today).forEach { match ->
+                val time = match.groupValues[1]
+                val title = clean(match.groupValues[2])
+                val genre = clean(match.groupValues[3]).takeIf { it.isNotBlank() }
+                if (title.isNotBlank()) {
+                    out.add(EpgProgram(toMinutes(time), time, title, genre))
+                }
             }
+            if (out.isNotEmpty()) scheduleCache[code] = now to out
+            out
         }
-        if (out.isNotEmpty()) scheduleCache[code] = now to out
-        return out
     }
 
     private val dayHeader = Regex("""<li class="subheader devicepadding">(?!<%)""")

@@ -27,6 +27,7 @@ import com.reptor.player.data.MediaEntry
 import com.reptor.player.data.MediaKind
 import com.reptor.player.data.Prefs
 import com.reptor.player.data.Session
+import com.reptor.player.data.clearSourceCache
 import com.reptor.player.data.createSource
 import com.reptor.player.data.displayName
 import com.reptor.player.data.key
@@ -158,6 +159,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         prefs = prefs,
                         onSwitchList = {
                             ContentCache.clearAll()
+                            clearSourceCache()
                             onSwitch()
                         },
                         onRefresh = {

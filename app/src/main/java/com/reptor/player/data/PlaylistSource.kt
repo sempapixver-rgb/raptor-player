@@ -30,8 +30,35 @@ interface PlaylistSource {
     suspend fun account(): AccountInfo?
 }
 
-fun createSource(session: Session): PlaylistSource =
-    if (session.mode == LoginMode.M3U) M3uSource(session.m3uUrl) else XtreamSource(session)
+private val sourceLock = Any()
+private var cachedSourceKey: String? = null
+private var cachedSource: PlaylistSource? = null
+
+/**
+ * Reaproveita a mesma fonte entre o login e a tela principal.
+ * Antes a lista era baixada e processada duas vezes seguidas (uma para
+ * validar o login e outra para abrir o app) — em listas grandes isso
+ * dobrava o tempo de espera e o consumo de memória.
+ */
+fun createSource(session: Session): PlaylistSource {
+    val key = session.key()
+    synchronized(sourceLock) {
+        cachedSource?.let { if (cachedSourceKey == key) return it }
+        val fresh =
+            if (session.mode == LoginMode.M3U) M3uSource(session.m3uUrl) else XtreamSource(session)
+        cachedSourceKey = key
+        cachedSource = fresh
+        return fresh
+    }
+}
+
+/** Solta a lista guardada em memória (troca de lista / sair da conta). */
+fun clearSourceCache() {
+    synchronized(sourceLock) {
+        cachedSourceKey = null
+        cachedSource = null
+    }
+}
 
 class XtreamSource(session: Session) : PlaylistSource {
 
@@ -262,16 +289,23 @@ class M3uSource(private val url: String) : PlaylistSource {
     private fun metaKey(value: String): String =
         M3uSeries.normalize(cleanName(value))
 
-    private suspend fun readPlaylist(): String = withContext(Dispatchers.IO) {
+    /**
+     * Lê e já classifica a lista linha a linha, direto da rede/arquivo.
+     * Assim o texto completo nunca fica na memória — listas grandes não
+     * estouram o heap do celular.
+     */
+    private suspend fun readEntries(): List<MediaEntry> = withContext(Dispatchers.IO) {
         val target = resolvedUrl()
 
         if (!isRemote(target)) {
             val file = File(target.removePrefix("file://"))
             if (!file.exists()) throw IOException("Arquivo da lista não encontrado")
-            return@withContext file.readText()
+            return@withContext file.bufferedReader().use { reader ->
+                M3uParser.parseLines(reader.lineSequence())
+            }
         }
 
-        val first = runCatching { fetchText(target) }
+        val first = runCatching { fetchEntries(target) }
         first.getOrNull()?.let {
             workingUrl = target
             return@withContext it
@@ -281,7 +315,7 @@ class M3uSource(private val url: String) : PlaylistSource {
         // responde em http. Nesse caso tentamos o mesmo endereço em http.
         val fallback = httpFallback(target)
         if (fallback != null) {
-            val second = runCatching { fetchText(fallback) }
+            val second = runCatching { fetchEntries(fallback) }
             second.getOrNull()?.let {
                 workingUrl = fallback
                 return@withContext it
@@ -290,6 +324,22 @@ class M3uSource(private val url: String) : PlaylistSource {
         }
 
         throw first.exceptionOrNull() ?: IOException("Falha ao carregar a lista")
+    }
+
+    private fun fetchEntries(target: String): List<MediaEntry> {
+        val request = Request.Builder()
+            .url(target)
+            .header("User-Agent", "Reptor/1.2 (Android)")
+            .build()
+        return http.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Playlist respondeu HTTP ${response.code}")
+            }
+            val body = response.body ?: return emptyList()
+            body.charStream().buffered().use { reader ->
+                M3uParser.parseLines(reader.lineSequence())
+            }
+        }
     }
 
     private fun fetchText(target: String): String {
@@ -307,7 +357,9 @@ class M3uSource(private val url: String) : PlaylistSource {
 
     private suspend fun all(): List<MediaEntry> {
         cache?.let { return it }
-        val list = M3uParser.parse(readPlaylist())
+        // Nada disso pode rodar na thread da interface: com lista grande o
+        // Android considera o app travado e o fecha à força.
+        val list = withContext(Dispatchers.Default) { readEntries() }
         cache = list
         return list
     }
@@ -315,24 +367,26 @@ class M3uSource(private val url: String) : PlaylistSource {
     private suspend fun seriesMap(): Map<String, SeriesDetail> {
         seriesCache?.let { return it }
 
-        val base = M3uSeries.build(all())
+        val base = withContext(Dispatchers.Default) { M3uSeries.build(all()) }
         val meta = seriesMeta()
 
         val map = if (meta.isEmpty()) {
             base
         } else {
-            base.mapValues { (_, detail) ->
-                val info = meta[metaKey(detail.name)]
-                    ?: meta[M3uSeries.normalize(detail.name)]
-                    ?: return@mapValues detail
-                detail.copy(
-                    cover = info.cover ?: detail.cover,
-                    rating = info.rating,
-                    displayGenre = info.genre,
-                    releaseDate = info.releaseDate ?: detail.releaseDate,
-                    plot = info.plot ?: detail.plot,
-                    cast = info.cast ?: detail.cast
-                )
+            withContext(Dispatchers.Default) {
+                base.mapValues { (_, detail) ->
+                    val info = meta[metaKey(detail.name)]
+                        ?: meta[M3uSeries.normalize(detail.name)]
+                        ?: return@mapValues detail
+                    detail.copy(
+                        cover = info.cover ?: detail.cover,
+                        rating = info.rating,
+                        displayGenre = info.genre,
+                        releaseDate = info.releaseDate ?: detail.releaseDate,
+                        plot = info.plot ?: detail.plot,
+                        cast = info.cast ?: detail.cast
+                    )
+                }
             }
         }
 
@@ -348,42 +402,54 @@ class M3uSource(private val url: String) : PlaylistSource {
 
     override suspend fun categories(kind: MediaKind): List<Category> {
         if (kind == MediaKind.SERIES) {
-            return seriesMap().values.asSequence()
-                .flatMap { it.allGenres().asSequence() }
+            val map = seriesMap()
+            return withContext(Dispatchers.Default) {
+                map.values.asSequence()
+                    .flatMap { it.allGenres().asSequence() }
+                    .distinct()
+                    .map { Category(it, it) }
+                    .sortedBy { it.name.lowercase() }
+                    .toList()
+            }
+        }
+        val list = all()
+        return withContext(Dispatchers.Default) {
+            list.asSequence()
+                .filter { it.kind == kind }
+                .mapNotNull { it.categoryId }
                 .distinct()
                 .map { Category(it, it) }
-                .sortedBy { it.name.lowercase() }
                 .toList()
         }
-        return all().asSequence()
-            .filter { it.kind == kind }
-            .mapNotNull { it.categoryId }
-            .distinct()
-            .map { Category(it, it) }
-            .toList()
     }
 
     override suspend fun items(kind: MediaKind, categoryId: String?): List<MediaEntry> {
         if (kind == MediaKind.SERIES) {
-            return seriesMap().values.asSequence()
-                .filter { categoryId == null || categoryId in it.allGenres() }
-                .map {
-                    val genres = it.allGenres()
-                    MediaEntry(
-                        id = it.id,
-                        name = it.name,
-                        logo = it.cover,
-                        categoryId = categoryId ?: genres.firstOrNull(),
-                        categoryIds = genres,
-                        kind = MediaKind.SERIES,
-                        rating = it.rating,
-                        plot = it.plot
-                    )
-                }
-                .sortedBy { it.name.lowercase() }
-                .toList()
+            val map = seriesMap()
+            return withContext(Dispatchers.Default) {
+                map.values.asSequence()
+                    .filter { categoryId == null || categoryId in it.allGenres() }
+                    .map {
+                        val genres = it.allGenres()
+                        MediaEntry(
+                            id = it.id,
+                            name = it.name,
+                            logo = it.cover,
+                            categoryId = categoryId ?: genres.firstOrNull(),
+                            categoryIds = genres,
+                            kind = MediaKind.SERIES,
+                            rating = it.rating,
+                            plot = it.plot
+                        )
+                    }
+                    .sortedBy { it.name.lowercase() }
+                    .toList()
+            }
         }
-        return all().filter { it.kind == kind && (categoryId == null || it.categoryId == categoryId) }
+        val list = all()
+        return withContext(Dispatchers.Default) {
+            list.filter { it.kind == kind && (categoryId == null || it.categoryId == categoryId) }
+        }
     }
 
     override suspend fun seriesDetail(seriesId: String): SeriesDetail? = seriesMap()[seriesId]
