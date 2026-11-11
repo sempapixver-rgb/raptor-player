@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0B0F0C" />
+  <title>Painel — Reptor Player</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/painel.css" />
+</head>
+<body class="panel-body">
+  <header class="top panel-top">
+    <div class="brand">
+      <span class="logo">REPTOR</span>
+      <span class="tag">VIDEO PLAYER · PAINEL</span>
+    </div>
+    <button id="logout" class="ghost-btn hidden" type="button">Sair</button>
+  </header>
+
+  <main class="wrap panel-wrap">
+    <!-- Login por token -->
+    <section id="loginView" class="panel-login">
+      <h1>Acesso do proprietário</h1>
+      <p class="sub">Informe o token de administração para gerenciar as ativações.</p>
+      <form id="loginForm" class="card">
+        <label class="field">
+          <span>Token de acesso</span>
+          <input id="token" type="password" autocomplete="current-password" spellcheck="false" placeholder="ADMIN_TOKEN" required />
+        </label>
+        <button class="primary" type="submit">Entrar no painel</button>
+        <div id="loginResult" class="result hidden" role="status" aria-live="polite"></div>
+      </form>
+      <p class="panel-hint">O token é definido na variável <code>ADMIN_TOKEN</code> do Netlify. Guarde com cuidado.</p>
+    </section>
+
+    <!-- Painel -->
+    <section id="panelView" class="hidden">
+      <div class="panel-head">
+        <div>
+          <h1>Ativações</h1>
+          <p class="sub">Gerencie os aparelhos, planos e validades.</p>
+        </div>
+        <button id="newBtn" class="primary small" type="button">+ Nova ativação</button>
+      </div>
+
+      <div class="stats" id="stats">
+        <div class="stat"><b id="statTotal">0</b><span>Aparelhos</span></div>
+        <div class="stat"><b id="statActive">0</b><span>Ativos</span></div>
+        <div class="stat"><b id="statBlocked">0</b><span>Bloqueados</span></div>
+        <div class="stat"><b id="statExpired">0</b><span>Expirados</span></div>
+      </div>
+
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="Buscar por MAC, nome, servidor ou plano" />
+        <select id="statusFilter">
+          <option value="">Todos</option>
+          <option value="active">Ativos</option>
+          <option value="blocked">Bloqueados</option>
+          <option value="expired">Expirados</option>
+        </select>
+        <button id="reload" class="ghost-btn" type="button">Atualizar</button>
+      </div>
+
+      <div id="listResult" class="result hidden" role="status" aria-live="polite"></div>
+      <div id="devices" class="devices"></div>
+      <p id="empty" class="empty hidden">Nenhuma ativação encontrada.</p>
+    </section>
+  </main>
+
+  <!-- Modal criar/editar -->
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2 id="modalTitle">Nova ativação</h2>
+        <button id="closeModal" class="icon-btn" type="button" aria-label="Fechar">×</button>
+      </div>
+
+      <form id="deviceForm">
+        <label class="field">
+          <span>Código / MAC do aparelho</span>
+          <input id="fCode" type="text" placeholder="AA:BB:CC:DD:EE:FF" autocomplete="off" spellcheck="false" required />
+          <small>É o código que aparece na tela de login do app.</small>
+        </label>
+
+        <label class="field">
+          <span>Nome do cliente / aparelho</span>
+          <input id="fLabel" type="text" maxlength="60" placeholder="Ex.: Sala do João" autocomplete="off" />
+        </label>
+
+        <div class="tabs" role="tablist" aria-label="Tipo de acesso">
+          <button type="button" class="tab active" data-mode="XTREAM" role="tab" aria-selected="true">Xtream Codes</button>
+          <button type="button" class="tab" data-mode="M3U" role="tab" aria-selected="false">Link M3U</button>
+        </div>
+
+        <div id="fPanelXtream">
+          <label class="field">
+            <span>Servidor</span>
+            <input id="fHost" type="text" placeholder="http://servidor.com:8080" autocomplete="off" spellcheck="false" />
+          </label>
+          <div class="row">
+            <label class="field">
+              <span>Usuário</span>
+              <input id="fUser" type="text" placeholder="usuario" autocomplete="off" spellcheck="false" />
+            </label>
+            <label class="field">
+              <span>Senha</span>
+              <input id="fPass" type="text" placeholder="senha" autocomplete="off" spellcheck="false" />
+              <small id="passNote" class="hidden">Deixe em branco para manter a senha atual.</small>
+            </label>
+          </div>
+        </div>
+
+        <div id="fPanelM3u" class="hidden">
+          <label class="field">
+            <span>Link da lista</span>
+            <input id="fM3u" type="url" placeholder="http://servidor.com/get.php?..." autocomplete="off" spellcheck="false" />
+          </label>
+        </div>
+
+        <div class="row">
+          <label class="field">
+            <span>Plano</span>
+            <select id="fPlan">
+              <option value="">Sem plano</option>
+              <option value="Mensal">Mensal</option>
+              <option value="Trimestral">Trimestral</option>
+              <option value="Semestral">Semestral</option>
+              <option value="Anual">Anual</option>
+              <option value="Vitalício">Vitalício</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Validade</span>
+            <input id="fExpires" type="date" />
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Observações</span>
+          <textarea id="fNotes" rows="3" maxlength="500" placeholder="Anotações internas sobre este cliente"></textarea>
+        </label>
+
+        <label class="check">
+          <input id="fBlocked" type="checkbox" />
+          <span>Bloquear este aparelho</span>
+        </label>
+
+        <div class="modal-actions">
+          <button id="cancelModal" class="ghost-btn" type="button">Cancelar</button>
+          <button id="saveDevice" class="primary" type="submit">Salvar</button>
+        </div>
+        <div id="formResult" class="result hidden" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/painel.js"></script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reptor Player</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============================================================ TERMOS -->
+  <section id="screen-terms" class="screen hidden">
+    <div class="terms-box">
+      <div class="brand">
+        <span class="logo">REPTOR</span>
+        <span class="tag">VIDEO PLAYER</span>
+      </div>
+      <h1>Termo de uso e aviso de responsabilidade</h1>
+      <p class="updated">Versão 2 — atualizado em novembro de 2026</p>
+
+      <div class="terms-scroll focusable" id="termsScroll" tabindex="0">
+        <h2>1. O que é o Reptor Player</h2>
+        <p>O Reptor Player é apenas um tocador de vídeo (media player). Não fornecemos,
+          hospedamos, distribuímos, vendemos, transmitimos nem indicamos canais, filmes,
+          séries ou qualquer outro conteúdo.</p>
+
+        <h2>2. Origem do conteúdo</h2>
+        <p>Todo o conteúdo exibido vem de vídeos, links ou servidores informados
+          exclusivamente pelo usuário. Não temos vínculo, parceria ou responsabilidade
+          sobre esses provedores ou sobre o material que eles oferecem.</p>
+
+        <h2>3. Responsabilidade do usuário</h2>
+        <p>O usuário declara que possui as autorizações, assinaturas e licenças
+          necessárias para reproduzir o conteúdo que cadastra, sendo o único
+          responsável por ele e pelo uso que faz do aplicativo.</p>
+
+        <h2>4. Isenção de responsabilidade</h2>
+        <p>Não nos responsabilizamos por conteúdo ilegal, violação de direitos autorais,
+          indisponibilidade, qualidade, cobranças, bloqueios ou qualquer dano decorrente
+          do uso de vídeos e links de terceiros.</p>
+
+        <h2>5. Privacidade</h2>
+        <p>Seus acessos e credenciais ficam salvos neste aparelho. Quando você usa a
+          ativação pelo site, esses dados também ficam guardados no servidor de ativação
+          apenas para configurar o aplicativo. Não vendemos, não compartilhamos e não
+          temos acesso ao que você assiste.</p>
+
+        <h2>6. Ativação pelo site</h2>
+        <p>A ativação é feita pelo código exibido na TV. O código identifica apenas o
+          aparelho para entregar a configuração que você mesmo informou. Você pode
+          substituir a configuração a qualquer momento ativando novamente o mesmo código.</p>
+
+        <h2>7. Aceite</h2>
+        <p>Ao ativar o aplicativo ou selecionar “Aceitar e continuar”, você confirma que leu
+          e concorda com estes termos e assume total responsabilidade pelo uso do
+          aplicativo e pelo conteúdo que nele reproduzir.</p>
+
+        <p class="terms-note">Dúvidas sobre estes termos devem ser tratadas com o fornecedor
+          do acesso utilizado no aparelho.</p>
+      </div>
+
+      <div class="terms-actions">
+        <button class="btn primary focusable" id="btnAccept">Aceitar e continuar</button>
+        <span class="hint">↑ ↓ rola o texto · OK confirma</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================= LOGIN -->
+  <section id="screen-login" class="screen hidden">
+    <div class="login-wrap">
+
+      <div class="login-left">
+        <div class="brand big">
+          <span class="logo">REPTOR</span>
+          <span class="tag">VIDEO PLAYER</span>
+        </div>
+
+        <div class="activate-card">
+          <h2>Ativar esta TV</h2>
+          <p class="muted">
+            Escaneie o QR Code com o celular ou abra o site e digite o código abaixo.
+            A TV entra sozinha, sem digitar nada no controle.
+          </p>
+
+          <div class="activate-row">
+            <div class="qr-box">
+              <div id="qrHolder"></div>
+            </div>
+
+            <div class="activate-info">
+              <span class="lbl">CÓDIGO DA TV (MAC)</span>
+              <div class="mac" id="macCode">--:--:--:--:--:--</div>
+              <div class="site" id="siteUrl">reptor-player.netlify.app</div>
+
+              <div class="status" id="actStatus">
+                <span class="dot"></span>
+                <span id="actStatusText">Aguardando ativação…</span>
+              </div>
+
+              <button class="btn ghost focusable" id="btnCheck">Verificar agora</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="login-right">
+        <h2>Entrar com a sua lista</h2>
+
+        <div class="tabs" id="loginTabs">
+          <button class="tab focusable active" data-mode="XTREAM">Xtream</button>
+          <button class="tab focusable" data-mode="M3U">M3U</button>
+        </div>
+
+        <form id="loginForm" autocomplete="off">
+          <div class="field" id="fieldHost">
+            <label for="inHost">Servidor</label>
+            <input id="inHost" class="focusable" type="text" spellcheck="false"
+                   placeholder="http://servidor:8080">
+          </div>
+
+          <div class="field" id="fieldUser">
+            <label for="inUser">Usuário</label>
+            <input id="inUser" class="focusable" type="text" spellcheck="false" placeholder="usuário">
+          </div>
+
+          <div class="field" id="fieldPass">
+            <label for="inPass">Senha</label>
+            <input id="inPass" class="focusable" type="text" spellcheck="false" placeholder="senha">
+          </div>
+
+          <div class="field hidden" id="fieldM3u">
+            <label for="inM3u">Link da lista M3U</label>
+            <input id="inM3u" class="focusable" type="text" spellcheck="false"
+                   placeholder="http://servidor:8080/get.php?username=...&type=m3u_plus">
+          </div>
+
+          <div class="error" id="loginError"></div>
+
+          <button type="submit" class="btn primary wide focusable" id="btnEnter">Entrar</button>
+        </form>
+
+        <div class="saved hidden" id="savedBox">
+          <span class="lbl">LISTAS SALVAS</span>
+          <div class="saved-list" id="savedList"></div>
+        </div>
+
+        <p class="foot-note">Ative pelo site ou entre com a sua lista.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================== HOME -->
+  <section id="screen-home" class="screen hidden">
+    <header class="topbar">
+      <div class="brand small">
+        <span class="logo">REPTOR</span>
+        <span class="tag">VIDEO PLAYER</span>
+      </div>
+      <div class="crumbs" id="crumbs">Canais</div>
+      <div class="topbar-right">
+        <span class="clock" id="clock">--:--</span>
+      </div>
+    </header>
+
+    <nav class="rail" id="rail"></nav>
+
+    <main class="content" id="content">
+      <div class="cats" id="cats"></div>
+      <div class="items" id="items"></div>
+      <div class="empty hidden" id="emptyState">
+        <div class="empty-title">Nada por aqui ainda</div>
+        <div class="empty-sub">Escolha outra pasta na lista ao lado.</div>
+      </div>
+      <div class="loading hidden" id="loading"><span class="spinner"></span>Carregando…</div>
+    </main>
+  </section>
+
+  <!-- ============================================================ DETAIL -->
+  <section id="screen-detail" class="screen hidden">
+    <div class="detail-head">
+      <button class="back focusable" id="btnBackDetail">← Voltar</button>
+    </div>
+    <div class="detail-body">
+      <div class="detail-poster" id="detailPoster"></div>
+      <div class="detail-info">
+        <h1 id="detailTitle">Série</h1>
+        <div class="detail-meta" id="detailMeta"></div>
+        <p class="detail-plot" id="detailPlot"></p>
+        <div class="season-tabs" id="seasonTabs"></div>
+        <div class="episodes" id="episodes"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ PLAYER -->
+  <section id="screen-player" class="screen player hidden">
+    <video id="video" playsinline></video>
+
+    <div class="player-overlay hidden" id="playerOverlay">
+      <div class="player-top">
+        <div class="player-title" id="playerTitle">—</div>
+        <div class="player-badge" id="playerBadge">AO VIVO</div>
+      </div>
+
+      <div class="player-center">
+        <button class="pbtn focusable" id="btnRew">−10s</button>
+        <button class="pbtn big focusable" id="btnPlay">❚❚</button>
+        <button class="pbtn focusable" id="btnFwd">+10s</button>
+      </div>
+
+      <div class="player-bottom">
+        <div class="progress hidden" id="progress">
+          <div class="bar"><div class="fill" id="progressFill"></div></div>
+          <div class="times"><span id="timeNow">00:00</span><span id="timeEnd">00:00</span></div>
+        </div>
+        <div class="player-hint">
+          OK pausa · ← → avança · Voltar fecha
+        </div>
+      </div>
+    </div>
+
+    <div class="player-error hidden" id="playerError">
+      <div class="empty-title">Não foi possível abrir este vídeo</div>
+      <div class="empty-sub" id="playerErrorSub"></div>
+    </div>
+  </section>
+
+  <!-- ========================================================== SETTINGS -->
+  <section id="screen-settings" class="screen hidden">
+    <div class="detail-head">
+      <button class="back focusable" id="btnBackSettings">← Voltar</button>
+    </div>
+    <div class="settings-wrap">
+      <h1>Ajustes</h1>
+      <div class="settings-grid">
+        <div class="card">
+          <span class="lbl">CONTA</span>
+          <div class="card-body" id="acctInfo">—</div>
+        </div>
+        <div class="card">
+          <span class="lbl">LISTA ATIVA</span>
+          <div class="card-body" id="activeList">—</div>
+        </div>
+        <div class="card">
+          <span class="lbl">APARELHO</span>
+          <div class="card-body" id="deviceInfo">—</div>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <button class="btn ghost focusable" id="btnReload">Recarregar conteúdo</button>
+        <button class="btn ghost focusable" id="btnTerms">Ver termos de uso</button>
+        <button class="btn danger focusable" id="btnLogout">Sair da lista</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="vendor/qrcode.min.js"></script>
+<script src="vendor/hls.light.min.js"></script>
+<script src="js/sha256.js"></script>
+<script src="js/util.js"></script>
+<script src="js/net.js"></script>
+<script src="js/store.js"></script>
+<script src="js/source.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

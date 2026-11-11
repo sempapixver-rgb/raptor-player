@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.reptor.player.data.ContentCache
 import com.reptor.player.data.MediaEntry
 import com.reptor.player.data.MediaKind
 import com.reptor.player.data.Prefs
@@ -64,7 +65,9 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
         val format = SimpleDateFormat("HH:mm", Locale.getDefault())
         while (true) {
             clock = format.format(Date())
-            delay(1000)
+            // Acorda no início do próximo minuto: antes isso acontecia a cada
+            // segundo e recompunha a tela inteira 60x por minuto à toa.
+            delay(60_000L - (System.currentTimeMillis() % 60_000L) + 50L)
         }
     }
 
@@ -122,6 +125,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         prefs = prefs,
                         favorites = favorites,
                         recents = recents,
+                        cacheKey = session.key(),
                         refreshKey = refreshTick,
                         previewEnabled = current == null,
                         onPlay = { play(it) },
@@ -132,6 +136,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         source = source,
                         favorites = favorites,
                         recents = recents,
+                        cacheKey = session.key(),
                         refreshKey = refreshTick,
                         onPlay = { play(it) },
                         onToggleFavorite = { toggleFavorite(it) }
@@ -141,6 +146,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         source = source,
                         favorites = favorites,
                         recents = recents,
+                        cacheKey = session.key(),
                         refreshKey = refreshTick,
                         onPlayEpisode = { queue, index -> playEpisode(queue, index) },
                         onToggleFavorite = { toggleFavorite(it) }
@@ -150,7 +156,10 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         session = session,
                         source = source,
                         prefs = prefs,
-                        onSwitchList = onSwitch,
+                        onSwitchList = {
+                            ContentCache.clearAll()
+                            onSwitch()
+                        },
                         onRefresh = { refreshTick++ },
                         onDataCleared = {
                             favorites = prefs.favorites()

@@ -10,6 +10,7 @@ no controle: ele preenche o site e o app busca a configuração sozinho.
 - `/` — apresentação (identidade visual, capa e recursos).
 - `/ativar` — formulário de ativação da TV.
 - `/termos` — termo de uso.
+- `/painel` — painel do proprietário (ativações, planos e validades).
 - `/assets/capa.png` — imagem de capa (1200×630) usada no compartilhamento.
 
 ## Publicação atual
@@ -66,7 +67,56 @@ Se o site ficar em outro endereço, troque essa linha e gere o APK de novo.
 
 - `GET /api/device?code=AABBCCDDEEFF`
   Devolve `{ "ok": true, "activation": { ... } }` quando a TV já foi ativada,
-  ou `404` enquanto não houver ativação.
+  ou `404` enquanto não houver ativação. Responde `403` quando o aparelho está
+  bloqueado (`status: "blocked"`) ou com a validade vencida (`expiresAt`).
+
+## Painel do proprietário (`/painel`)
+
+O painel usa o mesmo armazenamento de ativações e permite:
+
+- listar e buscar aparelhos por MAC, nome, servidor ou plano;
+- criar ativações manualmente (útil para cadastrar antes de o cliente abrir o app);
+- editar dados de acesso, plano, validade e observações;
+- bloquear/desbloquear e excluir aparelhos;
+- acompanhar quantos estão ativos, bloqueados ou expirados.
+
+### Configurar o acesso
+
+Defina a variável de ambiente `ADMIN_TOKEN` no projeto Netlify (qualquer senha
+longa, por exemplo 40 caracteres aleatórios). Sem ela, o painel responde
+`503` e não permite login.
+
+```bash
+netlify env:set ADMIN_TOKEN "sua-senha-longa-e-unica" \
+  --site 0843606b-c53b-4da1-9430-055151404dd1
+```
+
+Depois de definir, faça um novo deploy para a função enxergar a variável.
+
+### API do painel
+
+- `GET /api/admin` com `Authorization: Bearer <ADMIN_TOKEN>` lista as ativações.
+  Aceita `?q=texto&status=active|blocked|expired`.
+- `POST /api/admin` executa ações:
+
+```json
+{ "action": "create", "code": "AABBCCDDEEFF", "mode": "XTREAM",
+  "host": "http://servidor:8080", "user": "usuario", "pass": "senha",
+  "label": "Cliente", "plan": "Mensal", "expiresAt": "2026-12-10",
+  "notes": "Pago no Pix" }
+```
+
+Também aceita `"action": "update"` (mesmos campos; senha em branco mantém a
+atual), `"action": "delete"` (só `code`) e `"status": "blocked"`.
+
+> A senha nunca volta na listagem: o painel recebe apenas `hasPass`. Ao editar,
+> deixe o campo de senha vazio para manter a que já está salva.
+
+### Planos e vendas futuras
+
+O registro de cada aparelho já aceita `plan`, `expiresAt` e `notes`. Isso deixa a
+base pronta para cobrança/renovação: hoje a gestão é manual pelo painel; no
+futuro, um checkout pode chamar a mesma API para liberar o MAC após o pagamento.
 
 ## Teste rápido
 

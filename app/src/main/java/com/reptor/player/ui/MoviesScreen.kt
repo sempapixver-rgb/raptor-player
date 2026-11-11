@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reptor.player.data.Category
+import com.reptor.player.data.ContentCache
 import com.reptor.player.data.MediaEntry
 import com.reptor.player.data.MediaKind
 import com.reptor.player.data.PlaylistSource
@@ -55,6 +56,7 @@ fun MoviesScreen(
     source: PlaylistSource,
     favorites: List<MediaEntry>,
     recents: List<MediaEntry>,
+    cacheKey: String = "",
     refreshKey: Int = 0,
     onPlay: (MediaEntry) -> Unit,
     onToggleFavorite: (MediaEntry) -> Unit
@@ -70,12 +72,32 @@ fun MoviesScreen(
     var query by remember { mutableStateOf("") }
     var sort by remember { mutableStateOf(SortMode.DEFAULT) }
 
+    val cacheId = "$cacheKey|VOD"
+    val mountRefreshKey = remember { refreshKey }
+
     LaunchedEffect(retry, refreshKey) {
+        // Conteúdo já carregado volta na hora ao reabrir a aba.
+        val isRefresh = refreshKey != mountRefreshKey
+        if (retry == 0 && !isRefresh) {
+            val cachedCategories = ContentCache.categories(cacheId)
+            val cachedItems = ContentCache.items(cacheId)
+            if (cachedCategories != null && cachedItems != null) {
+                categories = cachedCategories
+                allItems = cachedItems
+                loading = false
+                return@LaunchedEffect
+            }
+        }
+
+        if (isRefresh) ContentCache.clear(cacheId)
+
         loading = true
         error = null
         try {
             categories = source.categories(MediaKind.VOD)
             allItems = source.items(MediaKind.VOD, null)
+            ContentCache.putCategories(cacheId, categories)
+            ContentCache.putItems(cacheId, allItems)
         } catch (e: Exception) {
             error = e.message ?: "Falha ao carregar os filmes"
         } finally {
@@ -83,8 +105,9 @@ fun MoviesScreen(
         }
     }
 
-    val favoritesVod = favorites.filter { it.kind == MediaKind.VOD }
-    val recentsVod = recents.filter { it.kind == MediaKind.VOD }
+    val favoritesVod = remember(favorites) { favorites.filter { it.kind == MediaKind.VOD } }
+    val recentsVod = remember(recents) { recents.filter { it.kind == MediaKind.VOD } }
+    val favoriteIds = remember(favoritesVod) { favoritesVod.mapTo(HashSet()) { it.id } }
 
     if (loading) {
         LoadingBox("Carregando filmes…")
@@ -173,7 +196,7 @@ fun MoviesScreen(
                     val columns = (maxWidth.value / 128f).toInt().coerceIn(2, 10)
                     PosterGrid(
                         items = visible,
-                        favorites = favoritesVod,
+                        favoriteIds = favoriteIds,
                         onClick = onPlay,
                         onStar = onToggleFavorite,
                         columns = columns

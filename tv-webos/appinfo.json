@@ -1,0 +1,20 @@
+{
+  "id": "com.reptor.player",
+  "version": "1.0.0",
+  "vendor": "Reptor",
+  "type": "web",
+  "main": "index.html",
+  "title": "Reptor Player",
+  "icon": "assets/icon.png",
+  "largeIcon": "assets/largeIcon.png",
+  "bgImage": "assets/splash.png",
+  "splashBackground": "assets/splash.png",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true,
+  "handlesRelaunch": true,
+  "trustLevel": "default",
+  "requiredPermissions": [
+    "network",
+    "media"
+  ]
+}

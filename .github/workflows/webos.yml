@@ -1,0 +1,39 @@
+name: Build webOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tv-webos/**'
+      - '.github/workflows/webos.yml'
+  workflow_dispatch:
+
+jobs:
+  package:
+    name: Empacotar IPK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar webOS CLI
+        run: npm install -g @webos-tools/cli
+
+      - name: Empacotar o app
+        run: |
+          mkdir -p dist
+          ares-package tv-webos -o dist
+          ls -la dist
+
+      - name: Salvar IPK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Reptor-webOS
+          path: dist/*.ipk
+          if-no-files-found: error

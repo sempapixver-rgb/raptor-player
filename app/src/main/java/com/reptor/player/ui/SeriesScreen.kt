@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.reptor.player.data.Category
+import com.reptor.player.data.ContentCache
 import com.reptor.player.data.Episode
 import com.reptor.player.data.MediaEntry
 import com.reptor.player.data.MediaKind
@@ -67,6 +68,7 @@ fun SeriesScreen(
     source: PlaylistSource,
     favorites: List<MediaEntry>,
     recents: List<MediaEntry>,
+    cacheKey: String = "",
     refreshKey: Int = 0,
     onPlayEpisode: (queue: List<PlayItem>, index: Int) -> Unit,
     onToggleFavorite: (MediaEntry) -> Unit
@@ -88,12 +90,32 @@ fun SeriesScreen(
     var detailError by remember { mutableStateOf<String?>(null) }
     var detailTick by remember { mutableIntStateOf(0) }
 
+    val cacheId = "$cacheKey|SERIES"
+    val mountRefreshKey = remember { refreshKey }
+
     LaunchedEffect(retry, refreshKey) {
+        // Conteúdo já carregado volta na hora ao reabrir a aba.
+        val isRefresh = refreshKey != mountRefreshKey
+        if (retry == 0 && !isRefresh) {
+            val cachedCategories = ContentCache.categories(cacheId)
+            val cachedItems = ContentCache.items(cacheId)
+            if (cachedCategories != null && cachedItems != null) {
+                categories = cachedCategories
+                allItems = cachedItems
+                loading = false
+                return@LaunchedEffect
+            }
+        }
+
+        if (isRefresh) ContentCache.clear(cacheId)
+
         loading = true
         error = null
         try {
             categories = source.categories(MediaKind.SERIES)
             allItems = source.items(MediaKind.SERIES, null)
+            ContentCache.putCategories(cacheId, categories)
+            ContentCache.putItems(cacheId, allItems)
         } catch (e: Exception) {
             error = e.message ?: "Falha ao carregar as séries"
         } finally {
@@ -101,8 +123,9 @@ fun SeriesScreen(
         }
     }
 
-    val favoritesSeries = favorites.filter { it.kind == MediaKind.SERIES }
-    val recentsSeries = recents.filter { it.kind == MediaKind.SERIES }
+    val favoritesSeries = remember(favorites) { favorites.filter { it.kind == MediaKind.SERIES } }
+    val recentsSeries = remember(recents) { recents.filter { it.kind == MediaKind.SERIES } }
+    val favoriteIds = remember(favoritesSeries) { favoritesSeries.mapTo(HashSet()) { it.id } }
 
     // Abre a série e monta temporadas/episódios.
     LaunchedEffect(opened?.id, detailTick) {
@@ -136,7 +159,7 @@ fun SeriesScreen(
             detail = detail,
             loading = detailLoading,
             error = detailError,
-            isFavorite = favoritesSeries.any { it.id == current.id },
+            isFavorite = current.id in favoriteIds,
             onBack = { opened = null },
             onRetry = { detailTick++ },
             onStar = { onToggleFavorite(current) },
@@ -236,7 +259,7 @@ fun SeriesScreen(
                     val columns = (maxWidth.value / 128f).toInt().coerceIn(2, 10)
                     PosterGrid(
                         items = visible,
-                        favorites = favoritesSeries,
+                        favoriteIds = favoriteIds,
                         onClick = { opened = it },
                         onStar = onToggleFavorite,
                         columns = columns

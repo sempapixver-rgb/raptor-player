@@ -49,6 +49,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.reptor.player.data.Category
 import com.reptor.player.data.ChannelEpg
+import com.reptor.player.data.ContentCache
 import com.reptor.player.data.EpgClient
 import com.reptor.player.data.EpgProgram
 import com.reptor.player.data.MediaEntry
@@ -68,6 +69,7 @@ fun ChannelsScreen(
     prefs: Prefs,
     favorites: List<MediaEntry>,
     recents: List<MediaEntry>,
+    cacheKey: String = "",
     refreshKey: Int = 0,
     previewEnabled: Boolean = true,
     onPlay: (MediaEntry) -> Unit,
@@ -89,12 +91,35 @@ fun ChannelsScreen(
     var epgLoading by remember { mutableStateOf(false) }
     var previewUrl by remember { mutableStateOf<String?>(null) }
 
+    val cacheId = "$cacheKey|LIVE"
+    val mountRefreshKey = remember { refreshKey }
+
     LaunchedEffect(retry, refreshKey) {
+        // Ao voltar para esta aba o conteúdo já carregado é reaproveitado na
+        // hora. Só baixa de novo quando o usuário pede "Atualizar" (refreshKey)
+        // ou tenta novamente depois de um erro (retry).
+        val isRefresh = refreshKey != mountRefreshKey
+        if (retry == 0 && !isRefresh) {
+            val cachedCategories = ContentCache.categories(cacheId)
+            val cachedItems = ContentCache.items(cacheId)
+            if (cachedCategories != null && cachedItems != null) {
+                categories = cachedCategories
+                allItems = cachedItems
+                if (selected == null) selected = allItems.firstOrNull()
+                loading = false
+                return@LaunchedEffect
+            }
+        }
+
+        if (isRefresh) ContentCache.clear(cacheId)
+
         loading = true
         error = null
         try {
             categories = source.categories(MediaKind.LIVE)
             allItems = source.items(MediaKind.LIVE, null)
+            ContentCache.putCategories(cacheId, categories)
+            ContentCache.putItems(cacheId, allItems)
             if (selected == null) selected = allItems.firstOrNull()
         } catch (e: Exception) {
             error = e.message ?: "Falha ao carregar os canais"
@@ -129,8 +154,9 @@ fun ChannelsScreen(
         epgLoading = false
     }
 
-    val favoritesLive = favorites.filter { it.kind == MediaKind.LIVE }
-    val recentsLive = recents.filter { it.kind == MediaKind.LIVE }
+    val favoritesLive = remember(favorites) { favorites.filter { it.kind == MediaKind.LIVE } }
+    val recentsLive = remember(recents) { recents.filter { it.kind == MediaKind.LIVE } }
+    val favoriteIds = remember(favoritesLive) { favoritesLive.mapTo(HashSet()) { it.id } }
 
     val visible = remember(filter, selectedCategory, query, allItems, favoritesLive, recentsLive) {
         val base = when (filter) {
@@ -209,7 +235,7 @@ fun ChannelsScreen(
                         ChannelRow(
                             number = index + 1,
                             entry = channel,
-                            isFavorite = favoritesLive.any { it.id == channel.id },
+                            isFavorite = channel.id in favoriteIds,
                             selected = selected?.id == channel.id,
                             onClick = { selected = channel },
                             onStar = { onToggleFavorite(channel) }
@@ -228,7 +254,7 @@ fun ChannelsScreen(
             previewEnabled = previewEnabled,
             epg = epg,
             epgLoading = epgLoading,
-            isFavorite = selected != null && favoritesLive.any { it.id == selected?.id },
+            isFavorite = selected != null && selected?.id in favoriteIds,
             onPlay = { channel -> onPlay(channel) },
             onStar = { channel -> onToggleFavorite(channel) },
             modifier = Modifier.weight(1f)
@@ -421,7 +447,7 @@ private fun ChannelDetail(
                 modifier = Modifier.fillMaxSize().padding(top = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                items(count = next.size, key = { next[it].start + next[it].title }) { index ->
+                items(count = next.size, key = { index -> next[index].start + "#" + index }) { index ->
                     val program: EpgProgram = next[index]
                     Row(
                         modifier = Modifier
@@ -526,14 +552,16 @@ private fun LivePreview(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    // Um único player para esta tela. Antes ele era liberado a cada troca de
+    // canal e a prévia seguinte usava um player já destruído — era isso que
+    // fechava o app ao navegar entre os canais.
     val player = remember {
         ExoPlayer.Builder(context).build().apply {
-            playWhenReady = true
             volume = 0f
         }
     }
 
-    DisposableEffect(url, enabled) {
+    DisposableEffect(Unit) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> player.pause()

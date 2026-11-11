@@ -442,7 +442,7 @@ fun PosterCard(
 @Composable
 fun PosterGrid(
     items: List<MediaEntry>,
-    favorites: List<MediaEntry>,
+    favoriteIds: Set<String>,
     onClick: (MediaEntry) -> Unit,
     onStar: (MediaEntry) -> Unit,
     contentPadding: PaddingValues = PaddingValues(14.dp),
@@ -459,7 +459,7 @@ fun PosterGrid(
             val entry = items[index]
             PosterCard(
                 entry = entry,
-                isFavorite = favorites.any { it.kind == entry.kind && it.id == entry.id },
+                isFavorite = entry.id in favoriteIds,
                 onClick = { onClick(entry) },
                 onStar = { onStar(entry) }
             )

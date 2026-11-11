@@ -96,6 +96,17 @@ export default async (req) => {
 
   try {
     const store = getStore({ name: STORE, consistency: "strong" });
+
+    // Se o painel já cadastrou plano/validade/observação para este aparelho,
+    // a nova ativação do cliente não apaga esses dados comerciais.
+    const previous = await store.get(`device-${code}`, { type: "json" }).catch(() => null);
+    if (previous) {
+      if (previous.plan) record.plan = previous.plan;
+      if (previous.expiresAt) record.expiresAt = previous.expiresAt;
+      if (previous.notes) record.notes = previous.notes;
+      if (previous.status === "blocked") record.status = "blocked";
+    }
+
     await store.setJSON(`device-${code}`, record);
   } catch (err) {
     return json(500, {

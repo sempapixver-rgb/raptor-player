@@ -58,5 +58,24 @@ export default async (req) => {
     return json(404, { ok: false, error: "not_found" });
   }
 
+  // O painel do proprietário pode bloquear ou limitar a validade do aparelho.
+  if (record.status === "blocked") {
+    return json(403, {
+      ok: false,
+      error: "blocked",
+      message: "Este aparelho está bloqueado. Fale com o suporte.",
+    });
+  }
+  if (record.expiresAt) {
+    const end = new Date(String(record.expiresAt) + "T23:59:59");
+    if (Number.isFinite(end.getTime()) && end.getTime() < Date.now()) {
+      return json(403, {
+        ok: false,
+        error: "expired",
+        message: "A validade deste aparelho expirou. Fale com o suporte para renovar.",
+      });
+    }
+  }
+
   return json(200, { ok: true, activation: record });
 };

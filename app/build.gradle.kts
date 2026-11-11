@@ -11,10 +11,14 @@ android {
         applicationId = "com.reptor.player"
         minSdk = 23
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.2.3"
+        versionCode = 8
+        versionName = "1.2.4"
 
         vectorDrawables { useSupportLibrary = true }
+
+        // O app é em português: descarta as traduções das bibliotecas (dezenas
+        // de idiomas) que só ocupavam espaço no APK.
+        resourceConfigurations += listOf("pt", "pt-rBR", "en")
     }
 
     buildTypes {
@@ -69,7 +73,6 @@ dependencies {
 
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
 
@@ -77,7 +80,6 @@ dependencies {
 
     implementation("androidx.media3:media3-exoplayer:1.3.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.3.1")
-    implementation("androidx.media3:media3-exoplayer-dash:1.3.1")
     implementation("androidx.media3:media3-ui:1.3.1")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
