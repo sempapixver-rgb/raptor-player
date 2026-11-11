@@ -160,7 +160,10 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                             ContentCache.clearAll()
                             onSwitch()
                         },
-                        onRefresh = { refreshTick++ },
+                        onRefresh = {
+                            ContentCache.clearAll()
+                            refreshTick++
+                        },
                         onDataCleared = {
                             favorites = prefs.favorites()
                             recents = prefs.recents()
