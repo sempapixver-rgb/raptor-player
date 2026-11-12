@@ -176,12 +176,40 @@
       </aside>
 
       <main class="content" id="content">
-        <div class="items" id="items"></div>
-        <div class="empty hidden" id="emptyState">
-          <div class="empty-title">Nada por aqui ainda</div>
-          <div class="empty-sub">Escolha outra pasta na lista ao lado.</div>
+        <div class="list-pane" id="listPane">
+          <div class="items" id="items"></div>
+          <div class="empty hidden" id="emptyState">
+            <div class="empty-title">Nada por aqui ainda</div>
+            <div class="empty-sub">Escolha outra pasta na lista ao lado.</div>
+          </div>
+          <div class="loading hidden" id="loading"><span class="spinner"></span>Carregando…</div>
         </div>
-        <div class="loading hidden" id="loading"><span class="spinner"></span>Carregando…</div>
+
+        <aside class="preview hidden" id="previewPane">
+          <div class="preview-stage">
+            <video id="previewVideo" muted playsinline></video>
+            <div class="preview-poster hidden" id="previewPoster"></div>
+            <span class="preview-badge" id="previewBadge">AO VIVO</span>
+            <button class="preview-star focusable" id="btnFavItem">☆</button>
+          </div>
+
+          <div class="preview-title" id="previewTitle">—</div>
+          <div class="preview-meta" id="previewMeta">—</div>
+          <p class="preview-plot hidden" id="previewPlot"></p>
+
+          <div class="preview-actions">
+            <button class="pv-btn focusable" id="btnPrevItem">◀ Anterior</button>
+            <button class="pv-btn primary focusable" id="btnWatch">▶ Assistir</button>
+            <button class="pv-btn focusable" id="btnNextItem">Próximo ▶</button>
+          </div>
+
+          <div class="preview-extra" id="previewExtra">
+            <div class="epg-label">AGORA</div>
+            <div class="epg-now" id="epgNow">—</div>
+            <div class="epg-label">A SEGUIR</div>
+            <div class="epg-list" id="epgList"></div>
+          </div>
+        </aside>
       </main>
     </div>
 
@@ -192,6 +220,10 @@
   <section id="screen-detail" class="screen hidden">
     <div class="detail-head">
       <button class="back focusable" id="btnBackDetail">← Voltar</button>
+      <div class="detail-nav">
+        <button class="back focusable" id="btnPrevSerie">◀ Anterior</button>
+        <button class="back focusable" id="btnNextSerie">Próximo ▶</button>
+      </div>
     </div>
     <div class="detail-body">
       <div class="detail-poster" id="detailPoster"></div>
@@ -387,6 +419,7 @@
 <script src="js/net.js"></script>
 <script src="js/store.js"></script>
 <script src="js/source.js"></script>
+<script src="js/epg.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/app.js"></script>
 </body>

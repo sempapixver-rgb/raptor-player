@@ -1,6 +1,6 @@
 /* Reptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.0.5';
+var APP_VERSION = '1.0.6';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
@@ -20,6 +20,12 @@ var App = {
   detail: null,
   detailItem: null,
   infoReturn: null,
+
+  selected: null,
+  previewUrl: null,
+  epgPrograms: null,
+  epgToken: 0,
+  epgTimer: null,
 
   code: null,
   pollTimer: null,
@@ -42,6 +48,7 @@ var App = {
 
     this.bindLogin();
     this.bindSettings();
+    this.bindPreview();
 
     $('btnRefresh').addEventListener('click', function () {
       self.reloadContent();
@@ -408,6 +415,10 @@ var App = {
     this.cacheOrder = [];
     this.page = 0;
     this.currentList = [];
+    this.selected = null;
+    this.epgPrograms = null;
+    this.epgToken++;
+    this.stopPreview();
 
     Screens.show('screen-home');
     this.renderNav();
@@ -450,6 +461,13 @@ var App = {
       var active = document.querySelector('.nav-item.active');
       if (active) { try { active.focus(); } catch (e) { /* ignora */ } }
     }, 40);
+    // Ao voltar do player, religa a prévia do canal escolhido.
+    var self = this;
+    setTimeout(function () {
+      if (self.section === MediaKind.LIVE && self.selected) {
+        self.renderPreview(self.selected);
+      }
+    }, 350);
   },
 
   /** Menu inferior, igual ao app Android. */
@@ -490,6 +508,13 @@ var App = {
     this.filter = 'all';
     this.page = 0;
     this.currentList = [];
+    this.selected = null;
+    this.epgPrograms = null;
+    this.epgToken++;
+    this.stopPreview();
+
+    // Em Séries a tela de detalhe já mostra tudo: a prévia lateral sobra.
+    toggle($('previewPane'), kind !== MediaKind.SERIES);
 
     var navItems = document.querySelectorAll('.nav-item');
     for (var i = 0; i < navItems.length; i++) {
@@ -670,7 +695,7 @@ var App = {
     try { $('items').scrollTop = 0; } catch (e) { /* ignora */ }
   },
 
-  renderItems: function (list, keepPage) {
+  renderItems: function (list, keepPage, skipAutoSelect) {
     var self = this;
     var holder = $('items');
     clear(holder);
@@ -720,6 +745,12 @@ var App = {
         try { first.focus(); } catch (e) { /* ignora */ }
       }
     }
+
+    // Como no Android, o primeiro item já aparece na prévia lateral.
+    if (!skipAutoSelect && this.section !== MediaKind.SERIES && list[start] &&
+        !$('screen-home').classList.contains('hidden')) {
+      this.selectEntry(list[start], true);
+    }
   },
 
   /** Linha de canal: número, logo, nome e estrela. */
@@ -728,6 +759,7 @@ var App = {
     var row = make('div', 'channel-row focusable');
     row.setAttribute('tabindex', '0');
     row.setAttribute('role', 'button');
+    row.setAttribute('data-id', entry.id);
 
     row.appendChild(make('span', 'num', String(index + 1)));
 
@@ -753,7 +785,8 @@ var App = {
     row.appendChild(star);
 
     row.addEventListener('click', function () {
-      self.playEntry(entry);
+      if (self.selected && self.selected.id === entry.id) self.playEntry(entry);
+      else self.selectEntry(entry);
     });
 
     return row;
@@ -786,11 +819,264 @@ var App = {
     return row;
   },
 
+  /* ======================================================= prévia lateral */
+
+  bindPreview: function () {
+    var self = this;
+
+    $('btnWatch').addEventListener('click', function () {
+      if (self.selected) self.playEntry(self.selected);
+    });
+
+    $('btnPrevItem').addEventListener('click', function () { self.stepItem(-1); });
+    $('btnNextItem').addEventListener('click', function () { self.stepItem(1); });
+
+    $('btnFavItem').addEventListener('click', function () {
+      if (!self.selected) return;
+      var now = Store.toggleFavorite(self.selected);
+      self.updateFavStar();
+      toast(now ? 'Adicionado aos favoritos.' : 'Removido dos favoritos.');
+    });
+
+    // Mantém AGORA / A SEGUIR atualizados sem nova requisição.
+    setInterval(function () {
+      if (self.section === MediaKind.LIVE &&
+          !$('screen-home').classList.contains('hidden')) {
+        self.renderEpg(self.epgPrograms);
+      }
+    }, 60000);
+  },
+
+  selectEntry: function (entry, silent) {
+    if (!entry || this.section === MediaKind.SERIES) return;
+    this.selected = entry;
+
+    // Anterior/Próximo percorre a lista inteira: se o item cair em outra
+    // página, vira a página sozinho (como no app Android).
+    var index = this.indexOfSelected();
+    var page = index < 0 ? this.page : Math.floor(index / PAGE_SIZE);
+    if (page !== this.page) {
+      this.page = page;
+      this.renderItems(this.currentList, true, true);
+      try { $('items').scrollTop = 0; } catch (e) { /* ignora */ }
+    }
+
+    this.markSelected();
+    this.renderPreview(entry);
+    if (!silent) {
+      var node = document.querySelector('#items [data-id="' + entry.id + '"]');
+      if (node) {
+        try { node.scrollIntoView({ block: 'nearest' }); } catch (e) { /* ignora */ }
+      }
+    }
+  },
+
+  markSelected: function () {
+    var nodes = document.querySelectorAll('#items [data-id]');
+    var id = this.selected ? this.selected.id : null;
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].getAttribute('data-id') === id) nodes[i].classList.add('selected');
+      else nodes[i].classList.remove('selected');
+    }
+  },
+
+  indexOfSelected: function () {
+    var id = this.selected ? this.selected.id : null;
+    if (!id) return -1;
+    for (var i = 0; i < this.currentList.length; i++) {
+      if (this.currentList[i].id === id) return i;
+    }
+    return -1;
+  },
+
+  stepItem: function (delta) {
+    var index = this.indexOfSelected();
+    if (index < 0) return;
+    var next = index + delta;
+    if (next < 0 || next >= this.currentList.length) return;
+    this.selectEntry(this.currentList[next]);
+  },
+
+  categoryName: function (entry) {
+    var list = this.catCache[this.section] || [];
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i].id) === String(entry.categoryId)) return list[i].name;
+    }
+    return '';
+  },
+
+  renderPreview: function (entry) {
+    var live = entry.kind === MediaKind.LIVE;
+
+    toggle($('previewVideo'), live);
+    toggle($('previewPoster'), !live);
+    toggle($('previewExtra'), live);
+
+    $('previewBadge').textContent = live ? 'AO VIVO' : 'FILME';
+    $('previewBadge').className = 'preview-badge' + (live ? '' : ' vod');
+    $('previewTitle').textContent = entry.name;
+
+    var meta = [];
+    if (live) {
+      var cat = this.categoryName(entry);
+      if (cat) meta.push(cat);
+      meta.push('Ao vivo');
+    } else {
+      if (entry.year) meta.push(String(entry.year));
+      if (entry.rating) meta.push('★ ' + Number(entry.rating).toFixed(1));
+    }
+    $('previewMeta').textContent = meta.join('   ·   ');
+
+    var plot = entry.plot || '';
+    toggle($('previewPlot'), !live && !!plot);
+    $('previewPlot').textContent = plot;
+
+    if (live) {
+      this.startPreview(this.source.playUrl(entry));
+      this.loadEpg(entry);
+    } else {
+      this.stopPreview();
+      this.epgPrograms = null;
+      $('previewPoster').style.backgroundImage = entry.logo
+        ? 'url("' + String(entry.logo).replace(/"/g, '%22') + '")'
+        : '';
+    }
+
+    this.updateFavStar();
+    this.updateStepButtons();
+  },
+
+  updateFavStar: function () {
+    var star = $('btnFavItem');
+    if (!star) return;
+    var favorite = this.selected ? Store.isFavorite(this.selected) : false;
+    star.textContent = favorite ? '★' : '☆';
+    star.style.color = favorite ? '#FFC107' : '#FFFFFF';
+  },
+
+  updateStepButtons: function () {
+    var index = this.indexOfSelected();
+    var prev = $('btnPrevItem');
+    var next = $('btnNextItem');
+    if (prev) prev.disabled = index <= 0;
+    if (next) next.disabled = index < 0 || index >= this.currentList.length - 1;
+  },
+
+  startPreview: function (url) {
+    if (!url) return;
+    if (this.previewUrl === url) return;
+    this.stopPreview();
+
+    var video = $('previewVideo');
+    if (!video) return;
+    this.previewUrl = url;
+    try {
+      video.muted = true;
+      video.src = url;
+      var started = video.play();
+      if (started && started.catch) started.catch(function () { /* ignora */ });
+    } catch (e) { /* ignora */ }
+  },
+
+  stopPreview: function () {
+    this.previewUrl = null;
+    var video = $('previewVideo');
+    if (!video) return;
+    try {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    } catch (e) { /* ignora */ }
+  },
+
+  nowMinutes: function () {
+    var now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  },
+
+  loadEpg: function (entry) {
+    var self = this;
+    var token = ++this.epgToken;
+    this.epgPrograms = null;
+
+    var now = $('epgNow');
+    now.className = 'epg-now dim';
+    now.textContent = 'Consultando programação…';
+    clear($('epgList'));
+
+    Epg.board().then(function (board) {
+      if (token !== self.epgToken) return null;
+      var found = Epg.find(board, entry.name);
+      if (!found) {
+        now.className = 'epg-now dim';
+        now.textContent = 'Programação não encontrada para este canal.';
+        return null;
+      }
+      return Epg.schedule(found.code).then(function (day) {
+        if (token !== self.epgToken) return;
+        var programs = (day && day.length) ? day : found.programs;
+        self.epgPrograms = programs;
+        self.renderEpg(programs);
+      });
+    }, function () {
+      if (token !== self.epgToken) return;
+      now.className = 'epg-now dim';
+      now.textContent = 'Programação indisponível agora.';
+    });
+  },
+
+  renderEpg: function (programs) {
+    var now = $('epgNow');
+    var list = $('epgList');
+    if (!now || !list) return;
+
+    clear(list);
+
+    if (!programs || !programs.length) {
+      now.className = 'epg-now dim';
+      now.textContent = 'Programação indisponível para este canal.';
+      return;
+    }
+
+    var minutes = this.nowMinutes();
+    var current = null;
+    var upcoming = [];
+
+    for (var i = 0; i < programs.length; i++) {
+      var program = programs[i];
+      if (program.minutes <= minutes) {
+        current = program;
+      } else {
+        upcoming.push(program);
+        if (upcoming.length >= 5) break;
+      }
+    }
+
+    if (current) {
+      now.className = 'epg-now';
+      clear(now);
+      now.appendChild(make('span', 't', current.start));
+      now.appendChild(document.createTextNode(current.title));
+      if (current.genre) now.appendChild(make('span', 'g', current.genre));
+    } else {
+      now.className = 'epg-now dim';
+      now.textContent = 'Sem programa agora.';
+    }
+
+    for (var j = 0; j < upcoming.length; j++) {
+      var row = make('div', 'epg-item');
+      row.appendChild(make('span', 't', upcoming[j].start));
+      row.appendChild(make('span', 'n', upcoming[j].title));
+      list.appendChild(row);
+    }
+  },
+
   buildCard: function (entry) {
     var self = this;
     var card = make('div', 'card-item focusable' + (entry.kind === MediaKind.LIVE ? ' live' : ''));
     card.setAttribute('tabindex', '0');
     card.setAttribute('role', 'button');
+    card.setAttribute('data-id', entry.id);
 
     var thumb = make('div', 'thumb');
     if (entry.logo) {
@@ -824,8 +1110,10 @@ var App = {
     card.addEventListener('click', function () {
       if (entry.kind === MediaKind.SERIES) {
         self.openDetail(entry);
-      } else {
+      } else if (self.selected && self.selected.id === entry.id) {
         self.playEntry(entry);
+      } else {
+        self.selectEntry(entry);
       }
     });
 
@@ -837,6 +1125,8 @@ var App = {
   openDetail: function (entry) {
     var self = this;
     this.detailItem = entry;
+    this.stopPreview();
+    this.updateDetailNav();
 
     Screens.show('screen-detail');
     $('detailTitle').textContent = entry.name;
@@ -859,6 +1149,32 @@ var App = {
       $('detailPlot').textContent = 'Não foi possível carregar esta série.';
       $('episodes').textContent = '';
     });
+  },
+
+  updateDetailNav: function () {
+    var index = -1;
+    if (this.detailItem) {
+      for (var i = 0; i < this.currentList.length; i++) {
+        if (this.currentList[i].id === this.detailItem.id) { index = i; break; }
+      }
+    }
+    var prev = $('btnPrevSerie');
+    var next = $('btnNextSerie');
+    if (prev) prev.disabled = index <= 0;
+    if (next) next.disabled = index < 0 || index >= this.currentList.length - 1;
+  },
+
+  stepDetail: function (delta) {
+    var index = -1;
+    if (this.detailItem) {
+      for (var i = 0; i < this.currentList.length; i++) {
+        if (this.currentList[i].id === this.detailItem.id) { index = i; break; }
+      }
+    }
+    if (index < 0) return;
+    var next = index + delta;
+    if (next < 0 || next >= this.currentList.length) return;
+    this.openDetail(this.currentList[next]);
   },
 
   renderDetail: function (detail) {
@@ -940,6 +1256,7 @@ var App = {
       toast('Não foi possível montar o endereço deste item.');
       return;
     }
+    this.stopPreview();
     Player.open(url, entry.name, entry.kind === MediaKind.LIVE);
     Store.addRecent(entry);
   },
@@ -972,6 +1289,8 @@ var App = {
     var self = this;
     $('btnBackDetail').addEventListener('click', function () { self.goHome(); });
     $('btnBackSettings').addEventListener('click', function () { self.goHome(); });
+    $('btnPrevSerie').addEventListener('click', function () { self.stepDetail(-1); });
+    $('btnNextSerie').addEventListener('click', function () { self.stepDetail(1); });
 
     $('setSwitch').addEventListener('click', function () {
       self.showLogin();
@@ -1070,6 +1389,8 @@ var App = {
 
   openSettings: function () {
     var self = this;
+    this.stopPreview();
+    this.epgToken++;
     Screens.show('screen-settings');
 
     var name = this.session ? sessionName(this.session) : '—';
