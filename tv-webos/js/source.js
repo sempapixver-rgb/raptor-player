@@ -258,8 +258,27 @@ XtreamSource.prototype.seriesInfo = function (seriesId) {
   }, function () { return null; });
 };
 
-XtreamSource.prototype.liveUrl = function (streamId) {
-  return this.baseUrl + '/live/' + encodeURIComponent(this.user) + '/' +
+/* Sinopse do filme: a lista (get_vod_streams) não traz plot; o detalhe traz. */
+XtreamSource.prototype.vodInfo = function (vodId) {
+  var url = this.apiUrl('get_vod_info', { vod_id: vodId });
+  return this._json(url).then(function (obj) {
+    if (!obj) return null;
+    var info = obj.info || {};
+    var movie = obj.movie_data || {};
+    return {
+      plot: info.plot || info.description || '',
+      genre: info.genre || movie.genre || '',
+      cast: info.cast || info.actors || '',
+      director: info.director || '',
+      duration: info.duration || '',
+      year: String(info.release_date || movie.release_date || '').substring(0, 4),
+      rating: parseFloat(info.rating) || null,
+      cover: info.cover_big || info.movie_image || ''
+    };
+  }, function () { return null; });
+};
+
+XtreamSource.prototype.liveUrl = function (streamId) {  return this.baseUrl + '/live/' + encodeURIComponent(this.user) + '/' +
     encodeURIComponent(this.pass) + '/' + streamId + '.m3u8';
 };
 

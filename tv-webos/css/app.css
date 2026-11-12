@@ -1045,6 +1045,30 @@ html, body {
 }
 
 .player-bottom { display: flex; -webkit-flex-direction: column; flex-direction: column; }
+
+/* Anterior / Próximo dentro do player (canais, filmes e episódios). */
+.player-nav {
+  display: flex;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+.pbtn.nav {
+  width: auto;
+  height: 74px;
+  border-radius: 999px;
+  padding: 0 40px;
+  font-size: 24px;
+  margin: 0 14px;
+  background: rgba(255,255,255,.18);
+}
+.pbtn.nav:focus, .pbtn.nav.hover {
+  -webkit-transform: scale(1.04);
+  transform: scale(1.04);
+}
+.pbtn.nav[disabled] { opacity: .32; }
 .progress { margin-bottom: 12px; }
 .progress .bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,.2); overflow: hidden; }
 .progress .fill { height: 100%; width: 0%; background: var(--green); }

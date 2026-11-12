@@ -1,6 +1,6 @@
 /* Reptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.0.6';
+var APP_VERSION = '1.0.7';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
@@ -26,6 +26,12 @@ var App = {
   epgPrograms: null,
   epgToken: 0,
   epgTimer: null,
+
+  playing: null,
+  playingSeason: null,
+  playingEpIndex: -1,
+  vodCache: {},
+  vodToken: 0,
 
   code: null,
   pollTimer: null,
@@ -838,6 +844,15 @@ var App = {
       toast(now ? 'Adicionado aos favoritos.' : 'Removido dos favoritos.');
     });
 
+    $('btnPrevPlay').addEventListener('click', function () {
+      self.stepPlayback(-1);
+      self.keepPlayerFocus('btnPrevPlay');
+    });
+    $('btnNextPlay').addEventListener('click', function () {
+      self.stepPlayback(1);
+      self.keepPlayerFocus('btnNextPlay');
+    });
+
     // Mantém AGORA / A SEGUIR atualizados sem nova requisição.
     setInterval(function () {
       if (self.section === MediaKind.LIVE &&
@@ -932,18 +947,84 @@ var App = {
     $('previewPlot').textContent = plot;
 
     if (live) {
+      this.epgPrograms = null;
+      this.epgToken++;
       this.startPreview(this.source.playUrl(entry));
       this.loadEpg(entry);
     } else {
       this.stopPreview();
       this.epgPrograms = null;
+      this.epgToken++;
+      this.vodToken++;
       $('previewPoster').style.backgroundImage = entry.logo
         ? 'url("' + String(entry.logo).replace(/"/g, '%22') + '")'
         : '';
+      this.loadSynopsis(entry);
     }
 
     this.updateFavStar();
     this.updateStepButtons();
+  },
+
+  /** Sinopse do filme: a lista do servidor não traz o texto, só o detalhe. */
+  loadSynopsis: function (entry) {
+    var self = this;
+    var token = ++this.vodToken;
+
+    if (this.vodCache[entry.id]) {
+      this.showSynopsis(entry, this.vodCache[entry.id]);
+      return;
+    }
+    if (entry.plot) {
+      show($('previewPlot'));
+      return;
+    }
+    if (!this.source || !this.source.vodInfo) {
+      this.showNoSynopsis();
+      return;
+    }
+
+    $('previewPlot').textContent = 'Carregando sinopse…';
+    show($('previewPlot'));
+
+    this.source.vodInfo(entry.id).then(function (info) {
+      if (token !== self.vodToken) return;
+      if (!info || !info.plot) {
+        self.showNoSynopsis();
+        return;
+      }
+      self.vodCache[entry.id] = info;
+      entry.plot = info.plot;
+      if (!entry.year && info.year) entry.year = info.year;
+      if (!entry.rating && info.rating) entry.rating = info.rating;
+      self.showSynopsis(entry, info);
+    }, function () {
+      if (token !== self.vodToken) return;
+      self.showNoSynopsis();
+    });
+  },
+
+  showNoSynopsis: function () {
+    var el = $('previewPlot');
+    if (!el) return;
+    el.textContent = 'Sinopse não disponível para este título.';
+    show(el);
+  },
+
+  showSynopsis: function (entry, info) {
+    var plot = (info && info.plot) || entry.plot || '';
+    if (!plot) {
+      this.showNoSynopsis();
+      return;
+    }
+    $('previewPlot').textContent = plot;
+    show($('previewPlot'));
+
+    var meta = [];
+    if (entry.year) meta.push(String(entry.year));
+    if (entry.rating) meta.push('★ ' + Number(entry.rating).toFixed(1));
+    if (info && info.genre) meta.push(String(info.genre).split(',')[0]);
+    if (meta.length) $('previewMeta').textContent = meta.join('   ·   ');
   },
 
   updateFavStar: function () {
@@ -1236,15 +1317,15 @@ var App = {
     }
 
     for (var i = 0; i < season.episodes.length; i++) {
-      (function (episode) {
+      (function (episode, index) {
         var button = makeButton('episode', '');
         button.appendChild(make('span', 'num', 'T' + episode.season + ' E' + episode.number));
         button.appendChild(make('span', 'ep-name', episode.title));
         button.addEventListener('click', function () {
-          self.playEpisode(episode);
+          self.playEpisode(episode, season, index);
         });
         holder.appendChild(button);
-      })(season.episodes[i]);
+      })(season.episodes[i], i);
     }
   },
 
@@ -1256,24 +1337,109 @@ var App = {
       toast('Não foi possível montar o endereço deste item.');
       return;
     }
+    this.playing = entry;
+    this.playingSeason = null;
+    this.playingEpIndex = -1;
+    this.selected = entry;
     this.stopPreview();
     Player.open(url, entry.name, entry.kind === MediaKind.LIVE);
+    this.updatePlayerNav();
     Store.addRecent(entry);
   },
 
-  playEpisode: function (episode) {
+  playEpisode: function (episode, season, index) {
     var url = this.source.episodeUrl(episode);
     if (!url) {
       toast('Não foi possível montar o endereço deste episódio.');
       return;
     }
+    this.playing = null;
+    this.playingSeason = season || null;
+    this.playingEpIndex = typeof index === 'number' ? index : -1;
     var name = this.detail ? this.detail.name : 'Episódio';
     Player.open(url, name + ' · T' + episode.season + ' E' + episode.number + ' — ' + episode.title, false);
+    this.updatePlayerNav();
+  },
+
+  /** Anterior/Próximo com o vídeo rodando: canal, filme ou episódio. */
+  stepPlayback: function (delta) {
+    if (this.playingSeason) {
+      var eps = this.playingSeason.episodes || [];
+      var i = this.playingEpIndex + delta;
+      if (i < 0 || i >= eps.length) return;
+      this.playEpisode(eps[i], this.playingSeason, i);
+      return;
+    }
+
+    var entry = this.playing;
+    if (!entry) return;
+
+    var index = -1;
+    for (var k = 0; k < this.currentList.length; k++) {
+      if (this.currentList[k].id === entry.id) { index = k; break; }
+    }
+    if (index < 0) return;
+
+    var next = index + delta;
+    if (next < 0 || next >= this.currentList.length) return;
+
+    var target = this.currentList[next];
+    this.selected = target;
+
+    var page = Math.floor(next / PAGE_SIZE);
+    if (page !== this.page) {
+      this.page = page;
+      this.renderItems(this.currentList, true, true);
+    }
+    this.markSelected();
+    this.updateStepButtons();
+    this.playEntry(target);
+  },
+
+  updatePlayerNav: function () {
+    var prev = $('btnPrevPlay');
+    var next = $('btnNextPlay');
+    if (!prev || !next) return;
+
+    var hasPrev = false;
+    var hasNext = false;
+
+    if (this.playingSeason) {
+      var eps = this.playingSeason.episodes || [];
+      hasPrev = this.playingEpIndex > 0;
+      hasNext = this.playingEpIndex >= 0 && this.playingEpIndex < eps.length - 1;
+    } else if (this.playing) {
+      var index = -1;
+      for (var i = 0; i < this.currentList.length; i++) {
+        if (this.currentList[i].id === this.playing.id) { index = i; break; }
+      }
+      hasPrev = index > 0;
+      hasNext = index >= 0 && index < this.currentList.length - 1;
+    }
+
+    prev.disabled = !hasPrev;
+    next.disabled = !hasNext;
+    toggle(prev.parentNode, !!(this.playing || this.playingSeason));
+  },
+
+  keepPlayerFocus: function (id) {
+    setTimeout(function () {
+      var button = $(id);
+      if (button && !button.disabled) {
+        try { button.focus(); } catch (e) { /* ignora */ }
+      }
+    }, 220);
   },
 
   closePlayer: function () {
+    var fromDetail = !!(this.playingSeason && this.detail);
     Player.close();
-    if (this.detail && !$('screen-detail').classList.contains('hidden')) {
+    this.playing = null;
+    this.playingSeason = null;
+    this.playingEpIndex = -1;
+
+    if (fromDetail) {
+      Screens.show('screen-detail');
       setTimeout(function () {
         var first = document.querySelector('#episodes .episode');
         if (first) { try { first.focus(); } catch (e) { /* ignora */ } }
