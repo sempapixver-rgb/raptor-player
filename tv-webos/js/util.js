@@ -50,6 +50,45 @@ function fold(value) {
   return lower.replace(/[^a-z0-9]+/g, ' ').replace(/^\s+|\s+$/g, '');
 }
 
+/** Compara nomes em ordem alfabética, com números em ordem natural (2 antes de 10). */
+function compareNames(a, b) {
+  var ka = fold(a && a.name);
+  var kb = fold(b && b.name);
+  if (!ka) return kb ? 1 : 0;
+  if (!kb) return -1;
+
+  var pa = ka.split(' ');
+  var pb = kb.split(' ');
+  var len = Math.min(pa.length, pb.length);
+  for (var i = 0; i < len; i++) {
+    var xa = pa[i];
+    var xb = pb[i];
+    if (xa === xb) continue;
+
+    var na = /^\d+$/.test(xa);
+    var nb = /^\d+$/.test(xb);
+    if (na && nb) {
+      var da = parseInt(xa, 10);
+      var db = parseInt(xb, 10);
+      if (da !== db) return da - db;
+    } else if (na) {
+      return -1;
+    } else if (nb) {
+      return 1;
+    }
+    return xa < xb ? -1 : 1;
+  }
+  return pa.length - pb.length;
+}
+
+/** Cópia da lista em ordem alfabética (não altera a original). */
+function sortByName(list) {
+  if (!list || !list.length) return list || [];
+  var copy = list.slice();
+  copy.sort(compareNames);
+  return copy;
+}
+
 function fmtTime(seconds) {
   if (!isFinite(seconds) || seconds < 0) seconds = 0;
   var total = Math.floor(seconds);

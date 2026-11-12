@@ -14,6 +14,8 @@ var Focus = {
   list: function (root) {
     var nodes = (root || document).querySelectorAll('.focusable');
     var out = [];
+    var vw = window.innerWidth || 1920;
+    var vh = window.innerHeight || 1080;
     for (var i = 0; i < nodes.length; i++) {
       var node = nodes[i];
       if (node.disabled) continue;
@@ -21,6 +23,8 @@ var Focus = {
       if (node.offsetParent === null) continue;
       var rect = node.getBoundingClientRect();
       if (rect.width === 0 && rect.height === 0) continue;
+      // Itens fora da tela não recebem foco (evita pulos para o menu escondido).
+      if (rect.bottom <= 0 || rect.top >= vh || rect.right <= 0 || rect.left >= vw) continue;
       out.push({ el: node, r: rect });
     }
     return out;
@@ -105,6 +109,9 @@ var Focus = {
       var target = event.target;
       while (target && target !== document.body) {
         if (target.classList && target.classList.contains('focusable')) {
+          // Abas do menu inferior não recebem foco ao passar o ponteiro:
+          // a aba só troca quando o usuário clica (ou aperta OK no D-pad).
+          if (target.getAttribute('data-nohover') === 'true') return;
           if (document.activeElement !== target) {
             try { target.focus(); } catch (e) { /* ignora */ }
           }

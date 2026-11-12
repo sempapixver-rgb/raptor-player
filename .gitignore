@@ -10,3 +10,6 @@ captures/
 *.apk
 *.keystore
 node_modules/
+.netlify/
+dist/
+*.ipk

@@ -158,25 +158,34 @@
     <header class="topbar">
       <div class="brand small">
         <span class="logo">REPTOR</span>
-        <span class="tag">VIDEO PLAYER</span>
       </div>
-      <div class="crumbs" id="crumbs">Canais</div>
+      <div class="titles">
+        <div class="tab-title" id="tabTitle">Canais</div>
+        <div class="tab-sub" id="tabSub">—</div>
+      </div>
       <div class="topbar-right">
         <span class="clock" id="clock">--:--</span>
+        <button class="top-refresh focusable" id="btnRefresh">⟳  Atualizar</button>
       </div>
     </header>
 
-    <nav class="rail" id="rail"></nav>
+    <div class="home-body">
+      <aside class="panel">
+        <div class="panel-label" id="panelLabel">CATEGORIAS</div>
+        <div class="panel-list" id="cats"></div>
+      </aside>
 
-    <main class="content" id="content">
-      <div class="cats" id="cats"></div>
-      <div class="items" id="items"></div>
-      <div class="empty hidden" id="emptyState">
-        <div class="empty-title">Nada por aqui ainda</div>
-        <div class="empty-sub">Escolha outra pasta na lista ao lado.</div>
-      </div>
-      <div class="loading hidden" id="loading"><span class="spinner"></span>Carregando…</div>
-    </main>
+      <main class="content" id="content">
+        <div class="items" id="items"></div>
+        <div class="empty hidden" id="emptyState">
+          <div class="empty-title">Nada por aqui ainda</div>
+          <div class="empty-sub">Escolha outra pasta na lista ao lado.</div>
+        </div>
+        <div class="loading hidden" id="loading"><span class="spinner"></span>Carregando…</div>
+      </main>
+    </div>
+
+    <nav class="bottomnav" id="bottomnav"></nav>
   </section>
 
   <!-- ============================================================ DETAIL -->
@@ -231,34 +240,142 @@
 
   <!-- ========================================================== SETTINGS -->
   <section id="screen-settings" class="screen hidden">
-    <div class="detail-head">
+    <div class="set-head">
       <button class="back focusable" id="btnBackSettings">← Voltar</button>
+      <div class="set-titles">
+        <h1>Ajustes</h1>
+        <div class="set-sub" id="setSub">—</div>
+      </div>
+      <div class="set-mode" id="setMode">—</div>
     </div>
+
     <div class="settings-wrap">
-      <h1>Ajustes</h1>
-      <div class="settings-grid">
-        <div class="card">
+      <div class="set-cards">
+        <div class="set-info">
           <span class="lbl">CONTA</span>
           <div class="card-body" id="acctInfo">—</div>
         </div>
-        <div class="card">
+        <div class="set-info">
           <span class="lbl">LISTA ATIVA</span>
           <div class="card-body" id="activeList">—</div>
         </div>
-        <div class="card">
+        <div class="set-info">
           <span class="lbl">APARELHO</span>
           <div class="card-body" id="deviceInfo">—</div>
         </div>
       </div>
 
-      <div class="settings-actions">
-        <button class="btn ghost focusable" id="btnReload">Recarregar conteúdo</button>
-        <button class="btn ghost focusable" id="btnTerms">Ver termos de uso</button>
-        <button class="btn danger focusable" id="btnLogout">Sair da lista</button>
+      <div class="set-grid" id="setGrid">
+        <button class="set-card focusable" id="setSwitch">
+          <span class="set-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3"/><path d="M20 16H7l3 3"/></svg>
+          </span>
+          <span class="set-txt">
+            <span class="set-name">Trocar lista</span>
+            <span class="set-desc">Entrar com outra lista ou ver as salvas</span>
+          </span>
+          <span class="set-arrow">›</span>
+        </button>
+
+        <button class="set-card focusable" id="setRefresh">
+          <span class="set-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+          </span>
+          <span class="set-txt">
+            <span class="set-name">Atualizar catálogo</span>
+            <span class="set-desc">Buscar categorias e conteúdo novamente</span>
+          </span>
+          <span class="set-arrow">›</span>
+        </button>
+
+        <button class="set-card focusable" id="setSort">
+          <span class="set-ico text">A–Z</span>
+          <span class="set-txt">
+            <span class="set-name">Ordenar listas</span>
+            <span class="set-desc">Modo: <span id="sortState">A–Z (alfabética)</span></span>
+          </span>
+          <span class="set-arrow">›</span>
+        </button>
+
+        <button class="set-card focusable" id="setClearFav">
+          <span class="set-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/></svg>
+          </span>
+          <span class="set-txt">
+            <span class="set-name">Limpar favoritos</span>
+            <span class="set-desc">Remover todos os itens marcados com estrela</span>
+          </span>
+          <span class="set-arrow">›</span>
+        </button>
+
+        <button class="set-card focusable" id="setClearHist">
+          <span class="set-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          </span>
+          <span class="set-txt">
+            <span class="set-name">Limpar histórico</span>
+            <span class="set-desc">Apagar a lista de vistos recentemente</span>
+          </span>
+          <span class="set-arrow">›</span>
+        </button>
+
+        <button class="set-card focusable" id="setTerms">
+          <span class="set-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>
+          </span>
+          <span class="set-txt">
+            <span class="set-name">Termos de uso</span>
+            <span class="set-desc">Ler o termo de uso e responsabilidade</span>
+          </span>
+          <span class="set-arrow">›</span>
+        </button>
+
+        <button class="set-card focusable" id="setAbout">
+          <span class="set-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5v.01"/></svg>
+          </span>
+          <span class="set-txt">
+            <span class="set-name">Sobre o Reptor</span>
+            <span class="set-desc">Versão, aparelho e site de ativação</span>
+          </span>
+          <span class="set-arrow">›</span>
+        </button>
+
+        <button class="set-card focusable" id="setPrivacy">
+          <span class="set-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.4-3 7.5-7 9-4-1.5-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+          </span>
+          <span class="set-txt">
+            <span class="set-name">Privacidade</span>
+            <span class="set-desc">Como o app trata os seus dados</span>
+          </span>
+          <span class="set-arrow">›</span>
+        </button>
+
+        <button class="set-card focusable danger" id="setLogout">
+          <span class="set-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v9"/><path d="M7.5 6.5a8 8 0 1 0 9 0"/></svg>
+          </span>
+          <span class="set-txt">
+            <span class="set-name">Sair da lista</span>
+            <span class="set-desc">Voltar para a tela de ativação</span>
+          </span>
+          <span class="set-arrow">›</span>
+        </button>
       </div>
     </div>
   </section>
 
+</div>
+
+<div id="infoModal" class="modal hidden">
+  <div class="modal-box">
+    <h2 id="infoTitle">Sobre</h2>
+    <div class="modal-body" id="infoBody"></div>
+    <div class="modal-actions">
+      <button class="btn primary focusable" id="btnInfoClose">Fechar</button>
+    </div>
+  </div>
 </div>
 
 <div id="toast" class="toast hidden"></div>

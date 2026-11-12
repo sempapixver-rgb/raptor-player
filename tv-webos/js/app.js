@@ -1,15 +1,25 @@
 /* Reptor Player — webOS. Controlador principal. */
 
+var APP_VERSION = '1.0.5';
+
+/* Itens por página: evita milhares de elementos na memória da TV. */
+var PAGE_SIZE = 60;
+
 var App = {
 
   session: null,
   source: null,
   section: MediaKind.LIVE,
   activeCat: null,
+  filter: 'all',
   catCache: {},
   itemCache: {},
+  cacheOrder: [],
+  page: 0,
+  currentList: [],
   detail: null,
   detailItem: null,
+  infoReturn: null,
 
   code: null,
   pollTimer: null,
@@ -26,11 +36,16 @@ var App = {
     var self = this;
     $('btnAccept').addEventListener('click', function () {
       Store.acceptTerms();
-      self.boot();
+      if (self.session) self.openSettings();
+      else self.boot();
     });
 
     this.bindLogin();
     this.bindSettings();
+
+    $('btnRefresh').addEventListener('click', function () {
+      self.reloadContent();
+    });
 
     if (!Store.termsAccepted()) {
       Screens.show('screen-terms');
@@ -129,6 +144,15 @@ var App = {
   back: function () {
     if (this.isPlayerOpen()) {
       this.closePlayer();
+      return;
+    }
+    if (!$('infoModal').classList.contains('hidden')) {
+      this.closeInfo();
+      return;
+    }
+    if (!$('screen-terms').classList.contains('hidden')) {
+      if (this.session) this.openSettings();
+      else this.exitApp();
       return;
     }
     if (!$('screen-detail').classList.contains('hidden')) {
@@ -381,55 +405,80 @@ var App = {
     this.source = createSource(session);
     this.catCache = {};
     this.itemCache = {};
+    this.cacheOrder = [];
+    this.page = 0;
+    this.currentList = [];
 
     Screens.show('screen-home');
-    this.renderRail();
+    this.renderNav();
     this.setSection(MediaKind.LIVE);
+    this.preload();
+  },
+
+  /** Recarrega categorias e itens (botão ⟳ Atualizar do topo). */
+  reloadContent: function () {
+    this.catCache = {};
+    this.itemCache = {};
+    this.cacheOrder = [];
+    this.page = 0;
+    this.currentList = [];
+    toast('Conteúdo recarregado.');
+    this.setSection(this.section);
+  },
+
+  /**
+   * Adianta as pastas das outras abas (respostas pequenas do servidor).
+   * Assim Canais, Filmes e Séries abrem sem "Carregando…".
+   */
+  preload: function () {
+    var self = this;
+    if (!this.source || !this.source.categories) return;
+    var kinds = [MediaKind.VOD, MediaKind.SERIES];
+    for (var i = 0; i < kinds.length; i++) {
+      (function (kind) {
+        if (self.catCache[kind]) return;
+        self.source.categories(kind).then(function (list) {
+          self.catCache[kind] = list || [];
+        }, function () { /* ignora */ });
+      })(kinds[i]);
+    }
   },
 
   goHome: function () {
     Screens.show('screen-home');
     setTimeout(function () {
-      var active = document.querySelector('.rail-item.active');
+      var active = document.querySelector('.nav-item.active');
       if (active) { try { active.focus(); } catch (e) { /* ignora */ } }
     }, 40);
   },
 
-  renderRail: function () {
+  /** Menu inferior, igual ao app Android. */
+  renderNav: function () {
     var self = this;
-    var rail = $('rail');
-    clear(rail);
+    var nav = $('bottomnav');
+    clear(nav);
 
     var entries = [
       { kind: MediaKind.LIVE, label: 'Canais' },
       { kind: MediaKind.VOD, label: 'Filmes' },
       { kind: MediaKind.SERIES, label: 'Séries' },
-      { sep: true },
-      { action: 'settings', label: 'Ajustes' },
-      { action: 'exit', label: 'Sair' }
+      { action: 'settings', label: 'Ajustes' }
     ];
 
     for (var i = 0; i < entries.length; i++) {
       (function (entry) {
-        if (entry.sep) {
-          rail.appendChild(make('div', 'rail-sep'));
-          return;
-        }
-        var button = makeButton('rail-item', entry.label);
+        var button = makeButton('nav-item focusable', entry.label);
         button.setAttribute('data-kind', entry.kind || entry.action || '');
+        // O ponteiro do Magic Remote não foca as abas: só troca ao clicar.
+        button.setAttribute('data-nohover', 'true');
         if (entry.kind === self.section) button.classList.add('active');
 
         button.addEventListener('click', function () {
-          if (entry.kind) {
-            self.setSection(entry.kind);
-          } else if (entry.action === 'settings') {
-            self.openSettings();
-          } else {
-            self.exitApp();
-          }
+          if (entry.kind) self.setSection(entry.kind);
+          else self.openSettings();
         });
 
-        rail.appendChild(button);
+        nav.appendChild(button);
       })(entries[i]);
     }
   },
@@ -438,33 +487,53 @@ var App = {
     var self = this;
     this.section = kind;
     this.activeCat = null;
+    this.filter = 'all';
+    this.page = 0;
+    this.currentList = [];
 
-    var items = document.querySelectorAll('.rail-item');
-    for (var i = 0; i < items.length; i++) {
-      if (items[i].getAttribute('data-kind') === kind) items[i].classList.add('active');
-      else items[i].classList.remove('active');
+    var navItems = document.querySelectorAll('.nav-item');
+    for (var i = 0; i < navItems.length; i++) {
+      if (navItems[i].getAttribute('data-kind') === kind) navItems[i].classList.add('active');
+      else navItems[i].classList.remove('active');
     }
 
-    $('crumbs').textContent = kind === MediaKind.LIVE ? 'Canais'
+    $('tabTitle').textContent = kind === MediaKind.LIVE ? 'Canais'
       : kind === MediaKind.VOD ? 'Filmes' : 'Séries';
+    $('tabSub').textContent = this.session ? sessionName(this.session) : '';
+    $('panelLabel').textContent = 'CATEGORIAS';
 
     hide($('emptyState'));
     show($('loading'));
 
     if (this.catCache[kind]) {
       this.renderCats(this.catCache[kind]);
-      this.loadItems(null);
+      this.afterCats(kind, this.catCache[kind]);
       return;
     }
 
     this.source.categories(kind).then(function (list) {
-      self.catCache[kind] = list;
-      self.renderCats(list);
-      self.loadItems(null);
+      self.catCache[kind] = list || [];
+      self.renderCats(self.catCache[kind]);
+      self.afterCats(kind, self.catCache[kind]);
     }, function () {
       self.renderCats([]);
-      self.loadItems(null);
+      self.afterCats(kind, []);
     });
+  },
+
+  /** Depois das pastas: escolhe a primeira quando não existe "Tudo". */
+  afterCats: function (kind, list) {
+    if (kind === MediaKind.LIVE) {
+      this.selectCat(null);
+      return;
+    }
+    // Nunca pedir "todos os filmes/séries": são mais de 8 MB e derrubam a TV.
+    if (!list || !list.length) {
+      this.currentList = [];
+      this.renderItems([]);
+      return;
+    }
+    this.selectCat(list[0].id);
   },
 
   renderCats: function (list) {
@@ -472,52 +541,111 @@ var App = {
     var holder = $('cats');
     clear(holder);
 
-    var all = makeButton('cat active', 'Todas');
-    all.setAttribute('data-cat', '');
-    all.addEventListener('click', function () {
-      self.selectCat(null);
-    });
-    holder.appendChild(all);
+    holder.appendChild(this.panelItem('Tudo', null,
+      this.filter === 'all' && this.activeCat === null,
+      function () { self.selectFilter('all'); }));
 
+    holder.appendChild(this.panelItem('Favoritos', Store.favorites().length,
+      this.filter === 'favorites',
+      function () { self.selectFilter('favorites'); }));
+
+    holder.appendChild(this.panelItem('Visto recentemente', Store.recents().length,
+      this.filter === 'recents',
+      function () { self.selectFilter('recents'); }));
+
+    // "Tudo" só nos canais. Em filmes/séries a lista completa passa de
+    // 8 MB e não cabe na memória da TV: o usuário escolhe a pasta.
     for (var i = 0; i < list.length; i++) {
       (function (cat) {
-        var button = makeButton('cat', cat.name);
-        button.setAttribute('data-cat', cat.id);
-        button.addEventListener('click', function () {
-          self.selectCat(cat.id);
-        });
-        holder.appendChild(button);
+        var item = self.panelItem(cat.name, null, false,
+          function () { self.selectCat(cat.id); });
+        item.setAttribute('data-cat', cat.id);
+        holder.appendChild(item);
       })(list[i]);
     }
+
+    this.markPanel();
+  },
+
+  /** Item do painel lateral (Tudo, Favoritos, Recentes ou uma pasta). */
+  panelItem: function (label, count, selected, onClick) {
+    var button = makeButton('panel-item', '');
+    button.appendChild(make('span', 'label', label));
+    if (count) button.appendChild(make('span', 'count', String(count)));
+    if (selected) button.classList.add('active');
+    button.addEventListener('click', onClick);
+    return button;
+  },
+
+  selectFilter: function (filter) {
+    this.filter = filter;
+    this.activeCat = null;
+    this.page = 0;
+    this.markPanel();
+    this.loadItems(null);
   },
 
   selectCat: function (catId) {
+    this.filter = 'all';
     this.activeCat = catId;
+    this.page = 0;
+    this.markPanel();
+    this.loadItems(catId);
+  },
 
+  /** Marca no painel o item que está ativo. */
+  markPanel: function () {
     var buttons = $('cats').getElementsByTagName('button');
     for (var i = 0; i < buttons.length; i++) {
-      var value = buttons[i].getAttribute('data-cat') || '';
-      if ((catId || '') === value) buttons[i].classList.add('active');
+      var label = buttons[i].getElementsByTagName('span')[0];
+      var name = label ? label.textContent : '';
+      var catId = buttons[i].getAttribute('data-cat') || '';
+      var on = false;
+
+      if (name === 'Tudo') on = this.filter === 'all' && this.activeCat === null;
+      else if (name === 'Favoritos') on = this.filter === 'favorites';
+      else if (name === 'Visto recentemente') on = this.filter === 'recents';
+      else on = this.filter === 'all' && (this.activeCat || '') === catId;
+
+      if (on) buttons[i].classList.add('active');
       else buttons[i].classList.remove('active');
     }
-
-    this.loadItems(catId);
   },
 
   loadItems: function (catId) {
     var self = this;
     var key = this.section + '|' + (catId || '');
+    this.page = 0;
     show($('loading'));
     hide($('emptyState'));
 
+    if (this.filter !== 'all') {
+      var saved = this.filter === 'favorites' ? Store.favorites() : Store.recents();
+      var list = [];
+      for (var i = 0; i < saved.length; i++) {
+        if (saved[i].kind === this.section) list.push(saved[i]);
+      }
+      // Favoritos seguem a ordenação escolhida; "recentes" fica por data de uso.
+      if (this.filter === 'favorites' && Store.sortMode() === 'az') list = sortByName(list);
+      this.currentList = list;
+      this.renderItems(list);
+      return;
+    }
+
     if (this.itemCache[key]) {
-      this.renderItems(this.itemCache[key]);
+      this.currentList = this.itemCache[key];
+      this.renderItems(this.currentList);
       return;
     }
 
     this.source.items(this.section, catId).then(function (list) {
+      list = list || [];
+      if (Store.sortMode() === 'az') list = sortByName(list);
       self.itemCache[key] = list;
-      self.renderItems(list);
+      self.cacheOrder.push(key);
+      self.trimCache();
+      self.currentList = self.itemCache[key];
+      self.renderItems(self.currentList);
     }, function (err) {
       hide($('loading'));
       $('emptyState').classList.remove('hidden');
@@ -525,7 +653,24 @@ var App = {
     });
   },
 
-  renderItems: function (list) {
+  /** Mantém no máximo 8 pastas em memória (TV tem pouca RAM). */
+  trimCache: function () {
+    while (this.cacheOrder.length > 8) {
+      var old = this.cacheOrder.shift();
+      if (old !== this.section + '|' + (this.activeCat || '')) delete this.itemCache[old];
+    }
+  },
+
+  goPage: function (delta) {
+    var total = Math.ceil(this.currentList.length / PAGE_SIZE);
+    var next = this.page + delta;
+    if (next < 0 || next >= total) return;
+    this.page = next;
+    this.renderItems(this.currentList, true);
+    try { $('items').scrollTop = 0; } catch (e) { /* ignora */ }
+  },
+
+  renderItems: function (list, keepPage) {
     var self = this;
     var holder = $('items');
     clear(holder);
@@ -533,30 +678,119 @@ var App = {
 
     if (!list || !list.length) {
       show($('emptyState'));
-      $('emptyState').querySelector('.empty-title').textContent = 'Nada por aqui ainda';
-      $('emptyState').querySelector('.empty-sub').textContent = 'Escolha outra pasta na lista ao lado.';
+      var title = 'Nada por aqui ainda';
+      var sub = 'Escolha outra pasta na lista ao lado.';
+      if (this.filter === 'favorites') {
+        title = 'Nenhum favorito ainda';
+        sub = 'Aperte a estrela ☆ de um item para salvar aqui.';
+      } else if (this.filter === 'recents') {
+        title = 'Nada visto ainda';
+        sub = 'Os itens que você abrir aparecem nesta lista.';
+      }
+      $('emptyState').querySelector('.empty-title').textContent = title;
+      $('emptyState').querySelector('.empty-sub').textContent = sub;
       return;
     }
 
     hide($('emptyState'));
 
+    if (!keepPage) this.page = 0;
+    var total = Math.ceil(list.length / PAGE_SIZE);
+    if (this.page >= total) this.page = total - 1;
+    if (this.page < 0) this.page = 0;
+
+    var start = this.page * PAGE_SIZE;
+    var end = Math.min(start + PAGE_SIZE, list.length);
+
     var frag = document.createDocumentFragment();
-    for (var i = 0; i < list.length; i++) {
-      frag.appendChild(this.buildCard(list[i]));
+    for (var i = start; i < end; i++) {
+      frag.appendChild(this.section === MediaKind.LIVE
+        ? this.buildChannelRow(list[i], i)
+        : this.buildCard(list[i]));
     }
     holder.appendChild(frag);
 
-    var first = holder.querySelector('.card-item');
-    if (first) {
-      try { first.focus(); } catch (e) { /* ignora */ }
+    if (total > 1) holder.appendChild(this.buildPager(total));
+
+    // Só move o foco quando a home está visível (recarga em segundo plano
+    // não deve roubar o foco dos Ajustes).
+    if (!$('screen-home').classList.contains('hidden')) {
+      var first = holder.querySelector('.card-item, .channel-row');
+      if (first) {
+        try { first.focus(); } catch (e) { /* ignora */ }
+      }
     }
+  },
+
+  /** Linha de canal: número, logo, nome e estrela. */
+  buildChannelRow: function (entry, index) {
+    var self = this;
+    var row = make('div', 'channel-row focusable');
+    row.setAttribute('tabindex', '0');
+    row.setAttribute('role', 'button');
+
+    row.appendChild(make('span', 'num', String(index + 1)));
+
+    var logo = make('span', 'logo');
+    if (entry.logo) {
+      logo.style.backgroundImage = 'url("' + String(entry.logo).replace(/"/g, '%22') + '")';
+    }
+    row.appendChild(logo);
+
+    row.appendChild(make('span', 'name', entry.name));
+
+    var favorite = Store.isFavorite(entry);
+    var star = make('span', 'star focusable', favorite ? '★' : '☆');
+    star.setAttribute('tabindex', '0');
+    star.style.color = favorite ? '#FFC107' : '#A8C2B0';
+    star.addEventListener('click', function (event) {
+      if (event && event.stopPropagation) event.stopPropagation();
+      var now = Store.toggleFavorite(entry);
+      star.textContent = now ? '★' : '☆';
+      star.style.color = now ? '#FFC107' : '#A8C2B0';
+      toast(now ? 'Adicionado aos favoritos.' : 'Removido dos favoritos.');
+    });
+    row.appendChild(star);
+
+    row.addEventListener('click', function () {
+      self.playEntry(entry);
+    });
+
+    return row;
+  },
+
+  /** Barra "Voltar / Próximo" entre as páginas da pasta. */
+  buildPager: function (total) {
+    var self = this;
+    var row = make('div', 'pager');
+
+    var prev = makeButton('pager-btn', '◀ Voltar');
+    prev.setAttribute('data-page', 'prev');
+    if (this.page === 0) prev.disabled = true;
+    prev.addEventListener('click', function () {
+      self.goPage(-1);
+    });
+
+    var label = make('span', 'pager-info', 'Página ' + (this.page + 1) + ' de ' + total);
+
+    var next = makeButton('pager-btn', 'Próximo ▶');
+    next.setAttribute('data-page', 'next');
+    if (this.page >= total - 1) next.disabled = true;
+    next.addEventListener('click', function () {
+      self.goPage(1);
+    });
+
+    row.appendChild(prev);
+    row.appendChild(label);
+    row.appendChild(next);
+    return row;
   },
 
   buildCard: function (entry) {
     var self = this;
-    var card = make('button', 'card-item focusable' + (entry.kind === MediaKind.LIVE ? ' live' : ''));
+    var card = make('div', 'card-item focusable' + (entry.kind === MediaKind.LIVE ? ' live' : ''));
     card.setAttribute('tabindex', '0');
-    card.type = 'button';
+    card.setAttribute('role', 'button');
 
     var thumb = make('div', 'thumb');
     if (entry.logo) {
@@ -564,6 +798,24 @@ var App = {
     } else {
       thumb.textContent = (entry.name || '?').charAt(0).toUpperCase();
     }
+
+    if (entry.rating && Number(entry.rating) > 0) {
+      thumb.appendChild(make('span', 'badge', Number(entry.rating).toFixed(1)));
+    }
+
+    // Estrela de favorito, como no app Android.
+    var favorite = Store.isFavorite(entry);
+    var star = make('span', 'star focusable', favorite ? '★' : '☆');
+    star.setAttribute('tabindex', '0');
+    star.style.color = favorite ? '#FFC107' : '#FFFFFF';
+    star.addEventListener('click', function (event) {
+      if (event && event.stopPropagation) event.stopPropagation();
+      var now = Store.toggleFavorite(entry);
+      star.textContent = now ? '★' : '☆';
+      star.style.color = now ? '#FFC107' : '#FFFFFF';
+      toast(now ? 'Adicionado aos favoritos.' : 'Removido dos favoritos.');
+    });
+    thumb.appendChild(star);
 
     var name = make('div', 'name', entry.name);
     card.appendChild(thumb);
@@ -689,6 +941,7 @@ var App = {
       return;
     }
     Player.open(url, entry.name, entry.kind === MediaKind.LIVE);
+    Store.addRecent(entry);
   },
 
   playEpisode: function (episode) {
@@ -720,19 +973,55 @@ var App = {
     $('btnBackDetail').addEventListener('click', function () { self.goHome(); });
     $('btnBackSettings').addEventListener('click', function () { self.goHome(); });
 
-    $('btnReload').addEventListener('click', function () {
-      self.catCache = {};
-      self.itemCache = {};
-      toast('Conteúdo recarregado.');
-      self.setSection(self.section);
+    $('setSwitch').addEventListener('click', function () {
+      self.showLogin();
     });
 
-    $('btnTerms').addEventListener('click', function () {
+    $('setRefresh').addEventListener('click', function () {
+      self.reloadContent();
+      self.goHome();
+    });
+
+    $('setSort').addEventListener('click', function () {
+      var next = Store.sortMode() === 'az' ? 'server' : 'az';
+      Store.setSortMode(next);
+      self.itemCache = {};
+      self.cacheOrder = [];
+      self.updateSortCard();
+      self.setSection(self.section);
+      toast(next === 'az' ? 'Listas em ordem alfabética (A–Z).' : 'Listas na ordem do servidor.');
+    });
+
+    $('setClearFav').addEventListener('click', function () {
+      Store.clearFavorites();
+      self.renderCats(self.catCache[self.section] || []);
+      toast('Favoritos apagados.');
+    });
+
+    $('setClearHist').addEventListener('click', function () {
+      Store.clearRecents();
+      self.renderCats(self.catCache[self.section] || []);
+      toast('Histórico apagado.');
+    });
+
+    $('setTerms').addEventListener('click', function () {
       Screens.show('screen-terms');
       Focus.first($('screen-terms'));
     });
 
-    $('btnLogout').addEventListener('click', function () {
+    $('setAbout').addEventListener('click', function () {
+      self.openInfo('Sobre o Reptor', self.aboutHtml());
+    });
+
+    $('setPrivacy').addEventListener('click', function () {
+      self.openInfo('Privacidade', self.privacyHtml());
+    });
+
+    $('btnInfoClose').addEventListener('click', function () {
+      self.closeInfo();
+    });
+
+    $('setLogout').addEventListener('click', function () {
       Store.clearSession();
       self.session = null;
       self.source = null;
@@ -740,14 +1029,79 @@ var App = {
     });
   },
 
+  /** Janela simples de informação (Sobre / Privacidade). */
+  openInfo: function (title, html) {
+    this.infoReturn = document.activeElement;
+    $('infoTitle').textContent = title;
+    $('infoBody').innerHTML = html;
+    $('infoModal').classList.remove('hidden');
+    setTimeout(function () {
+      try { $('btnInfoClose').focus(); } catch (e) { /* ignora */ }
+    }, 30);
+  },
+
+  closeInfo: function () {
+    $('infoModal').classList.add('hidden');
+    var back = this.infoReturn;
+    if (back) {
+      setTimeout(function () {
+        try { back.focus(); } catch (e) { /* ignora */ }
+      }, 30);
+    }
+  },
+
+  aboutHtml: function () {
+    var code = this.code || Store.cachedCode() || '—';
+    return '<p><b>Reptor Player</b> — VIDEO PLAYER para TV.</p>' +
+      '<p>Versão: <b>' + APP_VERSION + '</b><br>' +
+      'Aparelho: <b>' + esc(Device.modelName()) + '</b><br>' +
+      'Código: <b>' + esc(code) + '</b></p>' +
+      '<p>Ativação e gerenciamento: <b>reptor-player.netlify.app</b></p>';
+  },
+
+  privacyHtml: function () {
+    return '<p>O Reptor Player guarda apenas no próprio aparelho:</p>' +
+      '<p>• o código de identificação da TV;<br>' +
+      '• as listas que você cadastrou;<br>' +
+      '• favoritos e itens vistos recentemente;<br>' +
+      '• o aceite dos termos de uso.</p>' +
+      '<p>Nenhum dado é enviado a terceiros. A ativação consulta apenas o site oficial para verificar se este aparelho foi liberado.</p>';
+  },
+
   openSettings: function () {
     var self = this;
     Screens.show('screen-settings');
 
-    $('activeList').textContent = this.session ? sessionName(this.session) : '—';
-    $('deviceInfo').innerHTML = 'Código: <b>' + esc(this.code || Store.cachedCode() || '—') + '</b><br>' +
-      'Modelo: <b>' + esc(Device.modelName()) + '</b><br>' +
-      'Versão: <b>1.0.0</b>';
+    var name = this.session ? sessionName(this.session) : '—';
+    var mode = this.session ? (this.session.mode === 'M3U' ? 'M3U' : 'XTREAM') : '—';
+
+    $('setSub').textContent = name;
+    $('setMode').textContent = mode;
+    this.updateSortCard();
+
+    var listLines = [];
+    if (this.session) {
+      listLines.push('Lista: <b>' + esc(name) + '</b>');
+      if (this.session.mode === 'M3U') {
+        listLines.push('Tipo: <b>M3U</b>');
+      } else {
+        listLines.push('Servidor: <b>' + esc(normalizeBase(this.session.baseUrl)) + '</b>');
+        listLines.push('Usuário: <b>' + esc(this.session.username || '—') + '</b>');
+      }
+    }
+    $('activeList').innerHTML = listLines.length ? listLines.join('<br>') : 'Nenhuma lista ativa.';
+
+    $('deviceInfo').innerHTML = this.deviceHtml();
+
+    if (!this.code) {
+      var self2 = this;
+      Device.code().then(function (code) {
+        self2.code = code;
+        if (!$('screen-settings').classList.contains('hidden')) {
+          $('deviceInfo').innerHTML = self2.deviceHtml();
+        }
+      });
+    }
 
     $('acctInfo').textContent = 'Consultando…';
     if (!this.source || !this.source.account) {
@@ -768,9 +1122,23 @@ var App = {
     }
 
     setTimeout(function () {
-      var first = $('screen-settings').querySelector('.focusable');
+      var first = $('setSwitch') || $('screen-settings').querySelector('.focusable');
       if (first) { try { first.focus(); } catch (e) { /* ignora */ } }
     }, 40);
+  },
+
+  deviceHtml: function () {
+    return 'Código: <b>' + esc(this.code || Store.cachedCode() || '—') + '</b><br>' +
+      'Modelo: <b>' + esc(Device.modelName()) + '</b><br>' +
+      'Versão: <b>' + APP_VERSION + '</b>';
+  },
+
+  updateSortCard: function () {
+    var az = Store.sortMode() === 'az';
+    var state = $('sortState');
+    if (state) state.textContent = az ? 'A–Z (alfabética)' : 'Ordem do servidor';
+    var card = $('setSort');
+    if (card) card.setAttribute('data-mode', az ? 'az' : 'server');
   }
 };
 

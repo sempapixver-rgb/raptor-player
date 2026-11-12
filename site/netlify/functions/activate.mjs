@@ -34,6 +34,24 @@ function normalizeHost(raw) {
   return host.replace(/\/+$/, "");
 }
 
+/**
+ * Link get.php?username=..&password=.. também responde a API Xtream.
+ * Convertendo aqui, a TV e o celular não precisam baixar a lista inteira
+ * (dezenas de MB) e passam a carregar só a pasta escolhida.
+ */
+function xtreamFromM3u(raw) {
+  try {
+    const url = new URL(String(raw || "").trim());
+    if (!/\/get\.php$/i.test(url.pathname)) return null;
+    const user = url.searchParams.get("username") || url.searchParams.get("user") || "";
+    const pass = url.searchParams.get("password") || url.searchParams.get("pass") || "";
+    if (!user || !pass) return null;
+    return { host: url.origin, user, pass };
+  } catch {
+    return null;
+  }
+}
+
 export const config = { path: "/api/activate" };
 
 export default async (req) => {
@@ -73,7 +91,10 @@ export default async (req) => {
         message: "Informe o link completo da lista, começando com http:// ou https://.",
       });
     }
-    activation = { mode, m3u, label, code };
+    const xtream = xtreamFromM3u(m3u);
+    activation = xtream
+      ? { mode: "XTREAM", host: xtream.host, user: xtream.user, pass: xtream.pass, label, code }
+      : { mode, m3u, label, code };
   } else {
     const host = normalizeHost(data.host);
     const user = String(data.user || "").trim();

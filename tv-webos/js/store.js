@@ -69,6 +69,77 @@ var Store = {
     this.set('lists', next);
   },
 
+  /* --------------------------------------------------- favoritos/vistos */
+
+  favorites: function () {
+    var list = this.get('favorites', []);
+    return list && list.length ? list : [];
+  },
+
+  isFavorite: function (entry) {
+    if (!entry) return false;
+    var key = entryKey(entry);
+    var list = this.favorites();
+    for (var i = 0; i < list.length; i++) {
+      if (entryKey(list[i]) === key) return true;
+    }
+    return false;
+  },
+
+  /** Salva/remove dos favoritos. Devolve true quando ficou salvo. */
+  toggleFavorite: function (entry) {
+    if (!entry) return false;
+    var key = entryKey(entry);
+    var list = this.favorites();
+    var next = [];
+    var found = false;
+    for (var i = 0; i < list.length; i++) {
+      if (entryKey(list[i]) === key) found = true;
+      else next.push(list[i]);
+    }
+    if (!found) {
+      next.unshift(compactEntry(entry));
+      if (next.length > 200) next = next.slice(0, 200);
+    }
+    this.set('favorites', next);
+    return !found;
+  },
+
+  recents: function () {
+    var list = this.get('recents', []);
+    return list && list.length ? list : [];
+  },
+
+  addRecent: function (entry) {
+    if (!entry) return;
+    var key = entryKey(entry);
+    var list = this.recents();
+    var next = [compactEntry(entry)];
+    for (var i = 0; i < list.length && next.length < 60; i++) {
+      if (entryKey(list[i]) !== key) next.push(list[i]);
+    }
+    this.set('recents', next);
+  },
+
+  clearFavorites: function () {
+    this.set('favorites', []);
+  },
+
+  clearRecents: function () {
+    this.set('recents', []);
+  },
+
+  /* ------------------------------------------------------- ordenação */
+
+  /** 'az' = alfabética (padrão) | 'server' = ordem do provedor. */
+  sortMode: function () {
+    return this.get('sort', 'az') === 'server' ? 'server' : 'az';
+  },
+
+  setSortMode: function (mode) {
+    this.set('sort', mode === 'server' ? 'server' : 'az');
+  },
+
   /* ------------------------------------------------------------ termos */
 
   termsAccepted: function () {
@@ -111,6 +182,24 @@ function sessionName(session) {
   return String(session.baseUrl || '')
     .replace(/^https?:\/\//i, '')
     .replace(/\/+$/, '') || 'Xtream';
+}
+
+/** Chave para comparar itens salvos. */
+function entryKey(entry) {
+  if (!entry) return '';
+  return (entry.kind || '') + '|' + (entry.id == null ? entry.name : entry.id);
+}
+
+/** Versão enxuta do item, para não encher a memória da TV. */
+function compactEntry(entry) {
+  return {
+    id: entry.id,
+    name: entry.name,
+    logo: entry.logo || '',
+    kind: entry.kind,
+    rating: entry.rating || 0,
+    category: entry.category || ''
+  };
 }
 
 /** Normaliza o servidor digitado. */

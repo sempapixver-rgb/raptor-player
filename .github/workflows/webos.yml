@@ -8,6 +8,9 @@ on:
       - '.github/workflows/webos.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   package:
     name: Empacotar IPK
@@ -28,7 +31,7 @@ jobs:
       - name: Empacotar o app
         run: |
           mkdir -p dist
-          ares-package tv-webos -o dist
+          ares-package tv-webos -o dist --no-minify
           ls -la dist
 
       - name: Salvar IPK
@@ -37,3 +40,17 @@ jobs:
           name: Reptor-webOS
           path: dist/*.ipk
           if-no-files-found: error
+
+      - name: Publicar para download
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp dist/*.ipk dist/Reptor-webOS.ipk
+          if gh release view webos-latest >/dev/null 2>&1; then
+            gh release upload webos-latest dist/Reptor-webOS.ipk --clobber
+          else
+            gh release create webos-latest dist/Reptor-webOS.ipk \
+              --title "Reptor Player para LG (última versão)" \
+              --notes "IPK gerado automaticamente pelo GitHub Actions."
+          fi

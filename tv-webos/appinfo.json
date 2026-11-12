@@ -1,6 +1,6 @@
 {
   "id": "com.reptor.player",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "vendor": "Reptor",
   "type": "web",
   "main": "index.html",
@@ -16,5 +16,6 @@
   "requiredPermissions": [
     "network",
     "media"
-  ]
+  ],
+  "requiredACG": []
 }

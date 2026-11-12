@@ -3,8 +3,54 @@
 var MediaKind = { LIVE: 'LIVE', VOD: 'VOD', SERIES: 'SERIES' };
 
 function createSource(session) {
-  if (session.mode === 'M3U') return new M3uSource(session);
+  if (!session) return new M3uSource({ m3uUrl: '' });
+
+  // Muitos servidores entregam um link get.php?username=..&password=..
+  // Esse link também responde a API Xtream. Usar a API evita baixar a
+  // lista inteira (dezenas de MB) e deixa a TV leve, como nos players
+  // tradicionais: categorias primeiro e itens só da pasta escolhida.
+  if (session.mode === 'M3U') {
+    var converted = xtreamFromM3uUrl(session.m3uUrl);
+    if (converted) {
+      converted.label = session.label || '';
+      return new XtreamSource(converted);
+    }
+    return new M3uSource(session);
+  }
+
   return new XtreamSource(session);
+}
+
+/** Converte get.php?username=..&password=.. em credenciais Xtream. */
+function xtreamFromM3uUrl(raw) {
+  var text = String(raw || '').trim();
+  if (!/get\.php/i.test(text) || text.indexOf('?') < 0) return null;
+
+  var query = text.split('?')[1] || '';
+  var params = {};
+  var parts = query.split('&');
+  for (var i = 0; i < parts.length; i++) {
+    var kv = parts[i].split('=');
+    if (kv.length < 2) continue;
+    var key = decodeURIComponent(kv[0]).toLowerCase();
+    params[key] = decodeURIComponent(kv.slice(1).join('='));
+  }
+
+  var user = params.username || params.user || '';
+  var pass = params.password || params.pass || '';
+  if (!user || !pass) return null;
+
+  var base = text.split('?')[0].replace(/\/get\.php$/i, '').replace(/\/+$/, '');
+  if (!base) return null;
+
+  return {
+    mode: 'XTREAM',
+    baseUrl: base,
+    username: user,
+    password: pass,
+    m3uUrl: '',
+    label: ''
+  };
 }
 
 /* ======================================================== XTREAM CODES */
@@ -256,6 +302,12 @@ M3uSource.prototype.load = function () {
   if (this.pending) return this.pending;
 
   this.pending = Net.getText(this.url, 180000).then(function (text) {
+    // Uma lista com dezenas de MB derruba a memória da TV. Melhor avisar
+    // do que travar o aparelho.
+    if (text && text.length > 12 * 1024 * 1024) {
+      self.pending = null;
+      throw new Error('lista grande demais');
+    }
     var list = parseM3u(text);
     self.entries = list;
     self.pending = null;
@@ -272,6 +324,9 @@ M3uSource.prototype.check = function () {
   return this.load().then(function (list) {
     return list.length ? '' : 'Lista vazia ou inválida';
   }, function (err) {
+    if (err && /grande demais/.test(err.message || '')) {
+      return 'Esta lista é grande demais para a TV. Use servidor, usuário e senha (Xtream).';
+    }
     return 'Não foi possível carregar a lista: ' + (err.message || 'erro de rede');
   });
 };
