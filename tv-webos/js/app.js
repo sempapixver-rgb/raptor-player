@@ -1,6 +1,6 @@
 /* Reptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.0.7';
+var APP_VERSION = '1.0.8';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
@@ -23,6 +23,7 @@ var App = {
 
   selected: null,
   previewUrl: null,
+  previewTimer: null,
   epgPrograms: null,
   epgToken: 0,
   epgTimer: null,
@@ -830,6 +831,21 @@ var App = {
   bindPreview: function () {
     var self = this;
 
+    var pv = $('previewVideo');
+    pv.addEventListener('playing', function () {
+      self.hidePreviewCover();
+      self.previewStatus('', false);
+    });
+    pv.addEventListener('waiting', function () {
+      if (self.previewUrl && pv.currentTime === 0) self.previewStatus('Carregando…', false);
+    });
+    pv.addEventListener('stalled', function () {
+      if (self.previewUrl && pv.currentTime === 0) self.previewStatus('Carregando…', false);
+    });
+    pv.addEventListener('error', function () {
+      if (self.previewUrl) self.previewStatus('Prévia indisponível neste canal.', true);
+    });
+
     $('btnWatch').addEventListener('click', function () {
       if (self.selected) self.playEntry(self.selected);
     });
@@ -926,7 +942,6 @@ var App = {
     toggle($('previewVideo'), live);
     toggle($('previewPoster'), !live);
     toggle($('previewExtra'), live);
-
     $('previewBadge').textContent = live ? 'AO VIVO' : 'FILME';
     $('previewBadge').className = 'preview-badge' + (live ? '' : ' vod');
     $('previewTitle').textContent = entry.name;
@@ -949,16 +964,31 @@ var App = {
     if (live) {
       this.epgPrograms = null;
       this.epgToken++;
-      this.startPreview(this.source.playUrl(entry));
+
+      var url = this.source.playUrl(entry);
+      var video = $('previewVideo');
+      var jaRodando = !!url && this.previewUrl === url && video &&
+        video.readyState >= 2 && !video.paused;
+
+      this.startPreview(url);
+      if (jaRodando) {
+        this.hidePreviewCover();
+        this.previewStatus('', false);
+      } else {
+        this.showPreviewCover(entry);
+        this.previewStatus('Conectando…', false);
+      }
       this.loadEpg(entry);
     } else {
       this.stopPreview();
       this.epgPrograms = null;
       this.epgToken++;
       this.vodToken++;
+      this.hidePreviewCover();
       $('previewPoster').style.backgroundImage = entry.logo
         ? 'url("' + String(entry.logo).replace(/"/g, '%22') + '")'
         : '';
+      show($('previewPoster'));
       this.loadSynopsis(entry);
     }
 
@@ -1043,9 +1073,38 @@ var App = {
     if (next) next.disabled = index < 0 || index >= this.currentList.length - 1;
   },
 
+  /** Capa com o logo do canal enquanto o vídeo conecta (evita a tela preta). */
+  showPreviewCover: function (entry) {
+    var poster = $('previewPoster');
+    if (!poster) return;
+    poster.style.backgroundImage = (entry && entry.logo)
+      ? 'url("' + String(entry.logo).replace(/"/g, '%22') + '")'
+      : '';
+    show(poster);
+  },
+
+  hidePreviewCover: function () {
+    hide($('previewPoster'));
+  },
+
+  previewStatus: function (text, isError) {
+    var el = $('previewStatus');
+    if (!el) return;
+    if (!text) {
+      hide(el);
+      return;
+    }
+    el.textContent = text;
+    el.className = 'preview-status' + (isError ? ' error' : '');
+    show(el);
+  },
+
   startPreview: function (url) {
     if (!url) return;
-    if (this.previewUrl === url) return;
+    if (this.previewUrl === url) {
+      var atual = $('previewVideo');
+      if (atual && atual.readyState >= 2 && !atual.paused) return;
+    }
     this.stopPreview();
 
     var video = $('previewVideo');
@@ -1057,17 +1116,34 @@ var App = {
       var started = video.play();
       if (started && started.catch) started.catch(function () { /* ignora */ });
     } catch (e) { /* ignora */ }
+
+    var self = this;
+    this.previewTimer = setTimeout(function () {
+      self.previewTimer = null;
+      if (!self.previewUrl || self.previewUrl !== url) return;
+      var v = $('previewVideo');
+      if (!v) return;
+      if (v.readyState < 2) {
+        self.previewStatus('Prévia indisponível neste canal.', true);
+      }
+    }, 9000);
   },
 
   stopPreview: function () {
     this.previewUrl = null;
+    if (this.previewTimer) {
+      clearTimeout(this.previewTimer);
+      this.previewTimer = null;
+    }
     var video = $('previewVideo');
-    if (!video) return;
-    try {
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
-    } catch (e) { /* ignora */ }
+    if (video) {
+      try {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      } catch (e) { /* ignora */ }
+    }
+    this.previewStatus('', false);
   },
 
   nowMinutes: function () {
