@@ -1,6 +1,6 @@
 /* Reptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.0.15';
+var APP_VERSION = '1.0.17';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
@@ -15,6 +15,8 @@ var App = {
   catCache: {},
   itemCache: {},
   cacheOrder: [],
+  lastCat: {},
+  sectionToken: 0,
   page: 0,
   currentList: [],
   baseList: [],
@@ -746,6 +748,7 @@ var App = {
 
   setSection: function (kind) {
     var self = this;
+    var token = ++this.sectionToken;
     this.section = kind;
     this.activeCat = null;
     this.filter = 'all';
@@ -755,6 +758,7 @@ var App = {
     this.searchQuery = '';
     this.searchToken++;
     this.searchLoading = false;
+    this.searchIndex = {};
     if (this.searchTimer) { clearTimeout(this.searchTimer); this.searchTimer = null; }
     var searchInput = $('searchInput');
     if (searchInput) searchInput.value = '';
@@ -764,6 +768,16 @@ var App = {
     this.epgPrograms = null;
     this.epgToken++;
     this.stopPreview();
+
+    // Cada aba é uma pasta independente: limpa na hora a lista e as
+    // categorias da aba anterior, senão o conteúdo antigo fica na tela
+    // (ou uma resposta atrasada o traz de volta).
+    var holder = $('items');
+    if (holder) clear(holder);
+    var cats = $('cats');
+    if (cats) clear(cats);
+    hide($('emptyState'));
+    show($('loading'));
 
     // Em Séries a tela de detalhe já mostra tudo: a prévia lateral sobra.
     toggle($('previewPane'), kind !== MediaKind.SERIES);
@@ -779,9 +793,6 @@ var App = {
     $('tabSub').textContent = this.session ? sessionName(this.session) : '';
     $('panelLabel').textContent = 'CATEGORIAS';
 
-    hide($('emptyState'));
-    show($('loading'));
-
     if (this.catCache[kind]) {
       this.renderCats(this.catCache[kind]);
       this.afterCats(kind, this.catCache[kind]);
@@ -790,15 +801,17 @@ var App = {
 
     this.source.categories(kind).then(function (list) {
       self.catCache[kind] = list || [];
+      if (self.section !== kind || token !== self.sectionToken) return;
       self.renderCats(self.catCache[kind]);
       self.afterCats(kind, self.catCache[kind]);
     }, function () {
+      if (self.section !== kind || token !== self.sectionToken) return;
       self.renderCats([]);
       self.afterCats(kind, []);
     });
   },
 
-  /** Depois das pastas: escolhe a primeira quando não existe "Tudo". */
+  /** Depois das pastas: volta para a pasta usada antes na mesma aba. */
   afterCats: function (kind, list) {
     if (kind === MediaKind.LIVE) {
       this.selectCat(null);
@@ -810,7 +823,12 @@ var App = {
       this.renderItems([]);
       return;
     }
-    this.selectCat(list[0].id);
+    var salva = this.lastCat[kind];
+    var use = null;
+    for (var i = 0; i < list.length; i++) {
+      if (salva && list[i].id === salva) { use = salva; break; }
+    }
+    this.selectCat(use || list[0].id);
   },
 
   renderCats: function (list) {
@@ -867,6 +885,7 @@ var App = {
     if (this.searchQuery) this.clearSearch(false);
     this.filter = 'all';
     this.activeCat = catId;
+    if (catId) this.lastCat[this.section] = catId;
     this.page = 0;
     this.markPanel();
     this.loadItems(catId);
@@ -893,16 +912,28 @@ var App = {
 
   loadItems: function (catId) {
     var self = this;
-    var key = this.section + '|' + (catId || '');
+    var kind = this.section;
+    var token = this.sectionToken;
+    var cat = catId || '';
+    var key = kind + '|' + cat;
     this.page = 0;
     show($('loading'));
     hide($('emptyState'));
+
+    // Troca de pasta é como abrir outra pasta: a lista antiga sai da tela
+    // imediatamente (nada de item da pasta anterior clicável durante o load).
+    this.baseList = [];
+    this.currentList = [];
+    this.selected = null;
+    this.stopPreview();
+    var holder = $('items');
+    if (holder) clear(holder);
 
     if (this.filter !== 'all') {
       var saved = this.filter === 'favorites' ? Store.favorites() : Store.recents();
       var list = [];
       for (var i = 0; i < saved.length; i++) {
-        if (saved[i].kind === this.section) list.push(saved[i]);
+        if (saved[i].kind === kind) list.push(saved[i]);
       }
       // Favoritos seguem a ordenação escolhida; "recentes" fica por data de uso.
       if (this.filter === 'favorites' && Store.sortMode() === 'az') list = sortByName(list);
@@ -921,17 +952,25 @@ var App = {
       return;
     }
 
-    this.source.items(this.section, catId).then(function (list) {
+    this.source.items(kind, catId).then(function (list) {
       list = list || [];
       if (Store.sortMode() === 'az') list = sortByName(list);
       self.itemCache[key] = list;
       self.cacheOrder.push(key);
       self.trimCache();
+
+      // Resposta de uma aba/pasta que já não está aberta: guarda no cache,
+      // mas não mexe na tela (era isso que misturava Canais com Filmes).
+      if (self.section !== kind || self.sectionToken !== token ||
+          (self.activeCat || '') !== cat) return;
+
       self.baseList = self.itemCache[key];
       self.currentList = self.filteredList(self.baseList);
       self.updateSearchUi();
       self.renderItems(self.currentList);
     }, function (err) {
+      if (self.section !== kind || self.sectionToken !== token ||
+          (self.activeCat || '') !== cat) return;
       hide($('loading'));
       $('emptyState').classList.remove('hidden');
       $('emptyState').querySelector('.empty-sub').textContent = err.message || 'Falha ao carregar.';
