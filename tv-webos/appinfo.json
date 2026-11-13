@@ -1,6 +1,6 @@
 {
   "id": "com.reptor.player",
-  "version": "1.0.12",
+  "version": "1.0.15",
   "vendor": "Reptor",
   "type": "web",
   "main": "index.html",

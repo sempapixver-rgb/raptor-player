@@ -418,6 +418,12 @@ html, body {
   padding: 8px 12px 12px;
   text-transform: uppercase;
 }
+.panel-hint {
+  font-size: 15px;
+  letter-spacing: .4px;
+  color: #4C6A55;
+  padding: 0 12px 10px;
+}
 .panel-list {
   -webkit-flex: 1 1 auto;
   flex: 1 1 auto;

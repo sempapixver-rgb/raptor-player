@@ -1,6 +1,6 @@
 /* Reptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.0.12';
+var APP_VERSION = '1.0.15';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;

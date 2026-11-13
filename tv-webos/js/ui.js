@@ -60,8 +60,18 @@ var Focus = {
 
     var c = cur.getBoundingClientRect();
     var all = this.list();
+
+    // Do campo de busca, "baixo" vai para o primeiro resultado da lista.
+    if (dir === 'down' && cur.id === 'searchInput' && window.App && App.focusFirstResult) {
+      App.focusFirstResult();
+      return;
+    }
+
+    var horizontal = dir === 'left' || dir === 'right';
     var best = null;
     var bestScore = Infinity;
+    var loose = null;
+    var looseScore = Infinity;
 
     var curCx = c.left + c.width / 2;
     var curCy = c.top + c.height / 2;
@@ -83,15 +93,90 @@ var Focus = {
         score = (r.top - c.bottom) + 3 * Math.abs(r.left + r.width / 2 - curCx);
       }
 
-      if (score < bestScore) {
-        bestScore = score;
-        best = cand;
+      if (score === Infinity) continue;
+
+      // Esquerda/direita só aceitam quem está na mesma faixa vertical:
+      // sem isso, "direita" pulava da lista para o campo de busca do topo.
+      var alinhado = horizontal
+        ? (r.bottom > c.top + 4 && r.top < c.bottom - 4)
+        : (r.right > c.left + 4 && r.left < c.right - 4);
+
+      if (alinhado) {
+        if (score < bestScore) { bestScore = score; best = cand; }
+      } else if (score < looseScore) {
+        looseScore = score;
+        loose = cand;
       }
     }
 
-    if (best) {
-      this.apply(best.el);
-      this.ensureVisible(best.el);
+    // Na horizontal só vale o vizinho alinhado (evita saltos para o topo).
+    // Para cima, dentro da lista/categorias, também não vale "salto solto":
+    // se não há item acima, o atalho da barra de busca abaixo resolve.
+    var semSalto = horizontal ||
+      (dir === 'up' && cur.closest && (cur.closest('#items') || cur.closest('#cats')));
+    var chosen = best || (semSalto ? null : loose);
+
+    if (chosen) {
+      this.apply(chosen.el);
+      this.ensureVisible(chosen.el);
+      return;
+    }
+
+    // Para cima quando não há mais item acima: vai direto para a barra de
+    // busca no topo da tela (não importa se está na lista ou nas categorias).
+    if (dir === 'up' && cur.closest && (cur.closest('#items') || cur.closest('#cats'))) {
+      var busca = $('searchInput');
+      if (busca && busca.offsetParent !== null) {
+        this.apply(busca);
+        this.ensureVisible(busca);
+        return;
+      }
+    }
+
+    // Esquerda a partir da prévia: volta para o item selecionado da lista.
+    if (dir === 'left' && cur.closest && cur.closest('#previewPane')) {
+      var linha = document.querySelector('#items .channel-row.selected, #items .card-item.selected') ||
+        document.querySelector('#items .channel-row, #items .card-item');
+      if (linha) {
+        this.apply(linha);
+        this.ensureVisible(linha);
+        return;
+      }
+    }
+
+    // Direita a partir da lista: entra na prévia (mesmo em outra altura).
+    if (dir === 'right' && cur.closest && cur.closest('#items')) {
+      var pane = $('previewPane');
+      if (pane && !pane.classList.contains('hidden')) {
+        var alvo = pane.querySelector('.preview-star.focusable') || pane.querySelector('.focusable');
+        if (alvo) {
+          this.apply(alvo);
+          this.ensureVisible(alvo);
+          return;
+        }
+      }
+    }
+
+    // Esquerda a partir da lista: volta para o painel de categorias.
+    if (dir === 'left' && cur.closest && cur.closest('#items')) {
+      var painel = document.querySelector('#cats .panel-item.active') ||
+        document.querySelector('#cats .panel-item');
+      if (painel) {
+        this.apply(painel);
+        this.ensureVisible(painel);
+        return;
+      }
+    }
+
+    // Atalho para o menu de abas: no painel de categorias (coluna da
+    // esquerda) não existe nada mais à esquerda, então "esquerda" leva
+    // direto para Canais / Filmes / Séries / Ajustes.
+    if (dir === 'left' && cur.closest && cur.closest('#cats')) {
+      var nav = document.querySelector('.nav-item.active') || document.querySelector('.nav-item');
+      if (nav) {
+        this.apply(nav);
+        this.ensureVisible(nav);
+      }
     }
   },
 
