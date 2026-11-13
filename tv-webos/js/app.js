@@ -1,6 +1,6 @@
 /* Reptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.0.8';
+var APP_VERSION = '1.0.9';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
@@ -24,6 +24,7 @@ var App = {
   selected: null,
   previewUrl: null,
   previewTimer: null,
+  previewFailed: false,
   epgPrograms: null,
   epgToken: 0,
   epgTimer: null,
@@ -833,17 +834,25 @@ var App = {
 
     var pv = $('previewVideo');
     pv.addEventListener('playing', function () {
+      self.previewFailed = false;
       self.hidePreviewCover();
       self.previewStatus('', false);
     });
     pv.addEventListener('waiting', function () {
-      if (self.previewUrl && pv.currentTime === 0) self.previewStatus('Carregando…', false);
+      if (self.previewUrl && !self.previewFailed && pv.currentTime === 0) {
+        self.previewStatus('Carregando…', false);
+      }
     });
     pv.addEventListener('stalled', function () {
-      if (self.previewUrl && pv.currentTime === 0) self.previewStatus('Carregando…', false);
+      if (self.previewUrl && !self.previewFailed && pv.currentTime === 0) {
+        self.previewStatus('Carregando…', false);
+      }
     });
     pv.addEventListener('error', function () {
-      if (self.previewUrl) self.previewStatus('Prévia indisponível neste canal.', true);
+      if (self.previewUrl) {
+        self.previewFailed = true;
+        self.previewStatus('Prévia indisponível neste canal.', true);
+      }
     });
 
     $('btnWatch').addEventListener('click', function () {
@@ -1124,6 +1133,7 @@ var App = {
       var v = $('previewVideo');
       if (!v) return;
       if (v.readyState < 2) {
+        self.previewFailed = true;
         self.previewStatus('Prévia indisponível neste canal.', true);
       }
     }, 9000);
@@ -1131,6 +1141,7 @@ var App = {
 
   stopPreview: function () {
     this.previewUrl = null;
+    this.previewFailed = false;
     if (this.previewTimer) {
       clearTimeout(this.previewTimer);
       this.previewTimer = null;
