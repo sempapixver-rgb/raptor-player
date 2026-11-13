@@ -1,6 +1,6 @@
 /* Reptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.0.9';
+var APP_VERSION = '1.0.10';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
@@ -17,6 +17,9 @@ var App = {
   cacheOrder: [],
   page: 0,
   currentList: [],
+  baseList: [],
+  searchQuery: '',
+  searchTimer: null,
   detail: null,
   detailItem: null,
   infoReturn: null,
@@ -55,6 +58,7 @@ var App = {
     });
 
     this.bindLogin();
+    this.bindSearch();
     this.bindSettings();
     this.bindPreview();
 
@@ -156,6 +160,104 @@ var App = {
     }, false);
   },
 
+  /* ============================================================= busca */
+
+  bindSearch: function () {
+    var self = this;
+    var input = $('searchInput');
+    var box = $('searchBox');
+    var clearBtn = $('btnClearSearch');
+    if (!input) return;
+
+    input.addEventListener('focus', function () {
+      if (box) box.classList.add('search-on');
+    });
+    input.addEventListener('blur', function () {
+      if (box) box.classList.remove('search-on');
+    });
+
+    input.addEventListener('input', function () {
+      if (self.searchTimer) clearTimeout(self.searchTimer);
+      self.searchTimer = setTimeout(function () {
+        self.searchTimer = null;
+        self.applySearch(input.value);
+      }, 180);
+    });
+
+    // OK/Enter no campo confirma a busca e leva o foco para o primeiro item.
+    input.addEventListener('keydown', function (event) {
+      if (event.keyCode !== 13) return;
+      event.preventDefault();
+      self.applySearch(input.value);
+      input.blur();
+      setTimeout(function () {
+        var first = $('items').querySelector('.card-item, .channel-row');
+        if (first) { try { first.focus(); } catch (e) { /* ignora */ } }
+      }, 60);
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function () {
+        self.clearSearch(true);
+      });
+    }
+  },
+
+  /** Filtra a lista carregada (pasta atual) pelo nome digitado. */
+  filteredList: function (list) {
+    var q = fold(this.searchQuery);
+    if (!q) return list || [];
+    var out = [];
+    for (var i = 0; i < (list || []).length; i++) {
+      var entry = list[i];
+      if (fold(entry && entry.name).indexOf(q) !== -1) out.push(entry);
+    }
+    return out;
+  },
+
+  applySearch: function (value) {
+    this.searchQuery = String(value || '').replace(/^\s+|\s+$/g, '');
+    this.page = 0;
+    this.currentList = this.filteredList(this.baseList);
+    this.updateSearchUi();
+    this.renderItems(this.currentList, false, false);
+  },
+
+  updateSearchUi: function () {
+    var input = $('searchInput');
+    var clearBtn = $('btnClearSearch');
+    var sub = $('tabSub');
+    var active = Boolean(this.searchQuery);
+
+    if (input && input.value !== this.searchQuery && document.activeElement !== input) {
+      input.value = this.searchQuery;
+    }
+    if (clearBtn) toggle(clearBtn, active);
+
+    if (!sub) return;
+    if (active) {
+      var total = this.currentList.length;
+      sub.textContent = 'Busca: "' + this.searchQuery + '" · ' + total +
+        (total === 1 ? ' resultado' : ' resultados');
+    } else {
+      sub.textContent = this.session ? sessionName(this.session) : '';
+    }
+  },
+
+  clearSearch: function (focusInput) {
+    this.searchQuery = '';
+    if (this.searchTimer) { clearTimeout(this.searchTimer); this.searchTimer = null; }
+    var input = $('searchInput');
+    if (input) input.value = '';
+    this.page = 0;
+    this.currentList = this.filteredList(this.baseList);
+    this.updateSearchUi();
+    this.renderItems(this.currentList, false, false);
+    if (focusInput && input) {
+      try { input.focus(); } catch (e) { /* ignora */ }
+    }
+  },
+
   back: function () {
     if (this.isPlayerOpen()) {
       this.closePlayer();
@@ -179,6 +281,16 @@ var App = {
       return;
     }
     if (!$('screen-home').classList.contains('hidden')) {
+      var focused = document.activeElement;
+      if (focused && focused.id === 'searchInput') {
+        if (this.searchQuery) this.clearSearch(false);
+        try { focused.blur(); } catch (e) { /* ignora */ }
+        return;
+      }
+      if (this.searchQuery) {
+        this.clearSearch(false);
+        return;
+      }
       this.exitApp();
       return;
     }
@@ -516,6 +628,13 @@ var App = {
     this.filter = 'all';
     this.page = 0;
     this.currentList = [];
+    this.baseList = [];
+    this.searchQuery = '';
+    if (this.searchTimer) { clearTimeout(this.searchTimer); this.searchTimer = null; }
+    var searchInput = $('searchInput');
+    if (searchInput) searchInput.value = '';
+    var clearBtn = $('btnClearSearch');
+    if (clearBtn) hide(clearBtn);
     this.selected = null;
     this.epgPrograms = null;
     this.epgToken++;
@@ -660,13 +779,17 @@ var App = {
       }
       // Favoritos seguem a ordenação escolhida; "recentes" fica por data de uso.
       if (this.filter === 'favorites' && Store.sortMode() === 'az') list = sortByName(list);
-      this.currentList = list;
-      this.renderItems(list);
+      this.baseList = list;
+      this.currentList = this.filteredList(list);
+      this.updateSearchUi();
+      this.renderItems(this.currentList);
       return;
     }
 
     if (this.itemCache[key]) {
-      this.currentList = this.itemCache[key];
+      this.baseList = this.itemCache[key];
+      this.currentList = this.filteredList(this.baseList);
+      this.updateSearchUi();
       this.renderItems(this.currentList);
       return;
     }
@@ -677,7 +800,9 @@ var App = {
       self.itemCache[key] = list;
       self.cacheOrder.push(key);
       self.trimCache();
-      self.currentList = self.itemCache[key];
+      self.baseList = self.itemCache[key];
+      self.currentList = self.filteredList(self.baseList);
+      self.updateSearchUi();
       self.renderItems(self.currentList);
     }, function (err) {
       hide($('loading'));
@@ -711,9 +836,14 @@ var App = {
 
     if (!list || !list.length) {
       show($('emptyState'));
+      this.selected = null;
+      this.stopPreview();
       var title = 'Nada por aqui ainda';
       var sub = 'Escolha outra pasta na lista ao lado.';
-      if (this.filter === 'favorites') {
+      if (this.searchQuery) {
+        title = 'Nenhum resultado';
+        sub = 'Nenhum nome combina com "' + this.searchQuery + '". Limpe a busca ou tente outra palavra.';
+      } else if (this.filter === 'favorites') {
         title = 'Nenhum favorito ainda';
         sub = 'Aperte a estrela ☆ de um item para salvar aqui.';
       } else if (this.filter === 'recents') {

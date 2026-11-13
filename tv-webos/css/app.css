@@ -361,6 +361,56 @@ html, body {
   background: rgba(27,38,30,.35);
   border-right: 1px solid rgba(46,74,54,.35);
 }
+/* busca por nome (Canais, Filmes e Séries), no espaço vazio do topo */
+.topbar-search {
+  display: flex;
+  -webkit-align-items: center;
+  align-items: center;
+  width: 400px;
+  height: 52px;
+  margin-right: 22px;
+  padding: 0 8px 0 12px;
+  border: 1px solid rgba(46,74,54,.75);
+  border-radius: 12px;
+  background: #0D1410;
+}
+.topbar-search.search-on {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(0,230,118,.14);
+}
+.search-icon { font-size: 24px; color: var(--dim); margin-right: 8px; }
+.search-input {
+  -webkit-flex: 1 1 auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 48px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 20px;
+  outline: none;
+}
+.search-input::placeholder { color: #6F8A77; }
+.search-input:focus { color: var(--green); }
+.search-clear {
+  -webkit-flex: 0 0 auto;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(46,74,54,.55);
+  color: var(--dim);
+  font-size: 25px;
+  line-height: 1;
+  font-family: inherit;
+  outline: none;
+}
+.search-clear:focus, .search-clear.hover {
+  background: rgba(0,230,118,.18);
+  color: var(--green);
+}
 .panel-label {
   font-size: 15px;
   letter-spacing: 1.8px;
