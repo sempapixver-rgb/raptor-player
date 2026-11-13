@@ -1,6 +1,6 @@
 /* Reptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.0.11';
+var APP_VERSION = '1.0.12';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
@@ -21,6 +21,9 @@ var App = {
   searchQuery: '',
   searchTimer: null,
   typing: false,
+  searchIndex: {},
+  searchToken: 0,
+  searchLoading: false,
   detail: null,
   detailItem: null,
   infoReturn: null,
@@ -218,23 +221,106 @@ var App = {
     }
   },
 
-  /** Filtra a lista carregada (pasta atual) pelo nome digitado. */
-  filteredList: function (list) {
+  /** Filtra uma lista pelo nome digitado (usa o índice já normalizado). */
+  filterFrom: function (list) {
     var q = fold(this.searchQuery);
     if (!q) return list || [];
     var out = [];
     for (var i = 0; i < (list || []).length; i++) {
       var entry = list[i];
-      if (fold(entry && entry.name).indexOf(q) !== -1) out.push(entry);
+      var key = entry && entry._search;
+      if (key == null) key = fold(entry && entry.name);
+      if (key.indexOf(q) !== -1) out.push(entry);
     }
     return out;
+  },
+
+  /** Filtra a lista carregada (pasta atual) pelo nome digitado. */
+  filteredList: function (list) {
+    return this.filterFrom(list);
+  },
+
+  /**
+   * Busca em TODAS as pastas da aba atual: carrega a lista completa uma vez
+   * (só com os campos necessários) e guarda como índice. Só a aba atual fica
+   * na memória, para não pesar na TV.
+   */
+  loadSearchIndex: function (kind) {
+    var self = this;
+    if (!this.source || !this.source.items) return;
+
+    var token = ++this.searchToken;
+    this.searchLoading = true;
+    this.updateSearchUi();
+
+    this.source.items(kind, null).then(function (all) {
+      if (token !== self.searchToken) return;
+      self.searchLoading = false;
+
+      if (!all || !all.length) {
+        self.updateSearchUi();
+        return;
+      }
+
+      var index = [];
+      for (var i = 0; i < all.length; i++) {
+        var entry = all[i];
+        if (!entry) continue;
+        // Projeção enxuta: sinopse e outros campos longos ficam de fora.
+        index.push({
+          id: entry.id,
+          name: entry.name,
+          logo: entry.logo,
+          categoryId: entry.categoryId,
+          kind: entry.kind,
+          containerExtension: entry.containerExtension,
+          rating: entry.rating,
+          year: entry.year,
+          directUrl: null,
+          _search: fold(entry.name)
+        });
+      }
+      all.length = 0;
+      self.searchIndex = {};
+      self.searchIndex[kind] = index;
+
+      if (self.section !== kind || !self.searchQuery) {
+        self.updateSearchUi();
+        return;
+      }
+
+      self.page = 0;
+      self.currentList = self.filterFrom(index);
+      self.updateSearchUi();
+      self.renderItems(self.currentList, false, true);
+
+      if (self.typing) {
+        var input = $('searchInput');
+        if (input) { try { input.focus(); } catch (e) { /* ignora */ } }
+      }
+    }, function () {
+      if (token !== self.searchToken) return;
+      self.searchLoading = false;
+      self.updateSearchUi();
+    });
   },
 
   applySearch: function (value) {
     var input = $('searchInput');
     this.searchQuery = String(value || '').replace(/^\s+|\s+$/g, '');
     this.page = 0;
-    this.currentList = this.filteredList(this.baseList);
+
+    var q = fold(this.searchQuery);
+    var index = this.searchIndex[this.section];
+
+    if (!q) {
+      this.currentList = this.baseList;
+    } else {
+      // Enquanto o índice não chega, filtra a pasta aberta; depois passa a
+      // procurar em todas as pastas da aba.
+      this.currentList = this.filterFrom(index || this.baseList);
+      if (!index && q.length >= 2) this.loadSearchIndex(this.section);
+    }
 
     // O item selecionado pode ter saído do filtro: limpa a prévia.
     if (this.selected && this.indexOfSelected() < 0) {
@@ -269,8 +355,12 @@ var App = {
     if (!sub) return;
     if (active) {
       var total = this.currentList.length;
+      var onde;
+      if (this.searchLoading) onde = ' · buscando em todas as pastas…';
+      else if (this.searchIndex[this.section]) onde = ' · todas as pastas';
+      else onde = ' · nesta pasta';
       sub.textContent = 'Busca: "' + this.searchQuery + '" · ' + total +
-        (total === 1 ? ' resultado' : ' resultados');
+        (total === 1 ? ' resultado' : ' resultados') + onde;
     } else {
       sub.textContent = this.session ? sessionName(this.session) : '';
     }
@@ -663,6 +753,8 @@ var App = {
     this.currentList = [];
     this.baseList = [];
     this.searchQuery = '';
+    this.searchToken++;
+    this.searchLoading = false;
     if (this.searchTimer) { clearTimeout(this.searchTimer); this.searchTimer = null; }
     var searchInput = $('searchInput');
     if (searchInput) searchInput.value = '';
@@ -763,6 +855,7 @@ var App = {
   },
 
   selectFilter: function (filter) {
+    if (this.searchQuery) this.clearSearch(false);
     this.filter = filter;
     this.activeCat = null;
     this.page = 0;
@@ -771,6 +864,7 @@ var App = {
   },
 
   selectCat: function (catId) {
+    if (this.searchQuery) this.clearSearch(false);
     this.filter = 'all';
     this.activeCat = catId;
     this.page = 0;
