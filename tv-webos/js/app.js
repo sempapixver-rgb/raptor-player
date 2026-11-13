@@ -1,6 +1,6 @@
 /* Reptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.0.10';
+var APP_VERSION = '1.0.11';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
@@ -20,6 +20,7 @@ var App = {
   baseList: [],
   searchQuery: '',
   searchTimer: null,
+  typing: false,
   detail: null,
   detailItem: null,
   infoReturn: null,
@@ -134,6 +135,15 @@ var App = {
       }
 
       if (code === 37 || code === 38 || code === 39 || code === 40) {
+        var digitando = document.activeElement && document.activeElement.id === 'searchInput';
+        // Com o campo de busca em foco, as setas editam o texto; só "baixo"
+        // sai do campo e vai para o primeiro resultado.
+        if (digitando && code === 40) {
+          event.preventDefault();
+          self.focusFirstResult();
+          return;
+        }
+        if (digitando) return;
         event.preventDefault();
         Focus.move(code === 37 ? 'left' : code === 39 ? 'right' : code === 38 ? 'up' : 'down');
         return;
@@ -170,9 +180,11 @@ var App = {
     if (!input) return;
 
     input.addEventListener('focus', function () {
+      self.typing = true;
       if (box) box.classList.add('search-on');
     });
     input.addEventListener('blur', function () {
+      self.typing = false;
       if (box) box.classList.remove('search-on');
     });
 
@@ -184,22 +196,25 @@ var App = {
       }, 180);
     });
 
-    // OK/Enter no campo confirma a busca e leva o foco para o primeiro item.
-    input.addEventListener('keydown', function (event) {
-      if (event.keyCode !== 13) return;
-      event.preventDefault();
-      self.applySearch(input.value);
-      input.blur();
-      setTimeout(function () {
-        var first = $('items').querySelector('.card-item, .channel-row');
-        if (first) { try { first.focus(); } catch (e) { /* ignora */ } }
-      }, 60);
-    });
+    // Nada de interceptar OK/Enter: o teclado virtual da LG usa essa tecla
+    // para fechar sozinho. A lista já filtra enquanto o usuário digita e a
+    // seta para baixo leva ao primeiro resultado.
 
     if (clearBtn) {
       clearBtn.addEventListener('click', function () {
         self.clearSearch(true);
       });
+    }
+  },
+
+  /** Sai do campo de busca e foca o primeiro resultado (sem cair na estrela). */
+  focusFirstResult: function () {
+    var holder = $('items');
+    var first = holder ? holder.querySelector('.card-item, .channel-row') : null;
+    var entry = this.currentList[0];
+    if (entry && this.section !== MediaKind.SERIES) this.selectEntry(entry, true);
+    if (first) {
+      try { first.focus(); } catch (e) { /* ignora */ }
     }
   },
 
@@ -216,11 +231,28 @@ var App = {
   },
 
   applySearch: function (value) {
+    var input = $('searchInput');
     this.searchQuery = String(value || '').replace(/^\s+|\s+$/g, '');
     this.page = 0;
     this.currentList = this.filteredList(this.baseList);
+
+    // O item selecionado pode ter saído do filtro: limpa a prévia.
+    if (this.selected && this.indexOfSelected() < 0) {
+      this.selected = null;
+      this.stopPreview();
+      this.hidePreviewCover();
+    }
+
     this.updateSearchUi();
-    this.renderItems(this.currentList, false, false);
+
+    // Digitando: mantém o foco no campo (teclado aberto) e não seleciona
+    // sozinho. O primeiro resultado só ganha foco com OK ou seta para baixo.
+    var digitando = this.typing || document.activeElement === input;
+    this.renderItems(this.currentList, false, digitando);
+
+    if (digitando && input) {
+      try { input.focus(); } catch (e) { /* ignora */ }
+    }
   },
 
   updateSearchUi: function () {
@@ -252,7 +284,7 @@ var App = {
     this.page = 0;
     this.currentList = this.filteredList(this.baseList);
     this.updateSearchUi();
-    this.renderItems(this.currentList, false, false);
+    this.renderItems(this.currentList, false, Boolean(focusInput));
     if (focusInput && input) {
       try { input.focus(); } catch (e) { /* ignora */ }
     }
@@ -285,6 +317,7 @@ var App = {
       if (focused && focused.id === 'searchInput') {
         if (this.searchQuery) this.clearSearch(false);
         try { focused.blur(); } catch (e) { /* ignora */ }
+        this.focusFirstResult();
         return;
       }
       if (this.searchQuery) {
@@ -875,9 +908,9 @@ var App = {
 
     if (total > 1) holder.appendChild(this.buildPager(total));
 
-    // Só move o foco quando a home está visível (recarga em segundo plano
-    // não deve roubar o foco dos Ajustes).
-    if (!$('screen-home').classList.contains('hidden')) {
+    // Só move o foco quando a home está visível e o usuário NÃO está
+    // digitando na busca (senão o teclado da TV fecharia a cada letra).
+    if (!$('screen-home').classList.contains('hidden') && !this.typing) {
       var first = holder.querySelector('.card-item, .channel-row');
       if (first) {
         try { first.focus(); } catch (e) { /* ignora */ }
