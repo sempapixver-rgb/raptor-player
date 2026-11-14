@@ -1,0 +1,5 @@
+{
+  "//": "O nome declarado precisa seguir o padrao exigido pelo runtime Kepler.",
+  "name": "com.reptor.player.vega.main",
+  "displayName": "Reptor Player"
+}

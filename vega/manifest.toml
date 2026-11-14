@@ -1,0 +1,89 @@
+schema-version = 1
+
+[package]
+title = "Reptor Player"
+version = "1.0.0"
+id = "com.reptor.player.vega"
+icon = "@image/icon_512x512.png"
+
+[os.version]
+min = "1.2"
+target = "1.2"
+
+[components]
+[[components.interactive]]
+id = "com.reptor.player.vega.main"
+runtime-module = "/com.amazon.kepler.keplerscript.runtime.loader_2@IKeplerScript_2_0"
+launch-type = "singleton"
+categories = ["com.amazon.category.main", "com.amazon.category.kepler.media"]
+
+# Reproducao de video: o player W3C depende destes servicos.
+[[wants.service]]
+id = "com.amazon.w3cmedia.service"
+
+[[wants.service]]
+id = "com.amazon.audio.service"
+
+[[wants.service]]
+id = "com.amazon.media.server"
+
+[[wants.service]]
+id = "com.amazon.media.playersession.service"
+
+[[wants.service]]
+id = "com.amazon.mediametrics.service"
+
+[[wants.service]]
+id = "com.amazon.mediabuffer.service"
+
+[[wants.service]]
+id = "com.amazon.mediatransform.service"
+
+[[wants.service]]
+id = "com.amazon.gipc.uuid.*"
+
+[[wants.service]]
+id = "com.amazon.audio.stream"
+
+[[wants.service]]
+id = "com.amazon.audio.control"
+
+[[wants.service]]
+id = "com.amazon.audio.system"
+
+# Teclado do sistema (campo de busca).
+[[wants.service]]
+id = "com.amazon.inputmethod.service"
+
+[[wants.service]]
+id = "com.amazon.inputd.service"
+
+# Rede.
+[[wants.service]]
+id = "com.amazon.network.service"
+
+[[needs.privilege]]
+id = "com.amazon.network.privilege.net-info"
+
+[[extras]]
+key = "interface.provider"
+component-id = "com.reptor.player.vega.main"
+
+[extras.value.application]
+[[extras.value.application.interface]]
+interface_name = "com.amazon.kepler.media.IMediaPlaybackServer"
+command_options = [
+    "Play",
+    "Pause",
+    "StartOver",
+    "Previous",
+    "Next",
+    "SkipForward",
+    "SkipBackward",
+]
+attribute_options = ["AudioAdvanceMuted"]
+features = ["AdvancedSeek", "VariableSpeed", "AudioTracks", "TextTracks"]
+
+[needs]
+[[needs.module]]
+id = "/com.amazon.vega.os@IVega_1_2"

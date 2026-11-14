@@ -1,0 +1,19 @@
+/** Versao exibida em Ajustes e usada no pacote de envio. */
+export const APP_VERSION = '1.0.0';
+
+/** Marcador de build (AAAAmmdd.NN). Vira build_number no pacote Vega. */
+export const BUILD_NUMBER = '20261114.01';
+
+export const BUILD_DATE = '2026-11-14';
+
+/** Site oficial: ativacao por codigo e area do cliente. */
+export const SITE_BASE = 'https://reptor-player.netlify.app';
+
+/** Pagina de privacidade exigida pela loja. */
+export const PRIVACY_URL = `${SITE_BASE}/privacidade.html`;
+
+/** Termos de uso mostrados no primeiro inicio. */
+export const TERMS_VERSION = 2;
+
+/** Identificacao do pacote (mesma do manifest.toml). */
+export const PACKAGE_ID = 'com.reptor.player.vega';
