@@ -36,6 +36,24 @@ android {
         }
     }
 
+    // Duas cópias do mesmo app:
+    //  - mobile: celular / TV Box (minSdk 23)
+    //  - firetv: Fire TV / Fire Stick antigos (Fire OS 5 = API 22), minSdk 21
+    flavorDimensions += "store"
+
+    productFlavors {
+        create("mobile") {
+            dimension = "store"
+            // Mesmo ID de sempre: atualiza o app já instalado.
+        }
+        create("firetv") {
+            dimension = "store"
+            applicationId = "com.reptor.player.firetv"
+            minSdk = 21
+            versionNameSuffix = "-firetv"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -60,6 +78,12 @@ android {
             "/META-INF/LICENSE*",
             "/META-INF/NOTICE*"
         )
+    }
+
+    // O build de release nao para por aviso de lint.
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 }
 

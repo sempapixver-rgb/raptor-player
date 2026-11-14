@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -44,10 +47,10 @@ jobs:
       - name: Permissao do gradlew
         run: chmod +x ./gradlew
 
-      - name: Compilar debug e release
-        run: ./gradlew assembleDebug assembleRelease -x lintVitalRelease --no-daemon --stacktrace
+      - name: Compilar debug e release (mobile + Fire TV)
+        run: ./gradlew assembleDebug assembleRelease --no-daemon --stacktrace
 
-      - name: Assinar o release
+      - name: Assinar as duas copias
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -57,20 +60,29 @@ jobs:
           set -e
           echo "$KEYSTORE_BASE64" | base64 -d > release.keystore
           BT="$ANDROID_HOME/build-tools/35.0.0"
-          UNSIGNED=$(find app/build/outputs/apk/release -name "*-unsigned.apk" | head -n 1)
-          echo "APK sem assinatura: $UNSIGNED"
-          "$BT/zipalign" -f -p 4 "$UNSIGNED" app-release-aligned.apk
-          "$BT/apksigner" sign --ks release.keystore --ks-key-alias "$KEY_ALIAS" \
-            --ks-pass "pass:$KEYSTORE_PASSWORD" --key-pass "pass:$KEY_PASSWORD" \
-            --v1-signing-enabled true --v2-signing-enabled true \
-            --out Reptor-release.apk app-release-aligned.apk
-          "$BT/apksigner" verify --print-certs Reptor-release.apk
+
+          assinar() {
+            UNSIGNED="$1"
+            SAIDA="$2"
+            echo "APK sem assinatura: $UNSIGNED"
+            "$BT/zipalign" -f -p 4 "$UNSIGNED" aligned.tmp.apk
+            "$BT/apksigner" sign --ks release.keystore --ks-key-alias "$KEY_ALIAS" \
+              --ks-pass "pass:$KEYSTORE_PASSWORD" --key-pass "pass:$KEY_PASSWORD" \
+              --v1-signing-enabled true --v2-signing-enabled true \
+              --out "$SAIDA" aligned.tmp.apk
+            "$BT/apksigner" verify --print-certs "$SAIDA"
+          }
+
+          assinar "$(find app/build/outputs/apk/mobile/release -name '*-unsigned.apk' | head -n 1)" Reptor-release.apk
+          assinar "$(find app/build/outputs/apk/firetv/release -name '*-unsigned.apk' | head -n 1)" Reptor-FireTV.apk
+
+          ls -lh Reptor-release.apk Reptor-FireTV.apk
 
       - name: Salvar APK de teste
         uses: actions/upload-artifact@v4
         with:
           name: Reptor-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/mobile/debug/app-mobile-debug.apk
 
       - name: Salvar APK assinado
         uses: actions/upload-artifact@v4
@@ -78,3 +90,25 @@ jobs:
           name: Reptor-release
           path: Reptor-release.apk
           if-no-files-found: ignore
+
+      - name: Salvar APK Fire TV
+        uses: actions/upload-artifact@v4
+        with:
+          name: Reptor-FireTV
+          path: Reptor-FireTV.apk
+          if-no-files-found: ignore
+
+      - name: Publicar link direto para o Downloader
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: Reptor Player (APK mobile e Fire TV)
+          body: |
+            Build automatico do commit ${{ github.sha }}.
+
+            - **Reptor-release.apk** — celular e TV Box (Android 6+)
+            - **Reptor-FireTV.apk** — Fire TV / Fire Stick antigos (Fire OS 5 / Android 5.1+)
+          files: |
+            Reptor-release.apk
+            Reptor-FireTV.apk
+          fail_on_unmatched_files: true
