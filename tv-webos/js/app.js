@@ -1,6 +1,6 @@
 /* Reptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.0.19';
+var APP_VERSION = '1.0.20';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
@@ -846,8 +846,14 @@ var App = {
 
   /** Depois das pastas: volta para a pasta usada antes na mesma aba. */
   afterCats: function (kind, list) {
+    var salva = this.lastCat[kind];
+    var use = null;
+    for (var i = 0; i < (list || []).length; i++) {
+      if (salva && list[i].id === salva) { use = salva; break; }
+    }
+    // Canais: sem pasta salva abre em "Tudo"; com pasta salva, volta nela.
     if (kind === MediaKind.LIVE) {
-      this.selectCat(null);
+      this.selectCat(use);
       return;
     }
     // Nunca pedir "todos os filmes/séries": são mais de 8 MB e derrubam a TV.
@@ -855,11 +861,6 @@ var App = {
       this.currentList = [];
       this.renderItems([]);
       return;
-    }
-    var salva = this.lastCat[kind];
-    var use = null;
-    for (var i = 0; i < list.length; i++) {
-      if (salva && list[i].id === salva) { use = salva; break; }
     }
     this.selectCat(use || list[0].id);
   },
