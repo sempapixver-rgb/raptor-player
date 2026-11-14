@@ -1,6 +1,6 @@
 /* Reptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.0.20';
+var APP_VERSION = '1.0.21';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
@@ -1186,16 +1186,18 @@ var App = {
     });
 
     $('btnWatch').addEventListener('click', function () {
-      if (self.selected) self.playEntry(self.selected);
+      var entry = self.ensureSelection();
+      if (entry) self.playEntry(entry);
     });
 
     $('btnPrevItem').addEventListener('click', function () { self.stepItem(-1); });
     $('btnNextItem').addEventListener('click', function () { self.stepItem(1); });
 
     $('btnFavItem').addEventListener('click', function () {
-      if (!self.selected) return;
-      var now = Store.toggleFavorite(self.selected);
-      self.updateFavStar();
+      var entry = self.ensureSelection();
+      if (!entry) return;
+      var now = Store.toggleFavorite(entry);
+      if (self.selected && String(self.selected.id) === String(entry.id)) self.updateFavStar();
       toast(now ? 'Adicionado aos favoritos.' : 'Removido dos favoritos.');
     });
 
@@ -1215,6 +1217,25 @@ var App = {
         self.renderEpg(self.epgPrograms);
       }
     }, 60000);
+  },
+
+  /**
+   * Garante um item selecionado para os botões da prévia (☆ e Assistir).
+   * Se nada estiver selecionado, usa o primeiro item da lista visível.
+   */
+  ensureSelection: function () {
+    if (this.selected) return this.selected;
+    var node = document.querySelector('#items [data-id]');
+    var id = node ? node.getAttribute('data-id') : null;
+    for (var i = 0; i < this.currentList.length; i++) {
+      if (id != null && String(this.currentList[i].id) === String(id)) {
+        this.selectEntry(this.currentList[i], true);
+        return this.currentList[i];
+      }
+    }
+    var first = this.currentList[0];
+    if (first) this.selectEntry(first, true);
+    return first || null;
   },
 
   selectEntry: function (entry, silent) {
