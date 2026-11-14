@@ -168,18 +168,9 @@ var Focus = {
       }
     }
 
-    // Atalho para o menu de abas: no painel de categorias (coluna da
-    // esquerda) não existe nada mais à esquerda, então "esquerda" leva
-    // direto para Canais / Filmes / Séries / Ajustes.
-    if (dir === 'left' && cur.closest && cur.closest('#cats')) {
-      var nav = document.querySelector('.nav-item.active') || document.querySelector('.nav-item');
-      if (nav) {
-        this.apply(nav);
-        this.ensureVisible(nav);
-      }
-    }
+    // Não existe mais menu inferior: cada aba é um ambiente fechado e
+    // para sair dela o usuário aperta Voltar (volta ao menu principal).
   },
-
   ensureVisible: function (el) {
     try {
       el.scrollIntoView({ block: 'nearest', inline: 'nearest' });

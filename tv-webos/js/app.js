@@ -1,6 +1,6 @@
 /* Reptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.0.17';
+var APP_VERSION = '1.0.19';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
@@ -71,6 +71,9 @@ var App = {
     $('btnRefresh').addEventListener('click', function () {
       self.reloadContent();
     });
+
+    var btnMenu = $('btnMenu');
+    if (btnMenu) btnMenu.addEventListener('click', function () { self.openMenu(); });
 
     if (!Store.termsAccepted()) {
       Screens.show('screen-terms');
@@ -401,22 +404,31 @@ var App = {
       return;
     }
     if (!$('screen-settings').classList.contains('hidden')) {
-      this.goHome();
+      this.openMenu('settings');
+      return;
+    }
+    if (!$('screen-menu').classList.contains('hidden')) {
+      this.exitApp();
       return;
     }
     if (!$('screen-home').classList.contains('hidden')) {
       var focused = document.activeElement;
       if (focused && focused.id === 'searchInput') {
-        if (this.searchQuery) this.clearSearch(false);
-        try { focused.blur(); } catch (e) { /* ignora */ }
-        this.focusFirstResult();
+        if (this.searchQuery) {
+          this.clearSearch(false);
+          try { focused.blur(); } catch (e) { /* ignora */ }
+          this.focusFirstResult();
+          return;
+        }
+        this.openMenu();
         return;
       }
       if (this.searchQuery) {
         this.clearSearch(false);
         return;
       }
-      this.exitApp();
+      // Sai da aba e volta para o menu principal (cada aba é fechada).
+      this.openMenu();
       return;
     }
     this.exitApp();
@@ -649,6 +661,65 @@ var App = {
     });
   },
 
+  /* =============================================================== menu */
+
+  /** Menu principal: Canais, Filmes, Séries e Ajustes. */
+  buildMenu: function () {
+    var self = this;
+    var holder = $('menuCards');
+    if (!holder) return;
+    clear(holder);
+
+    var entries = [
+      { kind: MediaKind.LIVE, label: 'Canais', sub: 'Ao vivo e programação' },
+      { kind: MediaKind.VOD, label: 'Filmes', sub: 'Catálogo completo' },
+      { kind: MediaKind.SERIES, label: 'Séries', sub: 'Temporadas e episódios' },
+      { action: 'settings', label: 'Ajustes', sub: 'Conta, lista e player' }
+    ];
+
+    for (var i = 0; i < entries.length; i++) {
+      (function (entry, index) {
+        var card = makeButton('menu-card', '');
+        card.setAttribute('data-kind', entry.kind || entry.action || '');
+        card.appendChild(make('span', 'num', pad2(index + 1)));
+        card.appendChild(make('span', 'label', entry.label));
+        card.appendChild(make('span', 'sub', entry.sub));
+        card.addEventListener('click', function () {
+          if (entry.kind) self.enterSection(entry.kind);
+          else self.openSettings();
+        });
+        holder.appendChild(card);
+      })(entries[i], i);
+    }
+  },
+
+  openMenu: function (focusKind) {
+    var self = this;
+    this.stopPreview();
+    Screens.show('screen-menu');
+    this.buildMenu();
+    var alvoKind = focusKind || this.section;
+    setTimeout(function () {
+      var cards = $('menuCards').querySelectorAll('.menu-card');
+      if (!cards.length) return;
+      var alvo = cards[0];
+      for (var i = 0; i < cards.length; i++) {
+        if (cards[i].getAttribute('data-kind') === alvoKind) alvo = cards[i];
+      }
+      try { alvo.focus(); } catch (e) { /* ignora */ }
+    }, 40);
+  },
+
+  /** Entra na aba escolhida: a home passa a mostrar só aquele conteúdo. */
+  enterSection: function (kind) {
+    this.typing = false;
+    try {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    } catch (e) { /* ignora */ }
+    Screens.show('screen-home');
+    this.setSection(kind);
+  },
+
   /* =============================================================== home */
 
   enterHome: function (session) {
@@ -665,10 +736,9 @@ var App = {
     this.epgToken++;
     this.stopPreview();
 
-    Screens.show('screen-home');
-    this.renderNav();
-    this.setSection(MediaKind.LIVE);
+    // Cada aba é um ambiente fechado: o app abre no menu principal.
     this.preload();
+    this.openMenu();
   },
 
   /** Recarrega categorias e itens (botão ⟳ Atualizar do topo). */
@@ -703,8 +773,8 @@ var App = {
   goHome: function () {
     Screens.show('screen-home');
     setTimeout(function () {
-      var active = document.querySelector('.nav-item.active');
-      if (active) { try { active.focus(); } catch (e) { /* ignora */ } }
+      var first = $('items').querySelector('.card-item, .channel-row');
+      if (first) { try { first.focus(); } catch (e) { /* ignora */ } }
     }, 40);
     // Ao voltar do player, religa a prévia do canal escolhido.
     var self = this;
@@ -713,37 +783,6 @@ var App = {
         self.renderPreview(self.selected);
       }
     }, 350);
-  },
-
-  /** Menu inferior, igual ao app Android. */
-  renderNav: function () {
-    var self = this;
-    var nav = $('bottomnav');
-    clear(nav);
-
-    var entries = [
-      { kind: MediaKind.LIVE, label: 'Canais' },
-      { kind: MediaKind.VOD, label: 'Filmes' },
-      { kind: MediaKind.SERIES, label: 'Séries' },
-      { action: 'settings', label: 'Ajustes' }
-    ];
-
-    for (var i = 0; i < entries.length; i++) {
-      (function (entry) {
-        var button = makeButton('nav-item focusable', entry.label);
-        button.setAttribute('data-kind', entry.kind || entry.action || '');
-        // O ponteiro do Magic Remote não foca as abas: só troca ao clicar.
-        button.setAttribute('data-nohover', 'true');
-        if (entry.kind === self.section) button.classList.add('active');
-
-        button.addEventListener('click', function () {
-          if (entry.kind) self.setSection(entry.kind);
-          else self.openSettings();
-        });
-
-        nav.appendChild(button);
-      })(entries[i]);
-    }
   },
 
   setSection: function (kind) {
@@ -781,12 +820,6 @@ var App = {
 
     // Em Séries a tela de detalhe já mostra tudo: a prévia lateral sobra.
     toggle($('previewPane'), kind !== MediaKind.SERIES);
-
-    var navItems = document.querySelectorAll('.nav-item');
-    for (var i = 0; i < navItems.length; i++) {
-      if (navItems[i].getAttribute('data-kind') === kind) navItems[i].classList.add('active');
-      else navItems[i].classList.remove('active');
-    }
 
     $('tabTitle').textContent = kind === MediaKind.LIVE ? 'Canais'
       : kind === MediaKind.VOD ? 'Filmes' : 'Séries';
@@ -1837,7 +1870,7 @@ var App = {
   bindSettings: function () {
     var self = this;
     $('btnBackDetail').addEventListener('click', function () { self.goHome(); });
-    $('btnBackSettings').addEventListener('click', function () { self.goHome(); });
+    $('btnBackSettings').addEventListener('click', function () { self.openMenu('settings'); });
     $('btnPrevSerie').addEventListener('click', function () { self.stepDetail(-1); });
     $('btnNextSerie').addEventListener('click', function () { self.stepDetail(1); });
 

@@ -654,6 +654,84 @@ html, body {
 }
 .channel-row.selected .name { color: var(--green); }
 
+/* menu principal */
+#screen-menu {
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  padding: 0 120px;
+}
+#screen-menu .brand.big .logo { font-size: 62px; letter-spacing: 18px; text-indent: 18px; }
+#screen-menu .brand.big .tag { font-size: 16px; letter-spacing: 8px; text-indent: 8px; margin-top: 12px; }
+.menu-head { padding-bottom: 54px; }
+.menu-cards {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: stretch;
+  align-items: stretch;
+}
+.menu-card {
+  width: 372px;
+  height: 258px;
+  margin-right: 30px;
+  border: 1px solid var(--outline);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  padding: 32px 30px;
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  -webkit-justify-content: flex-end;
+  justify-content: flex-end;
+  outline: none;
+}
+.menu-card:last-child { margin-right: 0; }
+.menu-card .num {
+  font-size: 20px;
+  letter-spacing: 3px;
+  color: #4C6A55;
+  margin-bottom: auto;
+}
+.menu-card .label { font-size: 44px; font-weight: 800; letter-spacing: .5px; }
+.menu-card .sub { font-size: 19px; color: var(--dim); margin-top: 8px; }
+.menu-card:focus, .menu-card.hover {
+  border-color: var(--green);
+  background: var(--surface-hi);
+  box-shadow: 0 0 0 3px rgba(0,230,118,.30);
+}
+.menu-card:focus .label { color: var(--green); }
+.menu-foot {
+  margin-top: 54px;
+  font-size: 20px;
+  color: #6F8A77;
+}
+
+/* botão do menu principal na barra do topo */
+.top-menu {
+  width: 62px;
+  height: 62px;
+  margin-right: 18px;
+  border: 1px solid var(--outline);
+  border-radius: 12px;
+  background: rgba(18,26,20,.55);
+  color: var(--dim);
+  font-family: inherit;
+  font-size: 34px;
+  line-height: 1;
+  outline: none;
+}
+.top-menu:focus, .top-menu.hover {
+  color: var(--green);
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(0,230,118,.30);
+}
+
 /* menu inferior */
 .bottomnav {
   height: 92px;

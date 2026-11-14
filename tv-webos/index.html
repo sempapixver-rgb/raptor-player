@@ -153,9 +153,22 @@
     </div>
   </section>
 
+  <!-- ============================================================== MENU -->
+  <section id="screen-menu" class="screen hidden">
+    <div class="menu-head">
+      <div class="brand big">
+        <span class="logo">REPTOR</span>
+        <span class="tag">VIDEO PLAYER</span>
+      </div>
+    </div>
+    <div class="menu-cards" id="menuCards"></div>
+    <div class="menu-foot">OK entra na aba &nbsp;·&nbsp; Voltar fecha o app</div>
+  </section>
+
   <!-- ============================================================== HOME -->
   <section id="screen-home" class="screen hidden">
     <header class="topbar">
+      <button class="top-menu focusable" id="btnMenu" aria-label="Menu principal">‹</button>
       <div class="brand small">
         <span class="logo">REPTOR</span>
       </div>
@@ -180,7 +193,7 @@
     <div class="home-body">
       <aside class="panel">
         <div class="panel-label" id="panelLabel">CATEGORIAS</div>
-        <div class="panel-hint">← abas &nbsp;·&nbsp; ↑ buscar</div>
+        <div class="panel-hint">↑ buscar &nbsp;·&nbsp; Voltar menu</div>
         <div class="panel-list" id="cats"></div>
       </aside>
 
@@ -224,8 +237,6 @@
         </aside>
       </main>
     </div>
-
-    <nav class="bottomnav" id="bottomnav"></nav>
   </section>
 
   <!-- ============================================================ DETAIL -->
