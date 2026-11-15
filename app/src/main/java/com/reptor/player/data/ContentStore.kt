@@ -1,9 +1,15 @@
 package com.reptor.player.data
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import com.reptor.player.ReptorApp
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
 
 /**
  * Cache da lista no mesmo modelo da TV (LG 1.0.21):
@@ -43,6 +49,143 @@ object ContentStore {
 
     private fun folderKey(base: String, kind: MediaKind): String = "$base|LAST|${kind.name}"
 
+    // ------------------------------------------------------- cache em disco
+    //
+    // As pastas são pequenas. Guardar em disco faz o app abrir na hora, mesmo
+    // na primeira vez do dia, sem esperar a rede. O "Atualizar" apaga tudo.
+
+    private const val CATEGORY_TTL_MS = 12L * 60L * 60L * 1000L
+
+    private fun categoryFile(key: String): File? = runCatching {
+        File(ReptorApp.instance.cacheDir, "cats_${Integer.toHexString(key.hashCode())}.json")
+    }.getOrNull()
+
+    private fun readCategoriesFromDisk(key: String): List<Category>? = runCatching {
+        val file = categoryFile(key) ?: return@runCatching null
+        if (!file.exists()) return@runCatching null
+        if (System.currentTimeMillis() - file.lastModified() > CATEGORY_TTL_MS) {
+            return@runCatching null
+        }
+        val arr = JSONArray(file.readText())
+        val out = ArrayList<Category>(arr.length())
+        for (i in 0 until arr.length()) {
+            val obj = arr.optJSONObject(i) ?: continue
+            val id = obj.optString("id")
+            if (id.isBlank()) continue
+            out.add(Category(id, obj.optString("name")))
+        }
+        out.takeIf { it.isNotEmpty() }
+    }.getOrNull()
+
+    private fun writeCategoriesToDisk(key: String, list: List<Category>) {
+        runCatching {
+            val file = categoryFile(key) ?: return@runCatching
+            val arr = JSONArray()
+            list.forEach { category ->
+                arr.put(
+                    JSONObject().apply {
+                        put("id", category.id)
+                        put("name", category.name)
+                    }
+                )
+            }
+            file.writeText(arr.toString())
+        }
+    }
+
+    // Itens de uma pasta: em Filmes/Séries a resposta pode passar de 1 MB.
+    // Depois da primeira abertura, o disco devolve a pasta na hora.
+
+    private const val ITEM_TTL_MS = 24L * 60L * 60L * 1000L
+    private const val MAX_ITEM_FILES = 8
+
+    private fun itemFile(key: String): File? = runCatching {
+        File(ReptorApp.instance.cacheDir, "items_${Integer.toHexString(key.hashCode())}.json")
+    }.getOrNull()
+
+    private fun readItemsFromDisk(key: String): List<MediaEntry>? = runCatching {
+        val file = itemFile(key) ?: return@runCatching null
+        if (!file.exists()) return@runCatching null
+        if (System.currentTimeMillis() - file.lastModified() > ITEM_TTL_MS) {
+            return@runCatching null
+        }
+        val arr = JSONArray(file.readText())
+        val out = ArrayList<MediaEntry>(arr.length())
+        for (i in 0 until arr.length()) {
+            val obj = arr.optJSONObject(i) ?: continue
+            val id = obj.optString("id")
+            if (id.isBlank()) continue
+            val kind = runCatching { MediaKind.valueOf(obj.optString("kind")) }
+                .getOrDefault(MediaKind.LIVE)
+            val extras = ArrayList<String>()
+            obj.optJSONArray("categoryIds")?.let { ids ->
+                for (j in 0 until ids.length()) {
+                    val value = ids.optString(j)
+                    if (value.isNotBlank()) extras.add(value)
+                }
+            }
+            out.add(
+                MediaEntry(
+                    id = id,
+                    name = obj.optString("name"),
+                    logo = obj.optString("logo").takeIf { it.isNotBlank() },
+                    categoryId = obj.optString("categoryId").takeIf { it.isNotBlank() },
+                    kind = kind,
+                    containerExtension = obj.optString("ext").takeIf { it.isNotBlank() },
+                    directUrl = obj.optString("directUrl").takeIf { it.isNotBlank() },
+                    rating = obj.optDouble("rating").takeIf { !it.isNaN() && it > 0 },
+                    plot = null,
+                    year = obj.optString("year").takeIf { it.isNotBlank() },
+                    categoryIds = extras
+                )
+            )
+        }
+        out.takeIf { it.isNotEmpty() }
+    }.getOrNull()
+
+    private fun writeItemsToDisk(key: String, list: List<MediaEntry>) {
+        runCatching {
+            val file = itemFile(key) ?: return@runCatching
+            val arr = JSONArray()
+            list.forEach { entry ->
+                arr.put(
+                    JSONObject().apply {
+                        put("id", entry.id)
+                        put("name", entry.name)
+                        put("logo", entry.logo ?: "")
+                        put("categoryId", entry.categoryId ?: "")
+                        put("kind", entry.kind.name)
+                        put("ext", entry.containerExtension ?: "")
+                        put("directUrl", entry.directUrl ?: "")
+                        put("rating", entry.rating ?: 0.0)
+                        put("year", entry.year ?: "")
+                        if (entry.categoryIds.isNotEmpty()) {
+                            put("categoryIds", JSONArray(entry.categoryIds))
+                        }
+                    }
+                )
+            }
+            file.writeText(arr.toString())
+            trimItemFiles(file)
+        }
+    }
+
+    /** Mantém só os últimos [MAX_ITEM_FILES] arquivos de pasta no disco. */
+    private fun trimItemFiles(keep: File) {
+        runCatching {
+            val others = ReptorApp.instance.cacheDir
+                .listFiles { file -> file.name.startsWith("items_") && file != keep }
+                ?.sortedBy { it.lastModified() }
+                ?: return@runCatching
+            var excess = others.size - (MAX_ITEM_FILES - 1)
+            for (file in others) {
+                if (excess <= 0) break
+                file.delete()
+                excess--
+            }
+        }
+    }
+
     // ------------------------------------------------------------ leitura local
 
     /** Pastas já baixadas, sem tocar na rede. */
@@ -80,9 +223,17 @@ object ContentStore {
         val key = catKey(base, kind)
         if (!force) {
             synchronized(lock) { categoryCache[key] }?.let { return@withLock it }
+            // Disco: abertura instantânea, sem esperar a rede.
+            withContext(Dispatchers.IO) { readCategoriesFromDisk(key) }?.let {
+                synchronized(lock) { categoryCache[key] = it }
+                return@withLock it
+            }
         }
         val list = source.categories(kind)
         synchronized(lock) { categoryCache[key] = list }
+        if (list.isNotEmpty()) {
+            withContext(Dispatchers.IO) { writeCategoriesToDisk(key, list) }
+        }
         list
     }
 
@@ -100,6 +251,19 @@ object ContentStore {
         val key = itemKey(base, kind, categoryId)
         if (!force) {
             synchronized(lock) { itemCache[key] }?.let { return@withLock it }
+            // Só pastas vão para o disco. "Tudo" (null) é grande demais e o
+            // usuário só abre quando quer.
+            if (categoryId != null) {
+                withContext(Dispatchers.IO) { readItemsFromDisk(key) }?.let { disk ->
+                    synchronized(lock) {
+                        itemCache[key] = disk
+                        itemOrder.remove(key)
+                        itemOrder.add(key)
+                        trimLocked(key)
+                    }
+                    return@withLock disk
+                }
+            }
         }
         val list = source.items(kind, categoryId)
         synchronized(lock) {
@@ -107,6 +271,9 @@ object ContentStore {
             itemOrder.remove(key)
             itemOrder.add(key)
             trimLocked(key)
+        }
+        if (categoryId != null && list.isNotEmpty()) {
+            withContext(Dispatchers.IO) { writeItemsToDisk(key, list) }
         }
         list
     }
@@ -177,8 +344,12 @@ object ContentStore {
      * rápido e sem baixar filmes/séries inteiros.
      */
     suspend fun preloadCategories(source: PlaylistSource, base: String) {
-        for (kind in listOf(MediaKind.LIVE, MediaKind.VOD, MediaKind.SERIES)) {
-            runCatching { categories(source, base, kind) }
+        // As três abas em paralelo: antes era uma atrás da outra e a última
+        // só aparecia depois de esperar as duas primeiras.
+        coroutineScope {
+            for (kind in listOf(MediaKind.LIVE, MediaKind.VOD, MediaKind.SERIES)) {
+                launch { runCatching { categories(source, base, kind) } }
+            }
         }
     }
 
@@ -193,6 +364,13 @@ object ContentStore {
             searchBase = null
             searchKind = null
             searchList = null
+        }
+        runCatching {
+            ReptorApp.instance.cacheDir
+                .listFiles { file ->
+                    file.name.startsWith("cats_") || file.name.startsWith("items_")
+                }
+                ?.forEach { it.delete() }
         }
     }
 }

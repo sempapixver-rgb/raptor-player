@@ -127,9 +127,15 @@ fun ChannelsScreen(
         }
 
         if (categoriesReady) {
-            // Canais abrem em "Tudo", a menos que exista uma pasta usada antes.
+            // Igual à LG: ao entrar, abre a última pasta usada (ou a primeira).
+            // "Tudo" continua na lista, mas não é baixado sozinho — era ele que
+            // puxava TODOS os canais de uma vez e deixava a abertura lenta.
             val saved = ContentStore.lastFolder(base, MediaKind.LIVE)
-            selectedCategory = if (saved != null && categories.any { it.id == saved }) saved else null
+            selectedCategory = when {
+                saved != null && categories.any { it.id == saved } -> saved
+                categories.isNotEmpty() -> categories.first().id
+                else -> null
+            }
             catsVersion++
         }
     }
@@ -183,7 +189,10 @@ fun ChannelsScreen(
     }
 
     // Grade do meuguia.tv: uma carga só, reaproveitada por todos os canais.
+    // Espera um pouco para não competir com a lista de canais, que é o que o
+    // usuário está esperando ver.
     LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(900)
         runCatching { EpgClient.board() }.onSuccess { epgBoard = it }
     }
 

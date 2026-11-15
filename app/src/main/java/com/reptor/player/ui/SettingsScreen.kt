@@ -124,7 +124,7 @@ fun SettingsScreen(
             showTerms = true
         },
         SettingItem("ⓘ", "Sobre o Raptor", "Versão, privacidade e créditos") {
-            message = "Raptor Player 1.2.11 · Tudo fica salvo apenas neste aparelho."
+            message = "Raptor Player 1.2.12 · Tudo fica salvo apenas neste aparelho."
         },
         SettingItem("📺", "Formato de tela", "Paisagem fixa, imersivo") {
             message = "O app foi feito para tela horizontal (TV, box e tablet)."

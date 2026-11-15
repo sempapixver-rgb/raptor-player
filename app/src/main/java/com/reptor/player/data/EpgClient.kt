@@ -1,6 +1,9 @@
 package com.reptor.player.data
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -68,9 +71,21 @@ object EpgClient {
         if (!force && boardCache.isNotEmpty() && now - boardAt < TTL) return boardCache
 
         val result = withContext(Dispatchers.Default) {
+            // Antes eram 8 páginas uma atrás da outra. Agora vão em paralelo,
+            // no máximo 4 por vez para não sobrecarregar o site.
+            val gate = Semaphore(4)
+            val pages = CATEGORIES.map { category ->
+                async {
+                    gate.withPermit {
+                        runCatching { get("/programacao/categoria/$category") }
+                            .getOrNull()
+                            .orEmpty()
+                    }
+                }
+            }
             val out = ArrayList<Entry>()
-            for (category in CATEGORIES) {
-                val html = runCatching { get("/programacao/categoria/$category") }.getOrNull().orEmpty()
+            for (page in pages) {
+                val html = page.await()
                 if (html.isBlank()) continue
                 out.addAll(parseCategory(html))
             }
