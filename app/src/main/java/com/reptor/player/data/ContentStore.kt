@@ -3,69 +3,133 @@ package com.reptor.player.data
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-/** Categorias + itens de uma aba já carregados. */
-data class ContentBundle(
-    val categories: List<Category>,
-    val items: List<MediaEntry>
-)
-
 /**
- * Ponto único de carga da lista.
+ * Cache da lista no mesmo modelo da TV (LG 1.0.21):
  *
- * O app carrega a lista uma vez (canais, filmes e séries) logo que entra e
- * guarda tudo em [ContentCache]. As abas só voltam a pedir quando o usuário
- * toca em "Atualizar" — abrir Canais, depois Filmes e voltar não baixa nada
- * outra vez.
- *
- * O [Mutex] por aba evita carregar a mesma lista duas vezes ao mesmo tempo
- * (por exemplo: a carga inicial ainda está rodando e o usuário já abriu a
- * aba). A segunda chamada espera a primeira terminar e reaproveita o
- * resultado.
+ *  - ao entrar no app baixa só as PASTAS (categorias) das três abas — resposta
+ *    pequena e rápida, então Canais/Filmes/Séries abrem sem "Carregando…";
+ *  - cada aba baixa só a pasta escolhida. Nunca pede todos os filmes/séries de
+ *    uma vez (são vários MB e derrubavam o Fire TV Stick antigo);
+ *  - a pasta fica guardada e volta na hora ao trocar de aba;
+ *  - no máximo 8 pastas em memória, porque o Fire TV Stick antigo tem pouca RAM.
  */
 object ContentStore {
 
+    private const val MAX_FOLDERS = 8
+
+    private val lock = Any()
     private val mutexes = HashMap<String, Mutex>()
 
-    private fun mutexFor(key: String): Mutex = synchronized(mutexes) {
+    private val categoryCache = HashMap<String, List<Category>>()
+    private val itemCache = HashMap<String, List<MediaEntry>>()
+    private val itemOrder = ArrayList<String>()
+    private val lastFolder = HashMap<String, String>()
+
+    private fun mutexFor(key: String): Mutex = synchronized(lock) {
         mutexes.getOrPut(key) { Mutex() }
     }
 
-    /** Chave usada pela aba. Ex.: "usuario|LIVE". */
-    fun cacheId(base: String, kind: MediaKind): String = "$base|${suffix(kind)}"
+    private fun catKey(base: String, kind: MediaKind): String = "$base|CAT|${kind.name}"
 
-    private fun suffix(kind: MediaKind): String = when (kind) {
-        MediaKind.LIVE -> "LIVE"
-        MediaKind.VOD -> "VOD"
-        MediaKind.SERIES -> "SERIES"
+    private fun itemKey(base: String, kind: MediaKind, categoryId: String?): String =
+        "$base|ITEMS|${kind.name}|${categoryId.orEmpty()}"
+
+    private fun folderKey(base: String, kind: MediaKind): String = "$base|LAST|${kind.name}"
+
+    // ------------------------------------------------------------ leitura local
+
+    /** Pastas já baixadas, sem tocar na rede. */
+    fun cachedCategories(base: String, kind: MediaKind): List<Category>? =
+        synchronized(lock) { categoryCache[catKey(base, kind)] }
+
+    /** Itens de uma pasta já baixados, sem tocar na rede. */
+    fun cachedItems(base: String, kind: MediaKind, categoryId: String?): List<MediaEntry>? =
+        synchronized(lock) { itemCache[itemKey(base, kind, categoryId)] }
+
+    /** Última pasta aberta nesta aba (para voltar nela). */
+    fun lastFolder(base: String, kind: MediaKind): String? =
+        synchronized(lock) { lastFolder[folderKey(base, kind)] }
+
+    fun rememberFolder(base: String, kind: MediaKind, categoryId: String?) {
+        synchronized(lock) {
+            val key = folderKey(base, kind)
+            if (categoryId.isNullOrBlank()) lastFolder.remove(key)
+            else lastFolder[key] = categoryId
+        }
     }
 
-    /** Conteúdo já carregado, sem tocar na rede. */
-    fun cached(cacheId: String): ContentBundle? {
-        val categories = ContentCache.categories(cacheId) ?: return null
-        val items = ContentCache.items(cacheId) ?: return null
-        return ContentBundle(categories, items)
+    // ------------------------------------------------------------------- carga
+
+    /**
+     * Pastas da aba. Uma chamada por aba: se outra tela já estiver baixando a
+     * mesma lista, esta espera e reaproveita o resultado.
+     */
+    suspend fun categories(
+        source: PlaylistSource,
+        base: String,
+        kind: MediaKind,
+        force: Boolean = false
+    ): List<Category> = mutexFor(catKey(base, kind)).withLock {
+        val key = catKey(base, kind)
+        if (!force) {
+            synchronized(lock) { categoryCache[key] }?.let { return@withLock it }
+        }
+        val list = source.categories(kind)
+        synchronized(lock) { categoryCache[key] = list }
+        list
     }
 
     /**
-     * Carrega uma vez por chave. Com [force] = true (botão "Atualizar" ou
-     * "Tentar de novo") descarta o que estava guardado e baixa de novo.
+     * Itens de UMA pasta (null = "Tudo", usado só em Canais).
+     * Guarda no máximo [MAX_FOLDERS] pastas, como a versão da LG.
      */
-    suspend fun load(
+    suspend fun items(
         source: PlaylistSource,
-        cacheId: String,
+        base: String,
         kind: MediaKind,
+        categoryId: String?,
         force: Boolean = false
-    ): ContentBundle = mutexFor(cacheId).withLock {
+    ): List<MediaEntry> = mutexFor(itemKey(base, kind, categoryId)).withLock {
+        val key = itemKey(base, kind, categoryId)
         if (!force) {
-            cached(cacheId)?.let { return@withLock it }
-        } else {
-            ContentCache.clear(cacheId)
+            synchronized(lock) { itemCache[key] }?.let { return@withLock it }
         }
+        val list = source.items(kind, categoryId)
+        synchronized(lock) {
+            itemCache[key] = list
+            itemOrder.remove(key)
+            itemOrder.add(key)
+            trimLocked(key)
+        }
+        list
+    }
 
-        val categories = source.categories(kind)
-        val items = source.items(kind, null)
-        ContentCache.putCategories(cacheId, categories)
-        ContentCache.putItems(cacheId, items)
-        ContentBundle(categories, items)
+    /** Mantém no máximo 8 pastas em memória (TV tem pouca RAM). */
+    private fun trimLocked(current: String) {
+        while (itemOrder.size > MAX_FOLDERS) {
+            val old = itemOrder.removeAt(0)
+            if (old != current) itemCache.remove(old)
+        }
+    }
+
+    /**
+     * Adianta só as pastas das três abas. É o que a LG faz ao entrar: pequeno,
+     * rápido e sem baixar filmes/séries inteiros.
+     */
+    suspend fun preloadCategories(source: PlaylistSource, base: String) {
+        for (kind in listOf(MediaKind.LIVE, MediaKind.VOD, MediaKind.SERIES)) {
+            runCatching { categories(source, base, kind) }
+        }
+    }
+
+    // ------------------------------------------------------------------ limpeza
+
+    /** Botão "Atualizar": esquece pastas e itens guardados. */
+    fun clearAll() {
+        synchronized(lock) {
+            categoryCache.clear()
+            itemCache.clear()
+            itemOrder.clear()
+        }
     }
 }

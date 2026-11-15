@@ -77,7 +77,9 @@ fun ChannelsScreen(
 ) {
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
     var allItems by remember { mutableStateOf<List<MediaEntry>>(emptyList()) }
+    var categoriesReady by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
+    var itemsLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var retry by remember { mutableIntStateOf(0) }
 
@@ -91,39 +93,66 @@ fun ChannelsScreen(
     var epgLoading by remember { mutableStateOf(false) }
     var previewUrl by remember { mutableStateOf<String?>(null) }
 
-    val cacheId = ContentStore.cacheId(cacheKey, MediaKind.LIVE)
-    val mountRefreshKey = remember { refreshKey }
+    val base = cacheKey
+    // Muda quando as pastas terminam de carregar. Os itens esperam por isso
+    // para não baixar a pasta errada antes da hora.
+    var catsVersion by remember { mutableIntStateOf(0) }
 
+    // Pastas da aba (leves). Ao entrar, o app já as baixou — aqui só reaproveita.
     LaunchedEffect(retry, refreshKey) {
-        // A lista é carregada uma única vez na entrada do app. Ao voltar para
-        // esta aba o conteúdo guardado aparece na hora; só baixa de novo no
-        // "Atualizar" (refreshKey) ou no "Tentar de novo" depois de um erro.
-        val isRefresh = refreshKey != mountRefreshKey
-        val force = isRefresh || retry > 0
+        error = null
 
-        if (!force) {
-            ContentStore.cached(cacheId)?.let { bundle ->
-                categories = bundle.categories
-                allItems = bundle.items
-                if (selected == null) selected = allItems.firstOrNull()
+        val cached = ContentStore.cachedCategories(base, MediaKind.LIVE)
+        if (cached != null) {
+            categories = cached
+            categoriesReady = true
+            loading = false
+        } else {
+            loading = categories.isEmpty()
+            try {
+                categories = kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
+                    ContentStore.categories(source, base, MediaKind.LIVE)
+                }
+                categoriesReady = true
+            } catch (e: Throwable) {
+                error = loadErrorMessage(e, "os canais")
+            } finally {
                 loading = false
-                return@LaunchedEffect
             }
         }
 
-        loading = true
+        if (categoriesReady) {
+            // Canais abrem em "Tudo", a menos que exista uma pasta usada antes.
+            val saved = ContentStore.lastFolder(base, MediaKind.LIVE)
+            selectedCategory = if (saved != null && categories.any { it.id == saved }) saved else null
+            catsVersion++
+        }
+    }
+
+    // Itens SÓ da pasta escolhida (em Canais, "Tudo" = todos os LIVE).
+    LaunchedEffect(selectedCategory, catsVersion) {
+        if (!categoriesReady) return@LaunchedEffect
+
+        ContentStore.cachedItems(base, MediaKind.LIVE, selectedCategory)?.let { list ->
+            allItems = list
+            if (list.none { it.id == selected?.id }) selected = list.firstOrNull()
+            itemsLoading = false
+            return@LaunchedEffect
+        }
+
+        itemsLoading = true
+        allItems = emptyList()
         error = null
         try {
-            val bundle = kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
-                ContentStore.load(source, cacheId, MediaKind.LIVE, force)
+            val list = kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
+                ContentStore.items(source, base, MediaKind.LIVE, selectedCategory)
             }
-            categories = bundle.categories
-            allItems = bundle.items
-            if (selected == null) selected = allItems.firstOrNull()
+            allItems = list
+            if (list.none { it.id == selected?.id }) selected = list.firstOrNull()
         } catch (e: Throwable) {
             error = loadErrorMessage(e, "os canais")
         } finally {
-            loading = false
+            itemsLoading = false
         }
     }
 
@@ -178,14 +207,20 @@ fun ChannelsScreen(
         return
     }
 
-    val counts = remember(allItems) {
-        val map = HashMap<String, Int>()
-        allItems.forEach { entry ->
-            entry.allCategoryIds().forEach { id ->
-                map[id] = (map[id] ?: 0) + 1
+    // A contagem por pasta só é confiável com "Tudo" carregado; numa pasta
+    // específica só os itens dela estão na memória.
+    val counts = remember(allItems, selectedCategory) {
+        if (selectedCategory != null) {
+            emptyMap()
+        } else {
+            val map = HashMap<String, Int>()
+            allItems.forEach { entry ->
+                entry.allCategoryIds().forEach { id ->
+                    map[id] = (map[id] ?: 0) + 1
+                }
             }
+            map
         }
-        map
     }
 
     Row(Modifier.fillMaxSize()) {
@@ -194,9 +229,12 @@ fun ChannelsScreen(
             filter = filter,
             onFilter = { filter = it },
             selectedCategory = selectedCategory,
-            onCategory = { selectedCategory = it },
+            onCategory = {
+                selectedCategory = it
+                ContentStore.rememberFolder(base, MediaKind.LIVE, it)
+            },
             counts = counts,
-            totalCount = allItems.size,
+            totalCount = if (selectedCategory == null) allItems.size else 0,
             favoritesCount = favoritesLive.size,
             recentsCount = recentsLive.size,
             modifier = Modifier.width(196.dp)
@@ -215,7 +253,9 @@ fun ChannelsScreen(
                     .padding(horizontal = 10.dp, vertical = 8.dp)
             )
 
-            if (visible.isEmpty()) {
+            if (itemsLoading && allItems.isEmpty()) {
+                LoadingBox("Carregando canais…")
+            } else if (visible.isEmpty()) {
                 EmptyBox(
                     when (filter) {
                         Filter.FAVORITES -> "Nenhum canal favorito."

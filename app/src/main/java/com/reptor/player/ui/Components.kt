@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -264,7 +265,10 @@ fun CategoryPanel(
     totalCount: Int = 0,
     favoritesCount: Int = 0,
     recentsCount: Int = 0,
-    categoryLabel: String = "Buscar categorias"
+    categoryLabel: String = "Buscar categorias",
+    // "Tudo" só faz sentido em Canais. Em Filmes/Séries a lista completa é
+    // pesada demais, então a pasta é obrigatória (como na versão da LG).
+    showAll: Boolean = true
 ) {
     var query by remember { mutableStateOf("") }
     val filtered = categories.filter {
@@ -272,10 +276,14 @@ fun CategoryPanel(
     }
 
     // Em TV/controle, o foco começa em "Tudo": o D-pad já funciona ao abrir a aba.
+    // O pedido é repetido algumas vezes porque a lista pode montar depois do
+    // primeiro frame (carregamento da lista) e o foco precisa ser reassumido.
     val firstFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) {
-        delay(120)
-        runCatching { firstFocus.requestFocus() }
+        repeat(8) {
+            delay(80)
+            if (runCatching { firstFocus.requestFocus() }.isSuccess) return@LaunchedEffect
+        }
     }
 
     Column(
@@ -302,12 +310,30 @@ fun CategoryPanel(
         ) {
             item(key = "filters") {
                 Column {
-                    SideItem("Tudo", filter == Filter.ALL && selectedCategory == null, totalCount, focusRequester = firstFocus) {
-                        onFilter(Filter.ALL)
-                        onCategory(null)
-                    }
-                    SideItem("Favoritos", filter == Filter.FAVORITES, favoritesCount) {
-                        onFilter(Filter.FAVORITES)
+                    if (showAll) {
+                        SideItem(
+                            label = "Tudo",
+                            selected = filter == Filter.ALL && selectedCategory == null,
+                            count = totalCount,
+                            focusRequester = firstFocus
+                        ) {
+                            onFilter(Filter.ALL)
+                            onCategory(null)
+                        }
+                        SideItem("Favoritos", filter == Filter.FAVORITES, favoritesCount) {
+                            onFilter(Filter.FAVORITES)
+                        }
+                    } else {
+                        // Sem "Tudo", o foco inicial vai para "Favoritos" para o
+                        // controle já ter onde navegar ao abrir a aba.
+                        SideItem(
+                            label = "Favoritos",
+                            selected = filter == Filter.FAVORITES,
+                            count = favoritesCount,
+                            focusRequester = firstFocus
+                        ) {
+                            onFilter(Filter.FAVORITES)
+                        }
                     }
                     SideItem("Visto recentemente", filter == Filter.RECENTS, recentsCount) {
                         onFilter(Filter.RECENTS)
@@ -447,6 +473,10 @@ fun PosterCard(
                     .padding(4.dp)
                     .clip(RoundedCornerShape(6.dp))
                     .background(Color.Black.copy(alpha = 0.45f))
+                    // A estrela é um atalho de toque. No controle, o foco fica
+                    // no pôster inteiro (OK abre o filme); senão o D-pad
+                    // parava na estrelinha de cada capa.
+                    .focusProperties { canFocus = false }
                     .clickable(onClick = onStar)
                     .padding(horizontal = 5.dp, vertical = 1.dp)
             ) {
@@ -591,6 +621,9 @@ fun ChannelRow(
         Box(
             Modifier
                 .clip(RoundedCornerShape(6.dp))
+                // Mesmo caso do pôster: a estrela não entra na navegação do
+                // controle. O foco fica na linha do canal (OK seleciona).
+                .focusProperties { canFocus = false }
                 .clickable(onClick = onStar)
                 .padding(horizontal = 6.dp, vertical = 2.dp)
         ) {

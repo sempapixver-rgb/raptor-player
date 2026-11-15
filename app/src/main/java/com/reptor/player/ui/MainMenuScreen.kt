@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import com.reptor.player.ui.theme.ReptorBackground
 import com.reptor.player.ui.theme.ReptorGreen
 import com.reptor.player.ui.theme.ReptorOutline
@@ -56,7 +57,13 @@ fun MainMenuScreen(
 ) {
     val firstFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) {
-        runCatching { firstFocus.requestFocus() }
+        // A tela pode ainda não estar montada no primeiro frame; tenta de novo
+        // até o cartão "Canais" aceitar o foco (senão o controle fica sem
+        // seleção ao voltar de uma aba).
+        repeat(6) {
+            delay(80)
+            if (runCatching { firstFocus.requestFocus() }.isSuccess) return@LaunchedEffect
+        }
     }
 
     Box(
@@ -178,13 +185,13 @@ fun MainMenuScreen(
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "A lista é carregada uma vez só. Você já pode abrir uma aba.",
+                        text = "Preparando as pastas. Você já pode abrir uma aba.",
                         color = ReptorTextDim,
                         fontSize = 11.sp
                     )
                 } else {
                     Text(
-                        text = "Lista pronta. Voltar fecha esta tela. Dentro de uma aba, Voltar retorna ao menu.",
+                        text = "Pastas prontas. Voltar fecha esta tela. Dentro de uma aba, Voltar retorna ao menu.",
                         color = ReptorTextDim,
                         fontSize = 11.sp
                     )

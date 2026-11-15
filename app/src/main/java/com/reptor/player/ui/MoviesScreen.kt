@@ -63,7 +63,9 @@ fun MoviesScreen(
 ) {
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
     var allItems by remember { mutableStateOf<List<MediaEntry>>(emptyList()) }
+    var categoriesReady by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
+    var itemsLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var retry by remember { mutableIntStateOf(0) }
 
@@ -72,36 +74,74 @@ fun MoviesScreen(
     var query by remember { mutableStateOf("") }
     var sort by remember { mutableStateOf(SortMode.DEFAULT) }
 
-    val cacheId = ContentStore.cacheId(cacheKey, MediaKind.VOD)
-    val mountRefreshKey = remember { refreshKey }
+    val base = cacheKey
+    // Muda quando as pastas terminam de carregar. Os itens esperam por isso
+    // para não baixar a pasta errada antes da hora.
+    var catsVersion by remember { mutableIntStateOf(0) }
 
+    // Pastas da aba (leves). Ao entrar, o app já as baixou — aqui só reaproveita.
     LaunchedEffect(retry, refreshKey) {
-        // Conteúdo carregado uma única vez na entrada do app: reabrir a aba é
-        // instantâneo. Só baixa de novo no "Atualizar" ou no "Tentar de novo".
-        val isRefresh = refreshKey != mountRefreshKey
-        val force = isRefresh || retry > 0
+        error = null
 
-        if (!force) {
-            ContentStore.cached(cacheId)?.let { bundle ->
-                categories = bundle.categories
-                allItems = bundle.items
+        val cached = ContentStore.cachedCategories(base, MediaKind.VOD)
+        if (cached != null) {
+            categories = cached
+            categoriesReady = true
+            loading = false
+        } else {
+            loading = categories.isEmpty()
+            try {
+                categories = kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
+                    ContentStore.categories(source, base, MediaKind.VOD)
+                }
+                categoriesReady = true
+            } catch (e: Throwable) {
+                error = loadErrorMessage(e, "os filmes")
+            } finally {
                 loading = false
-                return@LaunchedEffect
             }
         }
 
-        loading = true
+        if (categoriesReady) {
+            // Filmes/Séries nunca abrem em "Tudo": volta na última pasta usada
+            // ou entra na primeira. A lista completa passa de 8 MB.
+            val saved = ContentStore.lastFolder(base, MediaKind.VOD)
+            selectedCategory = when {
+                saved != null && categories.any { it.id == saved } -> saved
+                categories.isNotEmpty() -> categories.first().id
+                else -> null
+            }
+            catsVersion++
+        }
+    }
+
+    // Itens SÓ da pasta escolhida.
+    LaunchedEffect(selectedCategory, catsVersion) {
+        if (!categoriesReady) return@LaunchedEffect
+        val folder = selectedCategory
+        if (folder == null) {
+            allItems = emptyList()
+            itemsLoading = false
+            return@LaunchedEffect
+        }
+
+        ContentStore.cachedItems(base, MediaKind.VOD, folder)?.let { list ->
+            allItems = list
+            itemsLoading = false
+            return@LaunchedEffect
+        }
+
+        itemsLoading = true
+        allItems = emptyList()
         error = null
         try {
-            val bundle = kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
-                ContentStore.load(source, cacheId, MediaKind.VOD, force)
+            allItems = kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
+                ContentStore.items(source, base, MediaKind.VOD, folder)
             }
-            categories = bundle.categories
-            allItems = bundle.items
         } catch (e: Throwable) {
             error = loadErrorMessage(e, "os filmes")
         } finally {
-            loading = false
+            itemsLoading = false
         }
     }
 
@@ -118,7 +158,10 @@ fun MoviesScreen(
         return
     }
 
-    val counts = remember(allItems) { allItems.groupingBy { it.categoryId.orEmpty() }.eachCount() }
+    // Só a pasta atual está em memória; a contagem das outras não é conhecida.
+    val counts = remember(allItems, selectedCategory) {
+        if (selectedCategory == null) emptyMap() else mapOf(selectedCategory to allItems.size)
+    }
 
     val visible = remember(filter, selectedCategory, query, sort, allItems, favoritesVod, recentsVod) {
         val base = when (filter) {
@@ -145,12 +188,16 @@ fun MoviesScreen(
             filter = filter,
             onFilter = { filter = it },
             selectedCategory = selectedCategory,
-            onCategory = { selectedCategory = it },
+            onCategory = {
+                selectedCategory = it
+                ContentStore.rememberFolder(base, MediaKind.VOD, it)
+            },
             counts = counts,
             totalCount = allItems.size,
             favoritesCount = favoritesVod.size,
             recentsCount = recentsVod.size,
-            modifier = Modifier.width(196.dp)
+            modifier = Modifier.width(196.dp),
+            showAll = false
         )
 
         Box(
@@ -184,6 +231,8 @@ fun MoviesScreen(
             }
 
             when {
+                itemsLoading && allItems.isEmpty() -> LoadingBox("Carregando filmes…")
+
                 visible.isEmpty() -> EmptyBox(
                     when (filter) {
                         Filter.FAVORITES -> "Nenhum filme favorito."
