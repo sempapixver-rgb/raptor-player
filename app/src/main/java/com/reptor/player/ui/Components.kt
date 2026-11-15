@@ -180,6 +180,56 @@ fun BottomNav(tab: Tab, onTab: (Tab) -> Unit) {
     }
 }
 
+// ------------------------------------------------------------- abas no topo
+
+/**
+ * Separador de abas (Canais / Filmes / Séries / Ajustes) no topo da tela.
+ *
+ * No controle remoto, cada aba recebe foco com as setas e abre só com OK.
+ */
+@Composable
+fun TopTabs(tab: Tab, onTab: (Tab) -> Unit) {
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(ReptorSurfaceHigh.copy(alpha = 0.75f))
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Tab.entries.forEach { entry ->
+                val selected = tab == entry
+                var tabFocused by remember { mutableStateOf(false) }
+                Column(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (selected) ReptorGreen.copy(alpha = 0.18f) else Color.Transparent
+                        )
+                        .border(
+                            width = if (tabFocused) 1.5.dp else 0.dp,
+                            color = if (tabFocused) ReptorGreen else Color.Transparent,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .onFocusChanged { tabFocused = it.isFocused }
+                        .clickable { onTab(entry) }
+                        .padding(horizontal = 18.dp, vertical = 7.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = entry.label,
+                        color = if (selected || tabFocused) ReptorGreen else ReptorTextDim,
+                        fontSize = 13.sp,
+                        fontWeight = if (selected || tabFocused) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
+            }
+        }
+        HorizontalDivider(color = ReptorOutline.copy(alpha = 0.45f))
+    }
+}
+
 // ------------------------------------------------------------------ busca
 
 @Composable

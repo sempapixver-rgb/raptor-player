@@ -94,12 +94,14 @@ fun MoviesScreen(
         loading = true
         error = null
         try {
-            categories = source.categories(MediaKind.VOD)
-            allItems = source.items(MediaKind.VOD, null)
+            kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
+                categories = source.categories(MediaKind.VOD)
+                allItems = source.items(MediaKind.VOD, null)
+            }
             ContentCache.putCategories(cacheId, categories)
             ContentCache.putItems(cacheId, allItems)
-        } catch (e: Exception) {
-            error = e.message ?: "Falha ao carregar os filmes"
+        } catch (e: Throwable) {
+            error = loadErrorMessage(e, "os filmes")
         } finally {
             loading = false
         }

@@ -112,12 +112,14 @@ fun SeriesScreen(
         loading = true
         error = null
         try {
-            categories = source.categories(MediaKind.SERIES)
-            allItems = source.items(MediaKind.SERIES, null)
+            kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
+                categories = source.categories(MediaKind.SERIES)
+                allItems = source.items(MediaKind.SERIES, null)
+            }
             ContentCache.putCategories(cacheId, categories)
             ContentCache.putItems(cacheId, allItems)
-        } catch (e: Exception) {
-            error = e.message ?: "Falha ao carregar as séries"
+        } catch (e: Throwable) {
+            error = loadErrorMessage(e, "as séries")
         } finally {
             loading = false
         }

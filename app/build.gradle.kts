@@ -11,8 +11,8 @@ android {
         applicationId = "com.reptor.player"
         minSdk = 23
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.2.5"
+        versionCode = 10
+        versionName = "1.2.6"
 
         vectorDrawables { useSupportLibrary = true }
 

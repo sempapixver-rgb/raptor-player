@@ -116,13 +116,15 @@ fun ChannelsScreen(
         loading = true
         error = null
         try {
-            categories = source.categories(MediaKind.LIVE)
-            allItems = source.items(MediaKind.LIVE, null)
+            kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
+                categories = source.categories(MediaKind.LIVE)
+                allItems = source.items(MediaKind.LIVE, null)
+            }
             ContentCache.putCategories(cacheId, categories)
             ContentCache.putItems(cacheId, allItems)
             if (selected == null) selected = allItems.firstOrNull()
-        } catch (e: Exception) {
-            error = e.message ?: "Falha ao carregar os canais"
+        } catch (e: Throwable) {
+            error = loadErrorMessage(e, "os canais")
         } finally {
             loading = false
         }

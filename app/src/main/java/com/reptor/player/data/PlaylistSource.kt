@@ -44,12 +44,43 @@ fun createSource(session: Session): PlaylistSource {
     val key = session.key()
     synchronized(sourceLock) {
         cachedSource?.let { if (cachedSourceKey == key) return it }
-        val fresh =
-            if (session.mode == LoginMode.M3U) M3uSource(session.m3uUrl) else XtreamSource(session)
+        val fresh = buildSource(session)
         cachedSourceKey = key
         cachedSource = fresh
         return fresh
     }
+}
+
+/**
+ * Link get.php é Xtream por baixo. Baixar a lista inteira (dezenas de MB)
+ * travava o Fire TV Stick antigo em "Carregando…" para sempre; usando a API
+ * o app pede só a pasta escolhida, que é rápida e leve.
+ */
+private fun buildSource(session: Session): PlaylistSource {
+    if (session.mode != LoginMode.M3U) return XtreamSource(session)
+
+    val link = runCatching { normalizeRemoteUrl(session.m3uUrl) }.getOrNull().orEmpty()
+    val remote = link.startsWith("http://", true) || link.startsWith("https://", true)
+    if (remote && link.contains("/get.php", ignoreCase = true)) {
+        val detected = runCatching { SmartLink.detect(link) }.getOrNull()
+        if (detected != null &&
+            detected.mode == LoginMode.XTREAM &&
+            detected.host.isNotBlank() &&
+            detected.user.isNotBlank() &&
+            detected.pass.isNotBlank()
+        ) {
+            return XtreamSource(
+                Session(
+                    mode = LoginMode.XTREAM,
+                    baseUrl = detected.host,
+                    username = detected.user,
+                    password = detected.pass,
+                    label = session.label
+                )
+            )
+        }
+    }
+    return M3uSource(session.m3uUrl)
 }
 
 /** Solta a lista guardada em memória (troca de lista / sair da conta). */

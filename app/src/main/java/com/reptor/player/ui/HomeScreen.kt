@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.reptor.player.data.Activation
 import com.reptor.player.data.ContentCache
 import com.reptor.player.data.MediaEntry
 import com.reptor.player.data.MediaKind
@@ -52,7 +53,8 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
     val scope = rememberCoroutineScope()
     val source = remember(session.key()) { createSource(session) }
 
-    var tab by remember { mutableStateOf(Tab.CHANNELS) }
+    var tab by remember { mutableStateOf<Tab?>(null) }
+    val deviceCode = remember { Activation.deviceCode(context) }
     var favorites by remember { mutableStateOf(prefs.favorites()) }
     var recents by remember { mutableStateOf(prefs.recents()) }
     var refreshTick by remember { mutableIntStateOf(0) }
@@ -107,20 +109,30 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
     }
 
     val current = playing
+    val open = tab
 
-    BackHandler(enabled = current == null && tab != Tab.CHANNELS) { tab = Tab.CHANNELS }
+    BackHandler(enabled = current == null && open != null) { tab = null }
 
     Box(Modifier.fillMaxSize()) {
+        if (open == null) {
+            MainMenuScreen(
+                accountLabel = session.displayName(),
+                deviceCode = deviceCode,
+                onOpen = { tab = it }
+            )
+        } else {
         Column(Modifier.fillMaxSize()) {
             TopBar(
-                title = tab.label,
+                title = open.label,
                 subtitle = session.displayName(),
                 clock = clock,
                 onRefresh = { refreshTick++ }
             )
 
+            TopTabs(tab = open, onTab = { tab = it })
+
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                when (tab) {
+                when (open) {
                     Tab.CHANNELS -> ChannelsScreen(
                         source = source,
                         prefs = prefs,
@@ -203,8 +215,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                     }
                 }
             }
-
-            BottomNav(tab = tab, onTab = { tab = it })
+        }
         }
 
         // O player fica por cima da casca: assim a aba (série/temporada/episódio
