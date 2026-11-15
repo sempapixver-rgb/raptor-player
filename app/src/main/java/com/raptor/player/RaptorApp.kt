@@ -1,4 +1,4 @@
-package com.reptor.player
+package com.raptor.player
 
 import android.app.Application
 import coil.ImageLoader
@@ -6,7 +6,7 @@ import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 
-class ReptorApp : Application(), ImageLoaderFactory {
+class RaptorApp : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
@@ -34,7 +34,7 @@ class ReptorApp : Application(), ImageLoaderFactory {
             .build()
 
     companion object {
-        lateinit var instance: ReptorApp
+        lateinit var instance: RaptorApp
             private set
     }
 }

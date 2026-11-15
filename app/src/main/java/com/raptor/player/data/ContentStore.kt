@@ -1,4 +1,4 @@
-package com.reptor.player.data
+package com.raptor.player.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -6,7 +6,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import com.reptor.player.ReptorApp
+import com.raptor.player.RaptorApp
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -57,7 +57,7 @@ object ContentStore {
     private const val CATEGORY_TTL_MS = 12L * 60L * 60L * 1000L
 
     private fun categoryFile(key: String): File? = runCatching {
-        File(ReptorApp.instance.cacheDir, "cats_${Integer.toHexString(key.hashCode())}.json")
+        File(RaptorApp.instance.cacheDir, "cats_${Integer.toHexString(key.hashCode())}.json")
     }.getOrNull()
 
     private fun readCategoriesFromDisk(key: String): List<Category>? = runCatching {
@@ -100,7 +100,7 @@ object ContentStore {
     private const val MAX_ITEM_FILES = 8
 
     private fun itemFile(key: String): File? = runCatching {
-        File(ReptorApp.instance.cacheDir, "items_${Integer.toHexString(key.hashCode())}.json")
+        File(RaptorApp.instance.cacheDir, "items_${Integer.toHexString(key.hashCode())}.json")
     }.getOrNull()
 
     private fun readItemsFromDisk(key: String): List<MediaEntry>? = runCatching {
@@ -173,7 +173,7 @@ object ContentStore {
     /** Mantém só os últimos [MAX_ITEM_FILES] arquivos de pasta no disco. */
     private fun trimItemFiles(keep: File) {
         runCatching {
-            val others = ReptorApp.instance.cacheDir
+            val others = RaptorApp.instance.cacheDir
                 .listFiles { file -> file.name.startsWith("items_") && file != keep }
                 ?.sortedBy { it.lastModified() }
                 ?: return@runCatching
@@ -366,7 +366,7 @@ object ContentStore {
             searchList = null
         }
         runCatching {
-            ReptorApp.instance.cacheDir
+            RaptorApp.instance.cacheDir
                 .listFiles { file ->
                     file.name.startsWith("cats_") || file.name.startsWith("items_")
                 }

@@ -1,4 +1,4 @@
-package com.reptor.player.data
+package com.raptor.player.data
 
 import android.content.Context
 import android.net.wifi.WifiManager

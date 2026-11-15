@@ -1,5 +1,5 @@
 {
-  "name": "@reptor/player-vega",
+  "name": "@raptor/player-vega",
   "version": "1.0.0",
   "private": true,
   "license": "UNLICENSED",
@@ -29,7 +29,7 @@
   },
   "kepler": {
     "projectType": "application",
-    "appName": "reptor",
+    "appName": "raptor",
     "targets": ["tv"]
   }
 }

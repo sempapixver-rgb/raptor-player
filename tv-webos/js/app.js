@@ -1,4 +1,4 @@
-/* Reptor Player — webOS. Controlador principal. */
+/* Raptor Player — webOS. Controlador principal. */
 
 var APP_VERSION = '1.0.21';
 
@@ -1933,7 +1933,7 @@ var App = {
     });
 
     $('setAbout').addEventListener('click', function () {
-      self.openInfo('Sobre o Reptor', self.aboutHtml());
+      self.openInfo('Sobre o Raptor', self.aboutHtml());
     });
 
     $('setPrivacy').addEventListener('click', function () {
@@ -1975,7 +1975,7 @@ var App = {
 
   aboutHtml: function () {
     var code = this.code || Store.cachedCode() || '—';
-    return '<p><b>Reptor Player</b> — VIDEO PLAYER para TV.</p>' +
+    return '<p><b>Raptor Player</b> — VIDEO PLAYER para TV.</p>' +
       '<p>Versão: <b>' + APP_VERSION + '</b><br>' +
       'Aparelho: <b>' + esc(Device.modelName()) + '</b><br>' +
       'Código: <b>' + esc(code) + '</b></p>' +
@@ -1983,7 +1983,7 @@ var App = {
   },
 
   privacyHtml: function () {
-    return '<p>O Reptor Player guarda apenas no próprio aparelho:</p>' +
+    return '<p>O Raptor Player guarda apenas no próprio aparelho:</p>' +
       '<p>• o código de identificação da TV;<br>' +
       '• as listas que você cadastrou;<br>' +
       '• favoritos e itens vistos recentemente;<br>' +

@@ -142,7 +142,7 @@ export function Brand({compact}: {compact?: boolean}) {
       <BrandMark size={compact ? 34 : 46} />
       <View style={styles.brandText}>
         <Text style={[styles.brandName, compact ? styles.brandNameCompact : null]}>
-          REPTOR
+          RAPTOR
         </Text>
         <Text style={styles.brandSub}>VIDEO PLAYER</Text>
       </View>

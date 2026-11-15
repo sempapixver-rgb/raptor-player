@@ -25,14 +25,14 @@ BUILD_SEQ_RAW=${BUILD_MARKER##*.}
 BUILD_SEQ=$((10#$BUILD_SEQ_RAW))
 VEGA_BUILD_NUMBER=$(printf '%s%02d' "$BUILD_DATE" "$BUILD_SEQ")
 
-echo "Gerando Reptor Player $APP_VERSION"
+echo "Gerando Raptor Player $APP_VERSION"
 echo "  marcador do app:   $BUILD_MARKER"
 echo "  build number Vega: $VEGA_BUILD_NUMBER"
 echo
 
 # Fire TV Stick 4K Select e armv7. x86_64 serve apenas para o emulador Vega.
 TARGET=armv7
-PACKAGE=build/$TARGET-release/reptor_$TARGET.vpkg
+PACKAGE=build/$TARGET-release/raptor_$TARGET.vpkg
 
 rm -f "$PACKAGE"
 

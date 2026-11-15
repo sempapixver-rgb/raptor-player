@@ -1,11 +1,11 @@
-package com.reptor.player.data
+package com.raptor.player.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
-import com.reptor.player.ReptorApp
+import com.raptor.player.RaptorApp
 import java.io.File
 import java.io.IOException
 import java.net.URLDecoder
@@ -215,7 +215,7 @@ class M3uSource(private val url: String) : PlaylistSource {
 
     /** Cache em disco do painel: evita baixar ~8 MB a cada abertura do app. */
     private fun metaCacheFile(ep: Endpoint): File =
-        File(ReptorApp.instance.cacheDir, "series_meta_${(ep.base + "|" + ep.user).hashCode()}.json")
+        File(RaptorApp.instance.cacheDir, "series_meta_${(ep.base + "|" + ep.user).hashCode()}.json")
 
     private fun readMetaCache(ep: Endpoint): Map<String, SeriesMeta>? {
         val file = metaCacheFile(ep)
@@ -360,7 +360,7 @@ class M3uSource(private val url: String) : PlaylistSource {
     private fun fetchEntries(target: String): List<MediaEntry> {
         val request = Request.Builder()
             .url(target)
-            .header("User-Agent", "Reptor/1.2 (Android)")
+            .header("User-Agent", "Raptor/1.2 (Android)")
             .build()
         return http.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
@@ -376,7 +376,7 @@ class M3uSource(private val url: String) : PlaylistSource {
     private fun fetchText(target: String): String {
         val request = Request.Builder()
             .url(target)
-            .header("User-Agent", "Reptor/1.2 (Android)")
+            .header("User-Agent", "Raptor/1.2 (Android)")
             .build()
         return http.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {

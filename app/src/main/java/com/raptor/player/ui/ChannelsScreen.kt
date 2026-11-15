@@ -1,4 +1,4 @@
-package com.reptor.player.ui
+package com.raptor.player.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,20 +47,20 @@ import androidx.media3.common.MediaItem as ExoMediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import com.reptor.player.data.Category
-import com.reptor.player.data.ChannelEpg
-import com.reptor.player.data.ContentStore
-import com.reptor.player.data.EpgClient
-import com.reptor.player.data.EpgProgram
-import com.reptor.player.data.MediaEntry
-import com.reptor.player.data.MediaKind
-import com.reptor.player.data.PlaylistSource
-import com.reptor.player.data.Prefs
-import com.reptor.player.ui.theme.ReptorGreen
-import com.reptor.player.ui.theme.ReptorOutline
-import com.reptor.player.ui.theme.ReptorSurfaceHigh
-import com.reptor.player.ui.theme.ReptorText
-import com.reptor.player.ui.theme.ReptorTextDim
+import com.raptor.player.data.Category
+import com.raptor.player.data.ChannelEpg
+import com.raptor.player.data.ContentStore
+import com.raptor.player.data.EpgClient
+import com.raptor.player.data.EpgProgram
+import com.raptor.player.data.MediaEntry
+import com.raptor.player.data.MediaKind
+import com.raptor.player.data.PlaylistSource
+import com.raptor.player.data.Prefs
+import com.raptor.player.ui.theme.RaptorGreen
+import com.raptor.player.ui.theme.RaptorOutline
+import com.raptor.player.ui.theme.RaptorSurfaceHigh
+import com.raptor.player.ui.theme.RaptorText
+import com.raptor.player.ui.theme.RaptorTextDim
 import java.util.Calendar
 
 @Composable
@@ -312,7 +312,7 @@ fun ChannelsScreen(
                         searchIndex != null -> " · todas as pastas"
                         else -> " · nesta pasta"
                     },
-                    color = ReptorTextDim,
+                    color = RaptorTextDim,
                     fontSize = 10.sp,
                     modifier = Modifier.padding(start = 12.dp, bottom = 6.dp)
                 )
@@ -386,7 +386,7 @@ private fun VerticalSeparator() {
         Modifier
             .width(1.dp)
             .fillMaxHeight()
-            .background(ReptorOutline.copy(alpha = 0.45f))
+            .background(RaptorOutline.copy(alpha = 0.45f))
     )
 }
 
@@ -404,7 +404,7 @@ private fun ChannelDetail(
 ) {
     if (channel == null) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Selecione um canal na lista", color = ReptorTextDim, fontSize = 13.sp)
+            Text("Selecione um canal na lista", color = RaptorTextDim, fontSize = 13.sp)
         }
         return
     }
@@ -445,7 +445,7 @@ private fun ChannelDetail(
                 if (previewUrl == null) {
                     Text(
                         text = "Sem sinal de prévia",
-                        color = ReptorTextDim,
+                        color = RaptorTextDim,
                         fontSize = 12.sp,
                         modifier = Modifier.align(Alignment.Center)
                     )
@@ -478,7 +478,7 @@ private fun ChannelDetail(
         // ---------------------------------------------------------- cabeçalho
         Text(
             text = channel.name,
-            color = ReptorText,
+            color = RaptorText,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -486,7 +486,7 @@ private fun ChannelDetail(
         )
         Text(
             text = epg?.channelName ?: "Programação não encontrada",
-            color = ReptorTextDim,
+            color = RaptorTextDim,
             fontSize = 11.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -499,38 +499,38 @@ private fun ChannelDetail(
         }
 
         Spacer(Modifier.height(10.dp))
-        HorizontalDivider(color = ReptorOutline.copy(alpha = 0.4f))
+        HorizontalDivider(color = RaptorOutline.copy(alpha = 0.4f))
         Spacer(Modifier.height(8.dp))
 
-        Text("CATEGORIA", color = ReptorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Text("CATEGORIA", color = RaptorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(3.dp))
         Text(
             text = channel.categoryId ?: "Canais",
-            color = ReptorText,
+            color = RaptorText,
             fontSize = 12.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         Spacer(Modifier.height(8.dp))
-        Text("SINAL", color = ReptorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Text("SINAL", color = RaptorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(3.dp))
-        Text("Ao vivo", color = ReptorText, fontSize = 12.sp)
+        Text("Ao vivo", color = RaptorText, fontSize = 12.sp)
         }
 
         // ------------------------------------------------ coluna direita: EPG
         Column(Modifier.width(178.dp).fillMaxHeight()) {
-        Text("AGORA", color = ReptorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Text("AGORA", color = RaptorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
 
         if (epgLoading) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-                CircularProgressIndicator(color = ReptorGreen, strokeWidth = 2.dp, modifier = Modifier.width(16.dp))
+                CircularProgressIndicator(color = RaptorGreen, strokeWidth = 2.dp, modifier = Modifier.width(16.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Carregando programação…", color = ReptorTextDim, fontSize = 12.sp)
+                Text("Carregando programação…", color = RaptorTextDim, fontSize = 12.sp)
             }
         } else if (current == null) {
             Text(
                 text = "Programação indisponível para este canal.",
-                color = ReptorTextDim,
+                color = RaptorTextDim,
                 fontSize = 12.sp,
                 modifier = Modifier.padding(top = 6.dp)
             )
@@ -540,12 +540,12 @@ private fun ChannelDetail(
                     .fillMaxWidth()
                     .padding(top = 6.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(ReptorGreen.copy(alpha = 0.10f))
+                    .background(RaptorGreen.copy(alpha = 0.10f))
                     .padding(horizontal = 10.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = current.title,
-                    color = ReptorText,
+                    color = RaptorText,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
@@ -553,13 +553,13 @@ private fun ChannelDetail(
                 )
                 Text(
                     text = "${current.start} · ${current.genre ?: "Ao vivo"}",
-                    color = ReptorTextDim,
+                    color = RaptorTextDim,
                     fontSize = 10.sp
                 )
             }
 
             Spacer(Modifier.height(10.dp))
-            Text("A SEGUIR", color = ReptorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text("A SEGUIR", color = RaptorGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(top = 4.dp),
@@ -571,13 +571,13 @@ private fun ChannelDetail(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(7.dp))
-                            .background(ReptorSurfaceHigh.copy(alpha = 0.45f))
+                            .background(RaptorSurfaceHigh.copy(alpha = 0.45f))
                             .padding(horizontal = 10.dp, vertical = 7.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = program.start,
-                            color = ReptorGreen,
+                            color = RaptorGreen,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.width(46.dp)
@@ -585,7 +585,7 @@ private fun ChannelDetail(
                         Column(Modifier.weight(1f)) {
                             Text(
                                 text = program.title,
-                                color = ReptorText,
+                                color = RaptorText,
                                 fontSize = 12.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -593,7 +593,7 @@ private fun ChannelDetail(
                             if (!program.genre.isNullOrBlank()) {
                                 Text(
                                     text = program.genre,
-                                    color = ReptorTextDim,
+                                    color = RaptorTextDim,
                                     fontSize = 9.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -614,17 +614,17 @@ private fun MiniButton(label: String, onClick: () -> Unit) {
     Box(
         Modifier
             .clip(RoundedCornerShape(6.dp))
-            .background(if (focused) ReptorGreen.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.55f))
+            .background(if (focused) RaptorGreen.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.55f))
             .border(
                 width = if (focused) 1.5.dp else 0.dp,
-                color = if (focused) ReptorGreen else Color.Transparent,
+                color = if (focused) RaptorGreen else Color.Transparent,
                 shape = RoundedCornerShape(6.dp)
             )
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
-        Text(label, color = if (focused) ReptorGreen else Color.White, fontSize = 12.sp)
+        Text(label, color = if (focused) RaptorGreen else Color.White, fontSize = 12.sp)
     }
 }
 
@@ -636,14 +636,14 @@ private fun ActionButton(label: String, primary: Boolean = false, onClick: () ->
             .clip(RoundedCornerShape(8.dp))
             .background(
                 when {
-                    primary -> ReptorGreen
-                    focused -> ReptorGreen.copy(alpha = 0.20f)
-                    else -> ReptorSurfaceHigh
+                    primary -> RaptorGreen
+                    focused -> RaptorGreen.copy(alpha = 0.20f)
+                    else -> RaptorSurfaceHigh
                 }
             )
             .border(
                 width = if (focused) 1.5.dp else 0.dp,
-                color = if (focused) ReptorGreen else Color.Transparent,
+                color = if (focused) RaptorGreen else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             )
             .onFocusChanged { focused = it.isFocused }
@@ -652,7 +652,7 @@ private fun ActionButton(label: String, primary: Boolean = false, onClick: () ->
     ) {
         Text(
             text = label,
-            color = if (primary) Color(0xFF00210F) else if (focused) ReptorGreen else ReptorText,
+            color = if (primary) Color(0xFF00210F) else if (focused) RaptorGreen else RaptorText,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )

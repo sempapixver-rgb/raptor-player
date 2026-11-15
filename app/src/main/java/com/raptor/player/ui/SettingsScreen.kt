@@ -1,4 +1,4 @@
-package com.reptor.player.ui
+package com.raptor.player.ui
 
 import android.provider.Settings
 import androidx.compose.foundation.background
@@ -41,18 +41,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.reptor.player.data.AccountInfo
-import com.reptor.player.data.LoginMode
-import com.reptor.player.data.PlaylistSource
-import com.reptor.player.data.Prefs
-import com.reptor.player.data.Session
-import com.reptor.player.data.displayName
-import com.reptor.player.data.key
-import com.reptor.player.ui.theme.ReptorGreen
-import com.reptor.player.ui.theme.ReptorOutline
-import com.reptor.player.ui.theme.ReptorSurfaceHigh
-import com.reptor.player.ui.theme.ReptorText
-import com.reptor.player.ui.theme.ReptorTextDim
+import com.raptor.player.data.AccountInfo
+import com.raptor.player.data.LoginMode
+import com.raptor.player.data.PlaylistSource
+import com.raptor.player.data.Prefs
+import com.raptor.player.data.Session
+import com.raptor.player.data.displayName
+import com.raptor.player.data.key
+import com.raptor.player.ui.theme.RaptorGreen
+import com.raptor.player.ui.theme.RaptorOutline
+import com.raptor.player.ui.theme.RaptorSurfaceHigh
+import com.raptor.player.ui.theme.RaptorText
+import com.raptor.player.ui.theme.RaptorTextDim
 import kotlinx.coroutines.delay
 
 private data class SettingItem(
@@ -124,7 +124,7 @@ fun SettingsScreen(
             showTerms = true
         },
         SettingItem("ⓘ", "Sobre o Raptor", "Versão, privacidade e créditos") {
-            message = "Raptor Player 1.2.12 · Tudo fica salvo apenas neste aparelho."
+            message = "Raptor Player 1.3.0 · Tudo fica salvo apenas neste aparelho."
         },
         SettingItem("📺", "Formato de tela", "Paisagem fixa, imersivo") {
             message = "O app foi feito para tela horizontal (TV, box e tablet)."
@@ -138,10 +138,10 @@ fun SettingsScreen(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Ajustes", color = ReptorText, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Ajustes", color = RaptorText, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text(
                     text = session.displayName(),
-                    color = ReptorTextDim,
+                    color = RaptorTextDim,
                     fontSize = 11.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -150,7 +150,7 @@ fun SettingsScreen(
             Box(
                 Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(ReptorSurfaceHigh)
+                    .background(RaptorSurfaceHigh)
                     .padding(horizontal = 12.dp, vertical = 7.dp)
             ) {
                 Text(
@@ -158,7 +158,7 @@ fun SettingsScreen(
                         LoginMode.XTREAM -> "Xtream Codes"
                         LoginMode.M3U -> "Lista M3U"
                     },
-                    color = ReptorGreen,
+                    color = RaptorGreen,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -172,73 +172,73 @@ fun SettingsScreen(
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
-                .background(ReptorSurfaceHigh.copy(alpha = 0.45f))
-                .border(1.dp, ReptorOutline.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
+                .background(RaptorSurfaceHigh.copy(alpha = 0.45f))
+                .border(1.dp, RaptorOutline.copy(alpha = 0.6f), RoundedCornerShape(10.dp))
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
                     "CONTA",
-                    color = ReptorGreen,
+                    color = RaptorGreen,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(4.dp))
                 if (accountLoading) {
-                    Text("Verificando conta…", color = ReptorTextDim, fontSize = 12.sp)
+                    Text("Verificando conta…", color = RaptorTextDim, fontSize = 12.sp)
                 } else if (account == null) {
                     Text(
                         text = if (session.mode == LoginMode.M3U)
                             "Lista M3U — sem dados de conta."
                         else "Não foi possível ler os dados da conta.",
-                        color = ReptorTextDim,
+                        color = RaptorTextDim,
                         fontSize = 12.sp
                     )
                 } else {
                     val info = account!!
                     Text(
                         text = info.username.ifBlank { session.username },
-                        color = ReptorText,
+                        color = RaptorText,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         text = "Status: ${info.status.ifBlank { "—" }}" +
                             if (info.isTrial) " (teste)" else "",
-                        color = ReptorTextDim,
+                        color = RaptorTextDim,
                         fontSize = 11.sp
                     )
                     Text(
                         text = "Validade: ${formatExpiry(info.expiresAt)}",
-                        color = ReptorTextDim,
+                        color = RaptorTextDim,
                         fontSize = 11.sp
                     )
                 }
             }
 
             Column(horizontalAlignment = Alignment.End) {
-                Text("CONEXÕES", color = ReptorGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Text("CONEXÕES", color = RaptorGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = account?.let { "${it.activeConnections.ifBlank { "0" }}/${it.maxConnections.ifBlank { "—" }}" } ?: "—",
-                    color = ReptorText,
+                    color = RaptorText,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(4.dp))
-                Text("ID do aparelho", color = ReptorTextDim, fontSize = 9.sp)
-                Text(formattedId, color = ReptorTextDim, fontSize = 10.sp)
+                Text("ID do aparelho", color = RaptorTextDim, fontSize = 9.sp)
+                Text(formattedId, color = RaptorTextDim, fontSize = 10.sp)
             }
         }
 
         if (message != null) {
             Spacer(Modifier.height(8.dp))
-            Text(message ?: "", color = ReptorGreen, fontSize = 11.sp)
+            Text(message ?: "", color = RaptorGreen, fontSize = 11.sp)
         }
 
         Spacer(Modifier.height(12.dp))
-        HorizontalDivider(color = ReptorOutline.copy(alpha = 0.4f))
+        HorizontalDivider(color = RaptorOutline.copy(alpha = 0.4f))
         Spacer(Modifier.height(12.dp))
 
         LazyVerticalGrid(
@@ -262,7 +262,7 @@ fun SettingsScreen(
             title = {
                 Text(
                     text = "Termo de uso e responsabilidade",
-                    color = ReptorText,
+                    color = RaptorText,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -273,7 +273,7 @@ fun SettingsScreen(
                 ) {
                     Text(
                         text = termsPlainText(),
-                        color = ReptorTextDim,
+                        color = RaptorTextDim,
                         fontSize = 11.sp,
                         lineHeight = 16.sp
                     )
@@ -281,7 +281,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showTerms = false }) {
-                    Text("Fechar", color = ReptorGreen, fontSize = 13.sp)
+                    Text("Fechar", color = RaptorGreen, fontSize = 13.sp)
                 }
             }
         )
@@ -295,11 +295,11 @@ private fun SettingCard(item: SettingItem, focusRequester: FocusRequester? = nul
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
             .background(
-                if (focused) ReptorGreen.copy(alpha = 0.12f) else ReptorSurfaceHigh.copy(alpha = 0.55f)
+                if (focused) RaptorGreen.copy(alpha = 0.12f) else RaptorSurfaceHigh.copy(alpha = 0.55f)
             )
             .border(
                 width = if (focused) 1.5.dp else 1.dp,
-                color = if (focused) ReptorGreen else ReptorOutline.copy(alpha = 0.5f),
+                color = if (focused) RaptorGreen else RaptorOutline.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(10.dp)
             )
             .then(
@@ -315,10 +315,10 @@ private fun SettingCard(item: SettingItem, focusRequester: FocusRequester? = nul
                 .width(34.dp)
                 .height(34.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(ReptorGreen.copy(alpha = 0.14f)),
+                .background(RaptorGreen.copy(alpha = 0.14f)),
             contentAlignment = Alignment.Center
         ) {
-            Text(item.icon, color = ReptorGreen, fontSize = 15.sp)
+            Text(item.icon, color = RaptorGreen, fontSize = 15.sp)
         }
 
         Spacer(Modifier.width(10.dp))
@@ -326,7 +326,7 @@ private fun SettingCard(item: SettingItem, focusRequester: FocusRequester? = nul
         Column(Modifier.weight(1f)) {
             Text(
                 text = item.title,
-                color = if (item.danger) androidx.compose.ui.graphics.Color(0xFFFF8A80) else ReptorText,
+                color = if (item.danger) androidx.compose.ui.graphics.Color(0xFFFF8A80) else RaptorText,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -334,7 +334,7 @@ private fun SettingCard(item: SettingItem, focusRequester: FocusRequester? = nul
             )
             Text(
                 text = item.subtitle,
-                color = ReptorTextDim,
+                color = RaptorTextDim,
                 fontSize = 9.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis

@@ -1,4 +1,4 @@
-package com.reptor.player.data
+package com.raptor.player.data
 
 enum class LoginMode { XTREAM, M3U }
 

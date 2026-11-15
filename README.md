@@ -1,4 +1,4 @@
-# Reptor — IPTV Player
+# Raptor — IPTV Player
 
 Aplicativo **original** para Android (celular e TV) escrito em Kotlin + Jetpack Compose + Media3.
 Conecta-se a um servidor **Xtream Codes** ou a uma **lista M3U** fornecidos pelo usuário.
@@ -46,22 +46,22 @@ sdk.dir=C\:\\caminho\\para\\android-sdk
 $sdk = "$env:ANDROID_HOME\build-tools\35.0.0"
 & "$sdk\zipalign.exe" -f -p 4 app-release-unsigned.apk app-release-aligned.apk
 & "$sdk\apksigner.bat" sign `
-    --ks reptor-release.keystore --ks-key-alias reptor `
-    --ks-pass pass:reptor123456 --key-pass pass:reptor123456 `
-    --out Reptor-1.0.0.apk app-release-aligned.apk
-& "$sdk\apksigner.bat" verify --print-certs Reptor-1.0.0.apk
+    --ks raptor-release.keystore --ks-key-alias raptor `
+    --ks-pass pass:raptor123456 --key-pass pass:raptor123456 `
+    --out Raptor-1.0.0.apk app-release-aligned.apk
+& "$sdk\apksigner.bat" verify --print-certs Raptor-1.0.0.apk
 ```
 
-⚠️ O keystore `reptor-release.keystore` deste repositório é de **desenvolvimento**.
+⚠️ O keystore `raptor-release.keystore` deste repositório é de **desenvolvimento**.
 Guarde-o se quiser atualizar o app depois (o Android exige a mesma chave), e troque a senha
 para uma distribuição real.
 
 ## Estrutura
 
 ```
-app/src/main/java/com/reptor/player/
+app/src/main/java/com/raptor/player/
 ├── MainActivity.kt          # navegação raiz (login ↔ home), tela sempre em paisagem
-├── ReptorApp.kt
+├── RaptorApp.kt
 ├── data/
 │   ├── Models.kt            # Session, Category, MediaEntry, Episode, Season, SeriesDetail, EPG
 │   ├── Prefs.kt             # listas salvas, favoritos, histórico, retomada
@@ -72,7 +72,7 @@ app/src/main/java/com/reptor/player/
 │   ├── EpgClient.kt         # grade de programação do meuguia.tv
 │   └── PlaylistSource.kt    # abstração Xtream / M3U
 └── ui/
-    ├── theme/Theme.kt       # tema verde Reptor (dark-first)
+    ├── theme/Theme.kt       # tema verde Raptor (dark-first)
     ├── LoginScreen.kt       # abas Xtream e M3U
     ├── Components.kt        # topo, menu, categorias, pôsteres, estados
     ├── ChannelsScreen.kt    # categorias | canais | prévia ao vivo + EPG

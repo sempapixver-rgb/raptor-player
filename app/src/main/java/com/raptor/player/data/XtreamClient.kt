@@ -1,4 +1,4 @@
-package com.reptor.player.data
+package com.raptor.player.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -63,7 +63,7 @@ class XtreamClient(private val session: Session) {
     private fun request(url: String): String {
         val request = Request.Builder()
             .url(url)
-            .header("User-Agent", "Reptor/1.2 (Android)")
+            .header("User-Agent", "Raptor/1.2 (Android)")
             .build()
         return http.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {

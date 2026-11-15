@@ -37,7 +37,7 @@ jobs:
       - name: Salvar IPK
         uses: actions/upload-artifact@v4
         with:
-          name: Reptor-webOS
+          name: Raptor-webOS
           path: dist/*.ipk
           if-no-files-found: error
 
@@ -46,11 +46,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp dist/*.ipk dist/Reptor-webOS.ipk
+          cp dist/*.ipk dist/Raptor-webOS.ipk
           if gh release view webos-latest >/dev/null 2>&1; then
-            gh release upload webos-latest dist/Reptor-webOS.ipk --clobber
+            gh release upload webos-latest dist/Raptor-webOS.ipk --clobber
           else
-            gh release create webos-latest dist/Reptor-webOS.ipk \
-              --title "Reptor Player para LG (última versão)" \
+            gh release create webos-latest dist/Raptor-webOS.ipk \
+              --title "Raptor Player para LG (última versão)" \
               --notes "IPK gerado automaticamente pelo GitHub Actions."
           fi

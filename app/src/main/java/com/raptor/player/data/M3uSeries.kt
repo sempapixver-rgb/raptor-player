@@ -1,4 +1,4 @@
-package com.reptor.player.data
+package com.raptor.player.data
 
 import java.text.Normalizer
 

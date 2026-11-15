@@ -1,4 +1,4 @@
-package com.reptor.player.data
+package com.raptor.player.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -56,7 +56,7 @@ object EpgClient {
     private suspend fun get(path: String): String = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url(if (path.startsWith("http")) path else BASE + path)
-            .header("User-Agent", "Mozilla/5.0 (Android) Reptor/1.2")
+            .header("User-Agent", "Mozilla/5.0 (Android) Raptor/1.2")
             .build()
         http.newCall(request).execute().use { response ->
             if (!response.isSuccessful) return@withContext ""

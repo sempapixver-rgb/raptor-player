@@ -1,4 +1,4 @@
-package com.reptor.player.ui
+package com.raptor.player.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -42,19 +42,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.reptor.player.data.Category
-import com.reptor.player.data.ContentStore
-import com.reptor.player.data.Episode
-import com.reptor.player.data.MediaEntry
-import com.reptor.player.data.MediaKind
-import com.reptor.player.data.PlaylistSource
-import com.reptor.player.data.Season
-import com.reptor.player.data.SeriesDetail
-import com.reptor.player.ui.theme.ReptorGreen
-import com.reptor.player.ui.theme.ReptorOutline
-import com.reptor.player.ui.theme.ReptorSurfaceHigh
-import com.reptor.player.ui.theme.ReptorText
-import com.reptor.player.ui.theme.ReptorTextDim
+import com.raptor.player.data.Category
+import com.raptor.player.data.ContentStore
+import com.raptor.player.data.Episode
+import com.raptor.player.data.MediaEntry
+import com.raptor.player.data.MediaKind
+import com.raptor.player.data.PlaylistSource
+import com.raptor.player.data.Season
+import com.raptor.player.data.SeriesDetail
+import com.raptor.player.ui.theme.RaptorGreen
+import com.raptor.player.ui.theme.RaptorOutline
+import com.raptor.player.ui.theme.RaptorSurfaceHigh
+import com.raptor.player.ui.theme.RaptorText
+import com.raptor.player.ui.theme.RaptorTextDim
 
 /**
  * Séries em três níveis, como o usuário pediu:
@@ -289,7 +289,7 @@ fun SeriesScreen(
             Modifier
                 .width(1.dp)
                 .fillMaxHeight()
-                .background(ReptorOutline.copy(alpha = 0.45f))
+                .background(RaptorOutline.copy(alpha = 0.45f))
         )
 
         Column(Modifier.weight(1f).fillMaxHeight()) {
@@ -316,7 +316,7 @@ fun SeriesScreen(
                     } else {
                         "${visible.size} séries"
                     },
-                    color = ReptorTextDim,
+                    color = RaptorTextDim,
                     fontSize = 11.sp
                 )
             }
@@ -425,17 +425,17 @@ private fun SeriesDetailView(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(ReptorSurfaceHigh.copy(alpha = 0.55f))
+                .background(RaptorSurfaceHigh.copy(alpha = 0.55f))
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (backFocused) ReptorGreen.copy(alpha = 0.16f) else ReptorSurfaceHigh)
+                    .background(if (backFocused) RaptorGreen.copy(alpha = 0.16f) else RaptorSurfaceHigh)
                     .border(
                         width = if (backFocused) 1.5.dp else 0.dp,
-                        color = if (backFocused) ReptorGreen else Color.Transparent,
+                        color = if (backFocused) RaptorGreen else Color.Transparent,
                         shape = RoundedCornerShape(8.dp)
                     )
                     .onFocusChanged { backFocused = it.isFocused }
@@ -444,7 +444,7 @@ private fun SeriesDetailView(
             ) {
                 Text(
                     text = "← Séries",
-                    color = if (backFocused) ReptorGreen else ReptorGreen,
+                    color = if (backFocused) RaptorGreen else RaptorGreen,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -452,7 +452,7 @@ private fun SeriesDetailView(
             Spacer(Modifier.width(12.dp))
             Text(
                 text = detail?.name ?: entry.name,
-                color = ReptorText,
+                color = RaptorText,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -463,7 +463,7 @@ private fun SeriesDetailView(
                 Text(
                     text = "${seasons.size} temporada${if (seasons.size > 1) "s" else ""} · " +
                         "${seasons.sumOf { it.episodes.size }} episódios",
-                    color = ReptorTextDim,
+                    color = RaptorTextDim,
                     fontSize = 11.sp
                 )
                 Spacer(Modifier.width(12.dp))
@@ -471,10 +471,10 @@ private fun SeriesDetailView(
             Box(
                 Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (starFocused) ReptorGreen.copy(alpha = 0.16f) else ReptorSurfaceHigh)
+                    .background(if (starFocused) RaptorGreen.copy(alpha = 0.16f) else RaptorSurfaceHigh)
                     .border(
                         width = if (starFocused) 1.5.dp else 0.dp,
-                        color = if (starFocused) ReptorGreen else Color.Transparent,
+                        color = if (starFocused) RaptorGreen else Color.Transparent,
                         shape = RoundedCornerShape(8.dp)
                     )
                     .onFocusChanged { starFocused = it.isFocused }
@@ -483,7 +483,7 @@ private fun SeriesDetailView(
             ) {
                 Text(
                     text = if (isFavorite) "★ Favorito" else "☆ Favoritar",
-                    color = if (isFavorite) Color(0xFFFFC107) else ReptorTextDim,
+                    color = if (isFavorite) Color(0xFFFFC107) else RaptorTextDim,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -506,7 +506,7 @@ private fun SeriesDetailView(
                     Modifier
                         .width(250.dp)
                         .fillMaxHeight()
-                        .background(ReptorSurfaceHigh.copy(alpha = 0.3f))
+                        .background(RaptorSurfaceHigh.copy(alpha = 0.3f))
                         .padding(12.dp)
                 ) {
                     // Em paisagem sobra pouca altura: a capa ocupa o que resta
@@ -523,7 +523,7 @@ private fun SeriesDetailView(
                                     .width(posterWidth)
                                     .height(posterHeight)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(ReptorSurfaceHigh)
+                                    .background(RaptorSurfaceHigh)
                             ) {
                                 val art = detail.cover ?: entry.logo
                                 if (!art.isNullOrBlank()) {
@@ -536,7 +536,7 @@ private fun SeriesDetailView(
                                 } else {
                                     Text(
                                         text = detail.name,
-                                        color = ReptorTextDim,
+                                        color = RaptorTextDim,
                                         fontSize = 11.sp,
                                         modifier = Modifier.align(Alignment.Center).padding(8.dp)
                                     )
@@ -572,13 +572,13 @@ private fun SeriesDetailView(
                                 if (genreText != null) {
                                     Text(
                                         "GÊNERO",
-                                        color = ReptorGreen,
+                                        color = RaptorGreen,
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
                                         genreText,
-                                        color = ReptorText,
+                                        color = RaptorText,
                                         fontSize = 10.sp,
                                         maxLines = 3,
                                         overflow = TextOverflow.Ellipsis
@@ -590,24 +590,24 @@ private fun SeriesDetailView(
                                 if (year != null) {
                                     Text(
                                         "ANO",
-                                        color = ReptorGreen,
+                                        color = RaptorGreen,
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold
                                     )
-                                    Text(year, color = ReptorText, fontSize = 10.sp)
+                                    Text(year, color = RaptorText, fontSize = 10.sp)
                                     Spacer(Modifier.height(6.dp))
                                 }
 
                                 if (detail.rating != null && detail.rating > 0) {
                                     Text(
                                         "NOTA",
-                                        color = ReptorGreen,
+                                        color = RaptorGreen,
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
                                         String.format("%.1f", detail.rating),
-                                        color = ReptorText,
+                                        color = RaptorText,
                                         fontSize = 10.sp
                                     )
                                 }
@@ -618,7 +618,7 @@ private fun SeriesDetailView(
                             Spacer(Modifier.height(8.dp))
                             Text(
                                 text = detail.plot,
-                                color = ReptorTextDim,
+                                color = RaptorTextDim,
                                 fontSize = 10.sp,
                                 maxLines = 4,
                                 overflow = TextOverflow.Ellipsis
@@ -629,7 +629,7 @@ private fun SeriesDetailView(
                             Spacer(Modifier.height(4.dp))
                             Text(
                                 text = "Elenco: ${detail.cast}",
-                                color = ReptorTextDim.copy(alpha = 0.85f),
+                                color = RaptorTextDim.copy(alpha = 0.85f),
                                 fontSize = 9.sp,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
@@ -642,7 +642,7 @@ private fun SeriesDetailView(
                     Modifier
                         .width(1.dp)
                         .fillMaxHeight()
-                        .background(ReptorOutline.copy(alpha = 0.45f))
+                        .background(RaptorOutline.copy(alpha = 0.45f))
                 )
 
                 // -------------------------------------- temporadas + episódios
@@ -650,7 +650,7 @@ private fun SeriesDetailView(
 
                     Text(
                         "TEMPORADAS",
-                        color = ReptorGreen,
+                        color = RaptorGreen,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -669,14 +669,14 @@ private fun SeriesDetailView(
                                     .clip(RoundedCornerShape(9.dp))
                                     .background(
                                         when {
-                                            selected -> ReptorGreen.copy(alpha = 0.2f)
-                                            chipFocused -> ReptorGreen.copy(alpha = 0.12f)
-                                            else -> ReptorSurfaceHigh
+                                            selected -> RaptorGreen.copy(alpha = 0.2f)
+                                            chipFocused -> RaptorGreen.copy(alpha = 0.12f)
+                                            else -> RaptorSurfaceHigh
                                         }
                                     )
                                     .border(
                                         width = if (selected || chipFocused) 1.dp else 0.dp,
-                                        color = if (selected || chipFocused) ReptorGreen else Color.Transparent,
+                                        color = if (selected || chipFocused) RaptorGreen else Color.Transparent,
                                         shape = RoundedCornerShape(9.dp)
                                     )
                                     .onFocusChanged { chipFocused = it.isFocused }
@@ -686,13 +686,13 @@ private fun SeriesDetailView(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         text = "T${item.number}",
-                                        color = if (selected) ReptorGreen else ReptorText,
+                                        color = if (selected) RaptorGreen else RaptorText,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
                                         text = "${item.episodes.size} ep.",
-                                        color = ReptorTextDim,
+                                        color = RaptorTextDim,
                                         fontSize = 9.sp
                                     )
                                 }
@@ -701,20 +701,20 @@ private fun SeriesDetailView(
                     }
 
                     Spacer(Modifier.height(10.dp))
-                    HorizontalDivider(color = ReptorOutline.copy(alpha = 0.4f))
+                    HorizontalDivider(color = RaptorOutline.copy(alpha = 0.4f))
                     Spacer(Modifier.height(8.dp))
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "EPISÓDIOS · TEMPORADA ${season?.number ?: 1}",
-                            color = ReptorGreen,
+                            color = RaptorGreen,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.weight(1f)
                         )
                         Text(
                             text = "${season?.episodes?.size ?: 0} episódios",
-                            color = ReptorTextDim,
+                            color = RaptorTextDim,
                             fontSize = 10.sp
                         )
                     }
@@ -751,11 +751,11 @@ private fun EpisodeRow(episode: Episode, onPlay: () -> Unit) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(
-                if (focused) ReptorGreen.copy(alpha = 0.12f) else ReptorSurfaceHigh.copy(alpha = 0.4f)
+                if (focused) RaptorGreen.copy(alpha = 0.12f) else RaptorSurfaceHigh.copy(alpha = 0.4f)
             )
             .border(
                 width = if (focused) 1.dp else 0.dp,
-                color = if (focused) ReptorGreen else Color.Transparent,
+                color = if (focused) RaptorGreen else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             )
             .onFocusChanged { focused = it.isFocused }
@@ -768,12 +768,12 @@ private fun EpisodeRow(episode: Episode, onPlay: () -> Unit) {
                 .width(40.dp)
                 .height(28.dp)
                 .clip(RoundedCornerShape(6.dp))
-                .background(ReptorGreen.copy(alpha = 0.14f)),
+                .background(RaptorGreen.copy(alpha = 0.14f)),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = if (episode.number > 0) episode.number.toString() else "•",
-                color = ReptorGreen,
+                color = RaptorGreen,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -784,7 +784,7 @@ private fun EpisodeRow(episode: Episode, onPlay: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text(
                 text = episode.title,
-                color = ReptorText,
+                color = RaptorText,
                 fontSize = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -794,14 +794,14 @@ private fun EpisodeRow(episode: Episode, onPlay: () -> Unit) {
                 episode.duration
             ).joinToString(" · ")
             if (extra.isNotBlank()) {
-                Text(extra, color = ReptorTextDim, fontSize = 9.sp)
+                Text(extra, color = RaptorTextDim, fontSize = 9.sp)
             }
         }
 
         Box(
             Modifier
                 .clip(RoundedCornerShape(7.dp))
-                .background(ReptorGreen)
+                .background(RaptorGreen)
                 .padding(horizontal = 12.dp, vertical = 5.dp)
         ) {
             Text("▶", color = Color(0xFF00210F), fontSize = 11.sp, fontWeight = FontWeight.Bold)

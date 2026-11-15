@@ -1,4 +1,4 @@
-package com.reptor.player.ui
+package com.raptor.player.ui
 
 import android.content.Context
 import android.net.Uri
@@ -57,15 +57,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.reptor.player.data.LoginMode
-import com.reptor.player.data.Prefs
-import com.reptor.player.data.Session
-import com.reptor.player.data.SmartLink
-import com.reptor.player.data.createSource
-import com.reptor.player.data.displayName
-import com.reptor.player.ui.theme.ReptorBackground
-import com.reptor.player.ui.theme.ReptorGreen
-import com.reptor.player.ui.theme.ReptorTextDim
+import com.raptor.player.data.LoginMode
+import com.raptor.player.data.Prefs
+import com.raptor.player.data.Session
+import com.raptor.player.data.SmartLink
+import com.raptor.player.data.createSource
+import com.raptor.player.data.displayName
+import com.raptor.player.ui.theme.RaptorBackground
+import com.raptor.player.ui.theme.RaptorGreen
+import com.raptor.player.ui.theme.RaptorTextDim
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -207,7 +207,7 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(ReptorBackground, Color(0xFF07260F), ReptorBackground)
+                    listOf(RaptorBackground, Color(0xFF07260F), RaptorBackground)
                 )
             )
     ) {
@@ -220,14 +220,14 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
         ) {
             Text(
                 text = "RAPTOR",
-                color = ReptorGreen,
+                color = RaptorGreen,
                 fontSize = 44.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 10.sp
             )
             Text(
                 text = "VIDEO PLAYER",
-                color = ReptorTextDim,
+                color = RaptorTextDim,
                 fontSize = 12.sp,
                 letterSpacing = 6.sp
             )
@@ -242,7 +242,7 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
             if (saved.isNotEmpty()) {
                 Text(
                     text = "CONTINUAR COM",
-                    color = ReptorTextDim,
+                    color = RaptorTextDim,
                     fontSize = 11.sp,
                     letterSpacing = 2.sp,
                     modifier = Modifier.fillMaxWidth().widthIn(max = 520.dp)
@@ -296,7 +296,7 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                                     SmartLink.detect(text)?.let { applyDetection(it) }
                                 }
                             }) {
-                                Text("Colar", color = ReptorGreen, fontSize = 13.sp)
+                                Text("Colar", color = RaptorGreen, fontSize = 13.sp)
                             }
                         },
                         modifier = Modifier
@@ -307,7 +307,7 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                         Spacer(Modifier.height(6.dp))
                         Text(
                             text = it,
-                            color = ReptorGreen,
+                            color = RaptorGreen,
                             fontSize = 12.sp,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -318,7 +318,7 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                     TabRow(
                         selectedTabIndex = mode.ordinal,
                         containerColor = Color.Transparent,
-                        contentColor = ReptorGreen
+                        contentColor = RaptorGreen
                     ) {
                         Tab(
                             selected = mode == LoginMode.XTREAM,
@@ -375,7 +375,7 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = "Também aceita um arquivo .m3u importado do aparelho.",
-                            color = ReptorTextDim,
+                            color = RaptorTextDim,
                             fontSize = 11.sp
                         )
                     }
@@ -412,7 +412,7 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
                     ) {
                         Text(
                             text = "Importar arquivo .m3u",
-                            color = ReptorGreen,
+                            color = RaptorGreen,
                             fontSize = 13.sp
                         )
                     }
@@ -433,14 +433,14 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
             Spacer(Modifier.height(24.dp))
             Text(
                 text = "Ative pelo site ou entre com a sua lista.",
-                color = ReptorTextDim,
+                color = RaptorTextDim,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "Player de vídeo: você é responsável pelo conteúdo da sua lista.",
-                color = ReptorTextDim.copy(alpha = 0.75f),
+                color = RaptorTextDim.copy(alpha = 0.75f),
                 fontSize = 10.sp,
                 textAlign = TextAlign.Center
             )
@@ -475,12 +475,12 @@ private fun SavedRow(
             )
             Text(
                 text = if (session.mode == LoginMode.XTREAM) "Xtream Codes" else "Lista M3U",
-                color = ReptorTextDim,
+                color = RaptorTextDim,
                 fontSize = 11.sp
             )
         }
         TextButton(onClick = onRemove) {
-            Text("Remover", color = ReptorTextDim, fontSize = 11.sp)
+            Text("Remover", color = RaptorTextDim, fontSize = 11.sp)
         }
     }
 }

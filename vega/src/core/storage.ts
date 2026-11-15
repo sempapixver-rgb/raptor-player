@@ -1,6 +1,6 @@
 import {AsyncStorage} from '@amazon-devices/react-native-kepler';
 
-const PREFIX = 'reptor.vega.';
+const PREFIX = 'raptor.vega.';
 
 const keyOf = (key: string) => PREFIX + key;
 

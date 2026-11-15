@@ -1,4 +1,4 @@
-package com.reptor.player.ui
+package com.raptor.player.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -35,12 +35,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.delay
-import com.reptor.player.ui.theme.ReptorBackground
-import com.reptor.player.ui.theme.ReptorGreen
-import com.reptor.player.ui.theme.ReptorOutline
-import com.reptor.player.ui.theme.ReptorSurfaceHigh
-import com.reptor.player.ui.theme.ReptorText
-import com.reptor.player.ui.theme.ReptorTextDim
+import com.raptor.player.ui.theme.RaptorBackground
+import com.raptor.player.ui.theme.RaptorGreen
+import com.raptor.player.ui.theme.RaptorOutline
+import com.raptor.player.ui.theme.RaptorSurfaceHigh
+import com.raptor.player.ui.theme.RaptorText
+import com.raptor.player.ui.theme.RaptorTextDim
 
 /**
  * Menu principal do app na TV: Canais, Filmes, Séries e Ajustes.
@@ -71,7 +71,7 @@ fun MainMenuScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(ReptorBackground, Color(0xFF07260F), ReptorBackground)
+                    listOf(RaptorBackground, Color(0xFF07260F), RaptorBackground)
                 )
             )
     ) {
@@ -83,7 +83,7 @@ fun MainMenuScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "RAPTOR",
-                    color = ReptorGreen,
+                    color = RaptorGreen,
                     fontSize = 34.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 8.sp
@@ -91,7 +91,7 @@ fun MainMenuScreen(
                 Spacer(Modifier.width(14.dp))
                 Text(
                     text = "VIDEO PLAYER",
-                    color = ReptorTextDim,
+                    color = RaptorTextDim,
                     fontSize = 11.sp,
                     letterSpacing = 5.sp
                 )
@@ -99,13 +99,13 @@ fun MainMenuScreen(
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = accountLabel,
-                        color = ReptorText,
+                        color = RaptorText,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         text = "Aparelho $deviceCode",
-                        color = ReptorTextDim,
+                        color = RaptorTextDim,
                         fontSize = 10.sp,
                         letterSpacing = 1.sp
                     )
@@ -116,13 +116,13 @@ fun MainMenuScreen(
 
             Text(
                 text = "O que você quer assistir?",
-                color = ReptorText,
+                color = RaptorText,
                 fontSize = 30.sp,
                 fontWeight = FontWeight.ExtraBold
             )
             Text(
                 text = "Use as setas do controle para escolher e OK para abrir.",
-                color = ReptorTextDim,
+                color = RaptorTextDim,
                 fontSize = 13.sp,
                 modifier = Modifier.padding(top = 6.dp)
             )
@@ -172,27 +172,27 @@ fun MainMenuScreen(
             ) {
                 if (loadingLabel != null) {
                     CircularProgressIndicator(
-                        color = ReptorGreen,
+                        color = RaptorGreen,
                         strokeWidth = 2.dp,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
                         text = loadingLabel,
-                        color = ReptorGreen,
+                        color = RaptorGreen,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
                         text = "Preparando as pastas. Você já pode abrir uma aba.",
-                        color = ReptorTextDim,
+                        color = RaptorTextDim,
                         fontSize = 11.sp
                     )
                 } else {
                     Text(
                         text = "Pastas prontas. Voltar fecha esta tela. Dentro de uma aba, Voltar retorna ao menu.",
-                        color = ReptorTextDim,
+                        color = RaptorTextDim,
                         fontSize = 11.sp
                     )
                 }
@@ -215,10 +215,10 @@ private fun MenuCard(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(if (focused) ReptorSurfaceHigh else Color(0xFF0E1A12))
+            .background(if (focused) RaptorSurfaceHigh else Color(0xFF0E1A12))
             .border(
                 width = if (focused) 2.dp else 1.dp,
-                color = if (focused) ReptorGreen else ReptorOutline.copy(alpha = 0.5f),
+                color = if (focused) RaptorGreen else RaptorOutline.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(16.dp)
             )
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
@@ -229,7 +229,7 @@ private fun MenuCard(
     ) {
         Text(
             text = glyph,
-            color = if (focused) ReptorGreen else ReptorGreen.copy(alpha = 0.65f),
+            color = if (focused) RaptorGreen else RaptorGreen.copy(alpha = 0.65f),
             fontSize = 24.sp,
             fontWeight = FontWeight.Black,
             letterSpacing = 2.sp
@@ -237,13 +237,13 @@ private fun MenuCard(
         Column {
             Text(
                 text = title,
-                color = ReptorText,
+                color = RaptorText,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.ExtraBold
             )
             Text(
                 text = detail,
-                color = ReptorTextDim,
+                color = RaptorTextDim,
                 fontSize = 11.sp,
                 modifier = Modifier.padding(top = 4.dp)
             )

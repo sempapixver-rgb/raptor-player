@@ -1,4 +1,4 @@
-package com.reptor.player.ui
+package com.raptor.player.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,15 +34,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.reptor.player.data.Category
-import com.reptor.player.data.ContentStore
-import com.reptor.player.data.MediaEntry
-import com.reptor.player.data.MediaKind
-import com.reptor.player.data.PlaylistSource
-import com.reptor.player.ui.theme.ReptorGreen
-import com.reptor.player.ui.theme.ReptorOutline
-import com.reptor.player.ui.theme.ReptorSurfaceHigh
-import com.reptor.player.ui.theme.ReptorTextDim
+import com.raptor.player.data.Category
+import com.raptor.player.data.ContentStore
+import com.raptor.player.data.MediaEntry
+import com.raptor.player.data.MediaKind
+import com.raptor.player.data.PlaylistSource
+import com.raptor.player.ui.theme.RaptorGreen
+import com.raptor.player.ui.theme.RaptorOutline
+import com.raptor.player.ui.theme.RaptorSurfaceHigh
+import com.raptor.player.ui.theme.RaptorTextDim
 
 enum class SortMode(val label: String) {
     DEFAULT("Padrão"),
@@ -237,7 +237,7 @@ fun MoviesScreen(
             Modifier
                 .width(1.dp)
                 .fillMaxHeight()
-                .background(ReptorOutline.copy(alpha = 0.45f))
+                .background(RaptorOutline.copy(alpha = 0.45f))
         )
 
         Column(Modifier.weight(1f).fillMaxHeight()) {
@@ -266,7 +266,7 @@ fun MoviesScreen(
                     } else {
                         "${visible.size} títulos"
                     },
-                    color = ReptorTextDim,
+                    color = RaptorTextDim,
                     fontSize = 11.sp
                 )
             }
@@ -328,10 +328,10 @@ fun SortButton(current: SortMode, onSelect: (SortMode) -> Unit) {
         Box(
             Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(if (focused) ReptorGreen.copy(alpha = 0.18f) else ReptorSurfaceHigh)
+                .background(if (focused) RaptorGreen.copy(alpha = 0.18f) else RaptorSurfaceHigh)
                 .border(
                     width = if (focused) 1.5.dp else 0.dp,
-                    color = if (focused) ReptorGreen else Color.Transparent,
+                    color = if (focused) RaptorGreen else Color.Transparent,
                     shape = RoundedCornerShape(8.dp)
                 )
                 .onFocusChanged { focused = it.isFocused }
@@ -340,7 +340,7 @@ fun SortButton(current: SortMode, onSelect: (SortMode) -> Unit) {
         ) {
             Text(
                 text = "Ordenar: ${current.label}",
-                color = ReptorGreen,
+                color = RaptorGreen,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -352,7 +352,7 @@ fun SortButton(current: SortMode, onSelect: (SortMode) -> Unit) {
                         Text(
                             text = mode.label,
                             fontSize = 12.sp,
-                            color = if (mode == current) ReptorGreen else ReptorTextDim
+                            color = if (mode == current) RaptorGreen else RaptorTextDim
                         )
                     },
                     onClick = {

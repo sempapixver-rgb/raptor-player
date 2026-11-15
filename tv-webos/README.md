@@ -1,4 +1,4 @@
-# Reptor Player — webOS (LG)
+# Raptor Player — webOS (LG)
 
 App de TV para LG webOS. Mesma identidade, mesmo termo de uso e a mesma
 ativação por QR Code do app Android.
@@ -39,7 +39,7 @@ tv-webos/
 ## Gerar o IPK
 
 O build roda no GitHub Actions (`.github/workflows/webos.yml`) a cada push em
-`tv-webos/`. O artefato **Reptor-webOS** traz o `.ipk` pronto.
+`tv-webos/`. O artefato **Raptor-webOS** traz o `.ipk` pronto.
 
 Para gerar na mão:
 
@@ -48,7 +48,7 @@ npm install -g @webos-tools/cli
 ares-package tv-webos -o dist
 ```
 
-Resultado: `dist/com.reptor.player_1.0.0_all.ipk`.
+Resultado: `dist/com.raptor.player_1.0.0_all.ipk`.
 
 ## Instalar na TV
 
@@ -59,8 +59,8 @@ Resultado: `dist/com.reptor.player_1.0.0_all.ipk`.
 
 ```bash
 ares-setup-device           # cadastra a TV (IP, porta 9922, passphrase)
-ares-install --device tv dist/com.reptor.player_1.0.0_all.ipk
-ares-launch  --device tv com.reptor.player
+ares-install --device tv dist/com.raptor.player_1.0.0_all.ipk
+ares-launch  --device tv com.raptor.player
 ```
 
 Também dá para instalar por pendrive usando o app **Developer Mode** da TV

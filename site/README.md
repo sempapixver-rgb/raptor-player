@@ -1,4 +1,4 @@
-# Site de ativação — Reptor Player
+# Site de ativação — Raptor Player
 
 **No ar:** https://reptor-player.netlify.app
 
@@ -42,7 +42,7 @@ netlify deploy --prod --site 0843606b-c53b-4da1-9430-055151404dd1 \
 
 No Android, o endereço fica em uma única linha:
 
-`app/src/main/java/com/reptor/player/data/Activation.kt`
+`app/src/main/java/com/raptor/player/data/Activation.kt`
 
 ```kotlin
 const val SITE_BASE = "https://reptor-player.netlify.app"

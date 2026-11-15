@@ -1,12 +1,12 @@
 # Submissão na Amazon Appstore (VegaOS / Fire TV)
 
-Checklist e textos para publicar o **Reptor Player** como tocador de
+Checklist e textos para publicar o **Raptor Player** como tocador de
 vídeo neutro, sem nenhuma menção a IPTV, canais pagos ou conteúdo
 embutido. O app precisa passar na análise da Amazon.
 
 ## 1. Ficha da loja
 
-**Título:** Reptor Player
+**Título:** Raptor Player
 
 **Subtítulo:** Video player
 
@@ -22,7 +22,7 @@ embutido. O app precisa passar na análise da Amazon.
 
 **Descrição completa:**
 
-> O Reptor Player é um tocador de vídeo para Fire TV. Ele não inclui
+> O Raptor Player é um tocador de vídeo para Fire TV. Ele não inclui
 > canais, filmes ou séries: você conecta a sua própria lista (M3U) ou
 > servidor compatível e assiste na TV, com navegação simples pelo
 > controle remoto.
@@ -45,7 +45,7 @@ embutido. O app precisa passar na análise da Amazon.
 
 Publicar uma página pública e informar a URL na ficha. Texto base:
 
-> O Reptor Player não coleta dados pessoais. O aplicativo armazena
+> O Raptor Player não coleta dados pessoais. O aplicativo armazena
 > somente no aparelho o código de ativação e a configuração da conta
 > informada pelo usuário. A única comunicação externa é a consulta de
 > ativação feita ao site oficial, para verificar se o aparelho foi
@@ -89,7 +89,7 @@ Nenhuma conta, senha ou lista é necessária para a análise.
 
 1. Amazon Developer Console → **Add new app** → plataforma **Vega OS**.
 2. Nome, categoria e idioma (Português - Brasil; inglês como secundário).
-3. Upload de `build/armv7-release/reptor_armv7.vpkg`.
+3. Upload de `build/armv7-release/raptor_armv7.vpkg`.
 4. Preencher ficha, palavras-chave, ícone, feature graphic e capturas.
 5. Informar a URL da política de privacidade.
 6. Questionário de conteúdo: sem violência, drogas, jogos de azar ou

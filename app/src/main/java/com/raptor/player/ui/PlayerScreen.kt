@@ -1,4 +1,4 @@
-package com.reptor.player.ui
+package com.raptor.player.ui
 
 import android.app.Activity
 import android.app.PictureInPictureParams
@@ -78,9 +78,9 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import com.reptor.player.data.Dlna
-import com.reptor.player.data.DlnaDevice
-import com.reptor.player.data.Prefs
+import com.raptor.player.data.Dlna
+import com.raptor.player.data.DlnaDevice
+import com.raptor.player.data.Prefs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

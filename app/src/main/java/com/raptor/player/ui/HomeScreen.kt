@@ -1,4 +1,4 @@
-package com.reptor.player.ui
+package com.raptor.player.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -27,17 +27,17 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.reptor.player.data.Activation
-import com.reptor.player.data.ContentStore
-import com.reptor.player.data.MediaEntry
-import com.reptor.player.data.Prefs
-import com.reptor.player.data.Session
-import com.reptor.player.data.clearSourceCache
-import com.reptor.player.data.createSource
-import com.reptor.player.data.displayName
-import com.reptor.player.data.key
-import com.reptor.player.ui.theme.ReptorGreen
-import com.reptor.player.ui.theme.ReptorTextDim
+import com.raptor.player.data.Activation
+import com.raptor.player.data.ContentStore
+import com.raptor.player.data.MediaEntry
+import com.raptor.player.data.Prefs
+import com.raptor.player.data.Session
+import com.raptor.player.data.clearSourceCache
+import com.raptor.player.data.createSource
+import com.raptor.player.data.displayName
+import com.raptor.player.data.key
+import com.raptor.player.ui.theme.RaptorGreen
+import com.raptor.player.ui.theme.RaptorTextDim
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -246,10 +246,10 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Abrindo…", color = ReptorGreen, fontSize = 14.sp)
+                            Text("Abrindo…", color = RaptorGreen, fontSize = 14.sp)
                             Text(
                                 "Conectando ao servidor",
-                                color = ReptorTextDim,
+                                color = RaptorTextDim,
                                 fontSize = 11.sp
                             )
                         }

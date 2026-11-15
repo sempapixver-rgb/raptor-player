@@ -1,4 +1,4 @@
-package com.reptor.player.data
+package com.raptor.player.data
 
 /**
  * Leitor de listas M3U/M3U8.

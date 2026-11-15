@@ -1,4 +1,4 @@
-package com.reptor.player.ui
+package com.raptor.player.ui
 
 import kotlinx.coroutines.TimeoutCancellationException
 

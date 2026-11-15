@@ -1,4 +1,4 @@
-package com.reptor.player.data
+package com.raptor.player.data
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -24,7 +24,7 @@ object Activation {
     /** Endereço do site de ativação (Netlify). */
     const val SITE_BASE = "https://reptor-player.netlify.app"
 
-    private const val SP = "reptor_session"
+    private const val SP = "raptor_session"
     private const val KEY_CODE = "device_code"
 
     private val http = OkHttpClient.Builder()

@@ -1,9 +1,9 @@
 schema-version = 1
 
 [package]
-title = "Reptor Player"
+title = "Raptor Player"
 version = "1.0.0"
-id = "com.reptor.player.vega"
+id = "com.raptor.player.vega"
 icon = "@image/icon_512x512.png"
 
 [os.version]
@@ -12,7 +12,7 @@ target = "1.2"
 
 [components]
 [[components.interactive]]
-id = "com.reptor.player.vega.main"
+id = "com.raptor.player.vega.main"
 runtime-module = "/com.amazon.kepler.keplerscript.runtime.loader_2@IKeplerScript_2_0"
 launch-type = "singleton"
 categories = ["com.amazon.category.main", "com.amazon.category.kepler.media"]
@@ -67,7 +67,7 @@ id = "com.amazon.network.privilege.net-info"
 
 [[extras]]
 key = "interface.provider"
-component-id = "com.reptor.player.vega.main"
+component-id = "com.raptor.player.vega.main"
 
 [extras.value.application]
 [[extras.value.application.interface]]

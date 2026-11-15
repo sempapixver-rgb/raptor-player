@@ -1,4 +1,4 @@
-package com.reptor.player.ui
+package com.raptor.player.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,11 +40,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.reptor.player.ui.theme.ReptorBackground
-import com.reptor.player.ui.theme.ReptorGreen
-import com.reptor.player.ui.theme.ReptorOutline
-import com.reptor.player.ui.theme.ReptorText
-import com.reptor.player.ui.theme.ReptorTextDim
+import com.raptor.player.ui.theme.RaptorBackground
+import com.raptor.player.ui.theme.RaptorGreen
+import com.raptor.player.ui.theme.RaptorOutline
+import com.raptor.player.ui.theme.RaptorText
+import com.raptor.player.ui.theme.RaptorTextDim
 import kotlinx.coroutines.delay
 
 /** Versão do termo. Se o texto mudar, aumente para pedir o aceite novamente. */
@@ -110,7 +110,7 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(ReptorBackground, Color(0xFF07260F), ReptorBackground)
+                    listOf(RaptorBackground, Color(0xFF07260F), RaptorBackground)
                 )
             )
     ) {
@@ -122,14 +122,14 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
         ) {
             Text(
                 text = "RAPTOR",
-                color = ReptorGreen,
+                color = RaptorGreen,
                 fontSize = 34.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 8.sp
             )
             Text(
                 text = "VIDEO PLAYER",
-                color = ReptorTextDim,
+                color = RaptorTextDim,
                 fontSize = 11.sp,
                 letterSpacing = 5.sp
             )
@@ -138,7 +138,7 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
 
             Text(
                 text = "TERMO DE USO E AVISO DE RESPONSABILIDADE",
-                color = ReptorText,
+                color = RaptorText,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,
@@ -166,14 +166,14 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
                     TERMS_SECTIONS.forEach { (title, body) ->
                         Text(
                             text = title,
-                            color = ReptorGreen,
+                            color = RaptorGreen,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(Modifier.height(3.dp))
                         Text(
                             text = body,
-                            color = ReptorText,
+                            color = RaptorText,
                             fontSize = 12.sp,
                             lineHeight = 18.sp
                         )
@@ -184,10 +184,10 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
-                            .background(ReptorGreen.copy(alpha = 0.10f))
+                            .background(RaptorGreen.copy(alpha = 0.10f))
                             .border(
                                 1.dp,
-                                ReptorOutline.copy(alpha = 0.7f),
+                                RaptorOutline.copy(alpha = 0.7f),
                                 RoundedCornerShape(10.dp)
                             )
                             .padding(horizontal = 12.dp, vertical = 10.dp)
@@ -195,7 +195,7 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
                         Text(
                             text = "Este aplicativo não fornece conteúdo. " +
                                 "É apenas um player de vídeo.",
-                            color = ReptorGreen,
+                            color = RaptorGreen,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center,
@@ -209,7 +209,7 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
 
             Text(
                 text = "Se não concordar com os termos, feche o aplicativo.",
-                color = ReptorTextDim,
+                color = RaptorTextDim,
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center
             )
@@ -229,7 +229,7 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
                 ) {
                     Text(
                         text = "Não aceito",
-                        color = if (declineFocused) ReptorText else ReptorTextDim,
+                        color = if (declineFocused) RaptorText else RaptorTextDim,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
                     )

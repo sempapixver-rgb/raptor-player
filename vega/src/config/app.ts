@@ -7,7 +7,7 @@ export const BUILD_NUMBER = '20261114.01';
 export const BUILD_DATE = '2026-11-14';
 
 /** Site oficial: ativacao por codigo e area do cliente. */
-export const SITE_BASE = 'https://reptor-player.netlify.app';
+export const SITE_BASE = 'https://raptor-player.netlify.app';
 
 /** Pagina de privacidade exigida pela loja. */
 export const PRIVACY_URL = `${SITE_BASE}/privacidade.html`;
@@ -16,4 +16,4 @@ export const PRIVACY_URL = `${SITE_BASE}/privacidade.html`;
 export const TERMS_VERSION = 2;
 
 /** Identificacao do pacote (mesma do manifest.toml). */
-export const PACKAGE_ID = 'com.reptor.player.vega';
+export const PACKAGE_ID = 'com.raptor.player.vega';

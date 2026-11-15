@@ -1,4 +1,4 @@
-package com.reptor.player.data
+package com.raptor.player.data
 
 import android.content.Context
 import org.json.JSONArray
@@ -11,7 +11,7 @@ import org.json.JSONObject
 class Prefs(context: Context) {
 
     private val sp = context.applicationContext
-        .getSharedPreferences("reptor_session", Context.MODE_PRIVATE)
+        .getSharedPreferences("raptor_session", Context.MODE_PRIVATE)
 
     // ---------------------------------------------------------------- listas
 

@@ -1,4 +1,4 @@
-package com.reptor.player
+package com.raptor.player
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,13 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.reptor.player.data.Prefs
-import com.reptor.player.data.Session
-import com.reptor.player.ui.HomeScreen
-import com.reptor.player.ui.LoginScreen
-import com.reptor.player.ui.TERMS_VERSION
-import com.reptor.player.ui.TermsScreen
-import com.reptor.player.ui.theme.ReptorTheme
+import com.raptor.player.data.Prefs
+import com.raptor.player.data.Session
+import com.raptor.player.ui.HomeScreen
+import com.raptor.player.ui.LoginScreen
+import com.raptor.player.ui.TERMS_VERSION
+import com.raptor.player.ui.TermsScreen
+import com.raptor.player.ui.theme.RaptorTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
         val prefs = Prefs(this)
 
         setContent {
-            ReptorTheme {
+            RaptorTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

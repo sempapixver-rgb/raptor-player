@@ -1,4 +1,4 @@
-package com.reptor.player.ui
+package com.raptor.player.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -52,13 +52,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.reptor.player.data.Category
-import com.reptor.player.data.MediaEntry
-import com.reptor.player.ui.theme.ReptorGreen
-import com.reptor.player.ui.theme.ReptorOutline
-import com.reptor.player.ui.theme.ReptorSurfaceHigh
-import com.reptor.player.ui.theme.ReptorText
-import com.reptor.player.ui.theme.ReptorTextDim
+import com.raptor.player.data.Category
+import com.raptor.player.data.MediaEntry
+import com.raptor.player.ui.theme.RaptorGreen
+import com.raptor.player.ui.theme.RaptorOutline
+import com.raptor.player.ui.theme.RaptorSurfaceHigh
+import com.raptor.player.ui.theme.RaptorText
+import com.raptor.player.ui.theme.RaptorTextDim
 import kotlinx.coroutines.delay
 
 enum class Tab(val label: String) {
@@ -82,13 +82,13 @@ fun TopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(ReptorSurfaceHigh.copy(alpha = 0.55f))
+            .background(RaptorSurfaceHigh.copy(alpha = 0.55f))
             .padding(start = 20.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = "RAPTOR",
-            color = ReptorGreen,
+            color = RaptorGreen,
             fontSize = 20.sp,
             fontWeight = FontWeight.Black,
             letterSpacing = 4.sp
@@ -97,7 +97,7 @@ fun TopBar(
         Column(Modifier.weight(1f)) {
             Text(
                 text = title,
-                color = ReptorText,
+                color = RaptorText,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -105,24 +105,24 @@ fun TopBar(
             )
             Text(
                 text = subtitle,
-                color = ReptorTextDim,
+                color = RaptorTextDim,
                 fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
-        Text(text = clock, color = ReptorTextDim, fontSize = 13.sp)
+        Text(text = clock, color = RaptorTextDim, fontSize = 13.sp)
         Spacer(Modifier.width(10.dp))
         var refreshFocused by remember { mutableStateOf(false) }
         Box(
             Modifier
                 .clip(RoundedCornerShape(8.dp))
                 .background(
-                    if (refreshFocused) ReptorGreen.copy(alpha = 0.18f) else ReptorSurfaceHigh
+                    if (refreshFocused) RaptorGreen.copy(alpha = 0.18f) else RaptorSurfaceHigh
                 )
                 .border(
                     width = if (refreshFocused) 1.5.dp else 0.dp,
-                    color = if (refreshFocused) ReptorGreen else Color.Transparent,
+                    color = if (refreshFocused) RaptorGreen else Color.Transparent,
                     shape = RoundedCornerShape(8.dp)
                 )
                 .onFocusChanged { refreshFocused = it.isFocused }
@@ -131,7 +131,7 @@ fun TopBar(
         ) {
             Text(
                 text = "⟳  Atualizar",
-                color = if (refreshFocused) ReptorGreen else ReptorTextDim,
+                color = if (refreshFocused) RaptorGreen else RaptorTextDim,
                 fontSize = 12.sp
             )
         }
@@ -143,11 +143,11 @@ fun TopBar(
 @Composable
 fun BottomNav(tab: Tab, onTab: (Tab) -> Unit) {
     Column {
-        HorizontalDivider(color = ReptorOutline.copy(alpha = 0.4f))
+        HorizontalDivider(color = RaptorOutline.copy(alpha = 0.4f))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(ReptorSurfaceHigh.copy(alpha = 0.85f))
+                .background(RaptorSurfaceHigh.copy(alpha = 0.85f))
                 .padding(vertical = 5.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
@@ -158,10 +158,10 @@ fun BottomNav(tab: Tab, onTab: (Tab) -> Unit) {
                 Column(
                     modifier = Modifier
                         .clip(RoundedCornerShape(9.dp))
-                        .background(if (selected) ReptorGreen.copy(alpha = 0.16f) else Color.Transparent)
+                        .background(if (selected) RaptorGreen.copy(alpha = 0.16f) else Color.Transparent)
                         .border(
                             width = if (tabFocused) 1.5.dp else 0.dp,
-                            color = if (tabFocused) ReptorGreen else Color.Transparent,
+                            color = if (tabFocused) RaptorGreen else Color.Transparent,
                             shape = RoundedCornerShape(9.dp)
                         )
                         .onFocusChanged { tabFocused = it.isFocused }
@@ -171,7 +171,7 @@ fun BottomNav(tab: Tab, onTab: (Tab) -> Unit) {
                 ) {
                     Text(
                         text = entry.label,
-                        color = if (selected || tabFocused) ReptorGreen else ReptorTextDim,
+                        color = if (selected || tabFocused) RaptorGreen else RaptorTextDim,
                         fontSize = 13.sp,
                         fontWeight = if (selected || tabFocused) FontWeight.Bold else FontWeight.Normal
                     )
@@ -194,7 +194,7 @@ fun TopTabs(tab: Tab, onTab: (Tab) -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(ReptorSurfaceHigh.copy(alpha = 0.75f))
+                .background(RaptorSurfaceHigh.copy(alpha = 0.75f))
                 .padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -206,11 +206,11 @@ fun TopTabs(tab: Tab, onTab: (Tab) -> Unit) {
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .background(
-                            if (selected) ReptorGreen.copy(alpha = 0.18f) else Color.Transparent
+                            if (selected) RaptorGreen.copy(alpha = 0.18f) else Color.Transparent
                         )
                         .border(
                             width = if (tabFocused) 1.5.dp else 0.dp,
-                            color = if (tabFocused) ReptorGreen else Color.Transparent,
+                            color = if (tabFocused) RaptorGreen else Color.Transparent,
                             shape = RoundedCornerShape(8.dp)
                         )
                         .onFocusChanged { tabFocused = it.isFocused }
@@ -220,14 +220,14 @@ fun TopTabs(tab: Tab, onTab: (Tab) -> Unit) {
                 ) {
                     Text(
                         text = entry.label,
-                        color = if (selected || tabFocused) ReptorGreen else ReptorTextDim,
+                        color = if (selected || tabFocused) RaptorGreen else RaptorTextDim,
                         fontSize = 13.sp,
                         fontWeight = if (selected || tabFocused) FontWeight.Bold else FontWeight.Normal
                     )
                 }
             }
         }
-        HorizontalDivider(color = ReptorOutline.copy(alpha = 0.45f))
+        HorizontalDivider(color = RaptorOutline.copy(alpha = 0.45f))
     }
 }
 
@@ -243,7 +243,7 @@ fun SearchField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        placeholder = { Text(placeholder, fontSize = 12.sp, color = ReptorTextDim) },
+        placeholder = { Text(placeholder, fontSize = 12.sp, color = RaptorTextDim) },
         singleLine = true,
         textStyle = MaterialTheme.typography.bodySmall,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -289,7 +289,7 @@ fun CategoryPanel(
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .background(ReptorSurfaceHigh.copy(alpha = 0.35f))
+            .background(RaptorSurfaceHigh.copy(alpha = 0.35f))
             .padding(horizontal = 10.dp, vertical = 10.dp)
     ) {
         SearchField(
@@ -371,8 +371,8 @@ fun SideItem(
             .clip(RoundedCornerShape(8.dp))
             .background(
                 when {
-                    selected -> ReptorGreen.copy(alpha = 0.18f)
-                    focused -> ReptorSurfaceHigh
+                    selected -> RaptorGreen.copy(alpha = 0.18f)
+                    focused -> RaptorSurfaceHigh
                     else -> Color.Transparent
                 }
             )
@@ -386,7 +386,7 @@ fun SideItem(
     ) {
         Text(
             text = label,
-            color = if (selected || focused) ReptorGreen else ReptorTextDim,
+            color = if (selected || focused) RaptorGreen else RaptorTextDim,
             fontSize = 12.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             maxLines = 1,
@@ -394,7 +394,7 @@ fun SideItem(
             modifier = Modifier.weight(1f)
         )
         if (count != null && count > 0) {
-            Text(text = count.toString(), color = ReptorTextDim.copy(alpha = 0.75f), fontSize = 10.sp)
+            Text(text = count.toString(), color = RaptorTextDim.copy(alpha = 0.75f), fontSize = 10.sp)
         }
     }
 }
@@ -413,7 +413,7 @@ fun PosterCard(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(if (focused) ReptorSurfaceHigh else Color.Transparent)
+            .background(if (focused) RaptorSurfaceHigh else Color.Transparent)
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .padding(4.dp)
@@ -423,10 +423,10 @@ fun PosterCard(
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
                 .clip(RoundedCornerShape(9.dp))
-                .background(ReptorSurfaceHigh)
+                .background(RaptorSurfaceHigh)
                 .border(
                     width = if (focused) 2.dp else 0.dp,
-                    color = if (focused) ReptorGreen else Color.Transparent,
+                    color = if (focused) RaptorGreen else Color.Transparent,
                     shape = RoundedCornerShape(9.dp)
                 )
         ) {
@@ -440,7 +440,7 @@ fun PosterCard(
             } else {
                 Text(
                     text = entry.name,
-                    color = ReptorTextDim,
+                    color = RaptorTextDim,
                     fontSize = 11.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
@@ -500,7 +500,7 @@ fun PosterCard(
                 ) {
                     Text(
                         text = "▶",
-                        color = ReptorGreen,
+                        color = RaptorGreen,
                         fontSize = 22.sp,
                         modifier = Modifier.padding(bottom = 6.dp)
                     )
@@ -510,7 +510,7 @@ fun PosterCard(
 
         Text(
             text = entry.name,
-            color = ReptorText,
+            color = RaptorText,
             fontSize = 11.sp,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -577,7 +577,7 @@ fun PagerBar(
         PagerButton("◀ Voltar", enabled = page > 0, onClick = onPrev)
         Text(
             text = "Página ${page + 1} de $pageCount",
-            color = ReptorTextDim,
+            color = RaptorTextDim,
             fontSize = 11.sp,
             modifier = Modifier.padding(horizontal = 14.dp)
         )
@@ -592,11 +592,11 @@ private fun PagerButton(label: String, enabled: Boolean, onClick: () -> Unit) {
         Modifier
             .clip(RoundedCornerShape(8.dp))
             .background(
-                if (focused && enabled) ReptorGreen.copy(alpha = 0.18f) else ReptorSurfaceHigh
+                if (focused && enabled) RaptorGreen.copy(alpha = 0.18f) else RaptorSurfaceHigh
             )
             .border(
                 width = 1.5.dp,
-                color = if (focused && enabled) ReptorGreen else Color.Transparent,
+                color = if (focused && enabled) RaptorGreen else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             )
             .onFocusChanged { focused = it.isFocused }
@@ -605,7 +605,7 @@ private fun PagerButton(label: String, enabled: Boolean, onClick: () -> Unit) {
     ) {
         Text(
             text = label,
-            color = if (enabled) ReptorGreen else ReptorTextDim.copy(alpha = 0.5f),
+            color = if (enabled) RaptorGreen else RaptorTextDim.copy(alpha = 0.5f),
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -630,16 +630,16 @@ fun ChannelRow(
             .clip(RoundedCornerShape(8.dp))
             .background(
                 when {
-                    selected -> ReptorGreen.copy(alpha = 0.14f)
-                    focused -> ReptorSurfaceHigh
+                    selected -> RaptorGreen.copy(alpha = 0.14f)
+                    focused -> RaptorSurfaceHigh
                     else -> Color.Transparent
                 }
             )
             .border(
                 width = if (selected || focused) 1.dp else 0.dp,
                 color = when {
-                    selected -> ReptorGreen.copy(alpha = 0.6f)
-                    focused -> ReptorGreen
+                    selected -> RaptorGreen.copy(alpha = 0.6f)
+                    focused -> RaptorGreen
                     else -> Color.Transparent
                 },
                 shape = RoundedCornerShape(8.dp)
@@ -651,7 +651,7 @@ fun ChannelRow(
     ) {
         Text(
             text = number.toString(),
-            color = ReptorTextDim.copy(alpha = 0.7f),
+            color = RaptorTextDim.copy(alpha = 0.7f),
             fontSize = 10.sp,
             modifier = Modifier.width(30.dp)
         )
@@ -660,7 +660,7 @@ fun ChannelRow(
             Modifier
                 .size(34.dp)
                 .clip(RoundedCornerShape(6.dp))
-                .background(ReptorSurfaceHigh)
+                .background(RaptorSurfaceHigh)
         ) {
             if (!entry.logo.isNullOrBlank()) {
                 AsyncImage(
@@ -676,7 +676,7 @@ fun ChannelRow(
 
         Text(
             text = entry.name,
-            color = if (selected) ReptorGreen else ReptorText,
+            color = if (selected) RaptorGreen else RaptorText,
             fontSize = 12.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -694,7 +694,7 @@ fun ChannelRow(
         ) {
             Text(
                 text = if (isFavorite) "★" else "☆",
-                color = if (isFavorite) Color(0xFFFFC107) else ReptorTextDim,
+                color = if (isFavorite) Color(0xFFFFC107) else RaptorTextDim,
                 fontSize = 13.sp
             )
         }
@@ -707,9 +707,9 @@ fun ChannelRow(
 fun LoadingBox(text: String = "Carregando…") {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator(color = ReptorGreen, strokeWidth = 2.dp)
+            CircularProgressIndicator(color = RaptorGreen, strokeWidth = 2.dp)
             Spacer(Modifier.height(10.dp))
-            Text(text, color = ReptorTextDim, fontSize = 12.sp)
+            Text(text, color = RaptorTextDim, fontSize = 12.sp)
         }
     }
 }
@@ -718,7 +718,7 @@ fun LoadingBox(text: String = "Carregando…") {
 fun EmptyBox(text: String, action: (@Composable () -> Unit)? = null) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text, color = ReptorTextDim, fontSize = 13.sp, textAlign = TextAlign.Center)
+            Text(text, color = RaptorTextDim, fontSize = 13.sp, textAlign = TextAlign.Center)
             if (action != null) {
                 Spacer(Modifier.height(10.dp))
                 action()

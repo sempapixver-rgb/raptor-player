@@ -2,7 +2,7 @@
 
 var Net = {
 
-  UA: 'Reptor/1.0 (webOS)',
+  UA: 'Raptor/1.0 (webOS)',
 
   /**
    * Requisição simples com Promise.

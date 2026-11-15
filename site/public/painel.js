@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  var TOKEN_KEY = "reptor_admin_token";
+  var TOKEN_KEY = "raptor_admin_token";
 
   var loginView = document.getElementById("loginView");
   var panelView = document.getElementById("panelView");

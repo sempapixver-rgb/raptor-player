@@ -2,7 +2,7 @@
 
 var Store = {
 
-  PREFIX: 'reptor.',
+  PREFIX: 'raptor.',
 
   get: function (key, fallback) {
     try {

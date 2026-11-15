@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Reptor"
+rootProject.name = "Raptor"
 include(":app")

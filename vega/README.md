@@ -1,11 +1,11 @@
-# Reptor Player — VegaOS (Fire TV Stick 4K Select)
+# Raptor Player — VegaOS (Fire TV Stick 4K Select)
 
 Aplicativo de TV feito em React Native para **VegaOS**, o sistema do
 Fire TV Stick 4K Select. É a mesma identidade do app Android/webOS:
 um **tocador de vídeo** com ativação por código, sem conteúdo embutido.
 
-- Pacote: `com.reptor.player.vega`
-- Componente: `com.reptor.player.vega.main`
+- Pacote: `com.raptor.player.vega`
+- Componente: `com.raptor.player.vega.main`
 - Versão: `1.0.0` (build `2026111401`)
 - Vega OS: mínimo e alvo `1.2`
 - Arquitetura: `armv7` (Fire TV Stick 4K Select)
@@ -71,7 +71,7 @@ O script:
 
 1. Lê `APP_VERSION` e `BUILD_NUMBER` de `src/config/app.ts`.
 2. Converte `20261114.01` em `2026111401` (a Amazon recusa `0`).
-3. Gera `build/armv7-release/reptor_armv7.vpkg`.
+3. Gera `build/armv7-release/raptor_armv7.vpkg`.
 4. Confere o `build_number` e recusa bibliotecas de outra arquitetura.
 
 Envie o `.vpkg` no Amazon Developer Console em **Vega OS → seu app →

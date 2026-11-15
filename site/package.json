@@ -1,8 +1,8 @@
 {
-  "name": "reptor-activation",
+  "name": "raptor-activation",
   "private": true,
   "version": "1.0.0",
-  "description": "Site de ativacao do Reptor Player",
+  "description": "Site de ativacao do Raptor Player",
   "type": "module",
   "dependencies": {
     "@netlify/blobs": "^8.1.0"

@@ -1,4 +1,4 @@
-package com.reptor.player.ui
+package com.raptor.player.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -36,12 +36,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.reptor.player.data.Activation
-import com.reptor.player.data.Session
-import com.reptor.player.ui.theme.ReptorGreen
-import com.reptor.player.ui.theme.ReptorOutline
-import com.reptor.player.ui.theme.ReptorText
-import com.reptor.player.ui.theme.ReptorTextDim
+import com.raptor.player.data.Activation
+import com.raptor.player.data.Session
+import com.raptor.player.ui.theme.RaptorGreen
+import com.raptor.player.ui.theme.RaptorOutline
+import com.raptor.player.ui.theme.RaptorText
+import com.raptor.player.ui.theme.RaptorTextDim
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -128,7 +128,7 @@ fun ActivationCard(onActivated: (Session) -> Unit) {
             Column(Modifier.weight(1f)) {
                 Text(
                     text = "ATIVAR PELO SITE",
-                    color = ReptorTextDim,
+                    color = RaptorTextDim,
                     fontSize = 10.sp,
                     letterSpacing = 2.sp,
                     fontWeight = FontWeight.SemiBold
@@ -136,7 +136,7 @@ fun ActivationCard(onActivated: (Session) -> Unit) {
                 Spacer(Modifier.height(3.dp))
                 Text(
                     text = code,
-                    color = ReptorGreen,
+                    color = RaptorGreen,
                     fontSize = 20.sp,
                     letterSpacing = 2.sp,
                     fontWeight = FontWeight.Bold,
@@ -145,7 +145,7 @@ fun ActivationCard(onActivated: (Session) -> Unit) {
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = "Escaneie o QR ou use este código no site. A TV entra sozinha.",
-                    color = ReptorTextDim,
+                    color = RaptorTextDim,
                     fontSize = 11.sp,
                     lineHeight = 15.sp
                 )
@@ -155,7 +155,7 @@ fun ActivationCard(onActivated: (Session) -> Unit) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(13.dp),
                             strokeWidth = 1.8.dp,
-                            color = ReptorGreen
+                            color = RaptorGreen
                         )
                         Spacer(Modifier.width(7.dp))
                     }
@@ -166,7 +166,7 @@ fun ActivationCard(onActivated: (Session) -> Unit) {
                             missed -> "Ainda não encontrei. Confira o código no site."
                             else -> "Aguardando ativação no site…"
                         },
-                        color = if (missed && !checking) ReptorText else ReptorTextDim,
+                        color = if (missed && !checking) RaptorText else RaptorTextDim,
                         fontSize = 11.sp
                     )
                 }
@@ -176,7 +176,7 @@ fun ActivationCard(onActivated: (Session) -> Unit) {
                 ) {
                     Text(
                         text = "Verificar agora",
-                        color = ReptorGreen,
+                        color = RaptorGreen,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -188,12 +188,12 @@ fun ActivationCard(onActivated: (Session) -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(ReptorOutline.copy(alpha = 0.4f))
+                .background(RaptorOutline.copy(alpha = 0.4f))
         )
         Text(
             text = Activation.SITE_BASE.removePrefix("https://").removePrefix("http://")
                 .removeSuffix("/"),
-            color = ReptorTextDim,
+            color = RaptorTextDim,
             fontSize = 10.sp,
             letterSpacing = 1.sp,
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
