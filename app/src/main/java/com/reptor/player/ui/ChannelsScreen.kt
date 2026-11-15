@@ -72,7 +72,7 @@ fun ChannelsScreen(
     cacheKey: String = "",
     refreshKey: Int = 0,
     previewEnabled: Boolean = true,
-    onPlay: (MediaEntry) -> Unit,
+    onPlay: (MediaEntry, List<MediaEntry>) -> Unit,
     onToggleFavorite: (MediaEntry) -> Unit
 ) {
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
@@ -255,6 +255,17 @@ fun ChannelsScreen(
         }
     }
 
+    // Paginação igual à LG: a lista da pasta fica no índice, mas só 60 linhas
+    // (e 60 logos) são criadas por vez.
+    var page by remember(visible) { mutableIntStateOf(0) }
+    val pageCount = ((visible.size + PAGE_SIZE - 1) / PAGE_SIZE).coerceAtLeast(1)
+    val safePage = page.coerceIn(0, pageCount - 1)
+    val pageItems = remember(visible, safePage) {
+        val from = safePage * PAGE_SIZE
+        val to = (from + PAGE_SIZE).coerceAtMost(visible.size)
+        if (from >= to) emptyList() else visible.subList(from, to)
+    }
+
     Row(Modifier.fillMaxSize()) {
         CategoryPanel(
             categories = categories,
@@ -310,22 +321,35 @@ fun ChannelsScreen(
                     }
                 )
             } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(count = visible.size, key = { visible[it].id }) { index ->
-                        val channel = visible[index]
-                        ChannelRow(
-                            number = index + 1,
-                            entry = channel,
-                            isFavorite = channel.id in favoriteIds,
-                            selected = selected?.id == channel.id,
-                            onClick = { selected = channel },
-                            onStar = { onToggleFavorite(channel) }
-                        )
+                Column(Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.weight(1f).fillMaxWidth()
+                    ) {
+                        items(count = pageItems.size, key = { pageItems[it].id }) { index ->
+                            val channel = pageItems[index]
+                            ChannelRow(
+                                number = safePage * PAGE_SIZE + index + 1,
+                                entry = channel,
+                                isFavorite = channel.id in favoriteIds,
+                                selected = selected?.id == channel.id,
+                                onClick = {
+                                    // Um OK no canal já abre o vídeo (sem
+                                    // precisar ir até o botão "Assistir").
+                                    selected = channel
+                                    onPlay(channel, pageItems)
+                                },
+                                onStar = { onToggleFavorite(channel) }
+                            )
+                        }
                     }
+                    PagerBar(
+                        page = safePage,
+                        pageCount = pageCount,
+                        onPrev = { page = safePage - 1 },
+                        onNext = { page = safePage + 1 }
+                    )
                 }
             }
         }
@@ -340,7 +364,7 @@ fun ChannelsScreen(
             epg = epg,
             epgLoading = epgLoading,
             isFavorite = selected != null && selected?.id in favoriteIds,
-            onPlay = { channel -> onPlay(channel) },
+            onPlay = { channel -> onPlay(channel, pageItems) },
             onStar = { channel -> onToggleFavorite(channel) },
             modifier = Modifier.weight(1f)
         )

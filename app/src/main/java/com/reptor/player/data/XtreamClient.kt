@@ -155,7 +155,9 @@ class XtreamClient(private val session: Session) {
                         kind = kind,
                         containerExtension = obj.optString("container_extension").takeIf { it.isNotBlank() },
                         rating = obj.optString("rating").toDoubleOrNull(),
-                        plot = obj.optString("plot").takeIf { it.isNotBlank() },
+                        // A sinopse não é usada nas grades; guardar o texto de
+                        // milhares de filmes pesava na memória do Fire TV.
+                        plot = null,
                         year = obj.optString("year").takeIf { it.isNotBlank() }
                     )
                 )

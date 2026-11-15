@@ -341,12 +341,36 @@ fun PlayerScreen(
                     }
 
                     Key.MediaNext -> {
-                        if (items.size > 1) go(1)
+                        if (index < items.lastIndex) go(1)
                         true
                     }
 
                     Key.MediaPrevious -> {
-                        if (items.size > 1) go(-1)
+                        if (index > 0) go(-1)
+                        true
+                    }
+
+                    // ⏪ / ⏩ do controle do Fire TV: volta/avança 10 segundos.
+                    Key.MediaRewind -> {
+                        player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0))
+                        controlsVisible = true
+                        true
+                    }
+
+                    Key.MediaFastForward -> {
+                        player.seekTo(player.currentPosition + 10_000)
+                        controlsVisible = true
+                        true
+                    }
+
+                    Key.MediaStop -> {
+                        onClose()
+                        true
+                    }
+
+                    // Botão ☰ (Menu) do controle: mostra ou esconde os controles.
+                    Key.Menu -> {
+                        controlsVisible = !controlsVisible
                         true
                     }
 
@@ -539,18 +563,16 @@ fun PlayerScreen(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (items.size > 1) {
-                        val canPrev = index > 0
-                        TextButton(onClick = { go(-1) }, enabled = canPrev) {
-                            Text(
-                                text = "⏮ Anterior",
-                                color = if (canPrev) Color.White else Color.White.copy(alpha = 0.35f),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Spacer(Modifier.width(10.dp))
+                    val canPrev = index > 0
+                    TextButton(onClick = { go(-1) }, enabled = canPrev) {
+                        Text(
+                            text = "⏮ Anterior",
+                            color = if (canPrev) Color.White else Color.White.copy(alpha = 0.35f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
+                    Spacer(Modifier.width(10.dp))
                     TextButton(onClick = { player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0)) }) {
                         Text("−10s", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                     }
@@ -592,17 +614,15 @@ fun PlayerScreen(
                     TextButton(onClick = { player.seekTo(player.currentPosition + 10_000) }) {
                         Text("+10s", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                     }
-                    if (items.size > 1) {
-                        Spacer(Modifier.width(10.dp))
-                        val canNext = index < items.lastIndex
-                        TextButton(onClick = { go(1) }, enabled = canNext) {
-                            Text(
-                                text = "Próximo ⏭",
-                                color = if (canNext) Color.White else Color.White.copy(alpha = 0.35f),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                    Spacer(Modifier.width(10.dp))
+                    val canNext = index < items.lastIndex
+                    TextButton(onClick = { go(1) }, enabled = canNext) {
+                        Text(
+                            text = "Próximo ⏭",
+                            color = if (canNext) Color.White else Color.White.copy(alpha = 0.35f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 

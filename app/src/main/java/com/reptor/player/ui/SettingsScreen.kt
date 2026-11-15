@@ -123,8 +123,8 @@ fun SettingsScreen(
         SettingItem("📄", "Termos de uso", "Player de vídeo: não fornece conteúdo") {
             showTerms = true
         },
-        SettingItem("ⓘ", "Sobre o Reptor", "Versão, privacidade e créditos") {
-            message = "Reptor Player 1.2.2 · Tudo fica salvo apenas neste aparelho."
+        SettingItem("ⓘ", "Sobre o Raptor", "Versão, privacidade e créditos") {
+            message = "Raptor Player 1.2.9 · Tudo fica salvo apenas neste aparelho."
         },
         SettingItem("📺", "Formato de tela", "Paisagem fixa, imersivo") {
             message = "O app foi feito para tela horizontal (TV, box e tablet)."

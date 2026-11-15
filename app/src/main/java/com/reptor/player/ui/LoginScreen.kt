@@ -219,7 +219,7 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "REPTOR",
+                text = "RAPTOR",
                 color = ReptorGreen,
                 fontSize = 44.sp,
                 fontWeight = FontWeight.Black,

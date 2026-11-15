@@ -82,7 +82,7 @@ fun MainMenuScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "REPTOR",
+                    text = "RAPTOR",
                     color = ReptorGreen,
                     fontSize = 34.sp,
                     fontWeight = FontWeight.Black,

@@ -87,7 +87,7 @@ fun TopBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "REPTOR",
+            text = "RAPTOR",
             color = ReptorGreen,
             fontSize = 20.sp,
             fontWeight = FontWeight.Black,
@@ -544,6 +544,71 @@ fun PosterGrid(
                 onStar = { onStar(entry) }
             )
         }
+    }
+}
+
+// ----------------------------------------------------------------- paginação
+
+/** Itens desenhados por página — mesmo valor da versão da LG (60). */
+const val PAGE_SIZE = 60
+
+/**
+ * Barra "◀ Voltar / Página X de Y / Próximo ▶" no fim da lista.
+ *
+ * Igual à LG: a pasta inteira fica no índice, mas só 60 itens são criados por
+ * vez. É o que deixa a abertura de Filmes/Séries leve no Fire TV antigo.
+ */
+@Composable
+fun PagerBar(
+    page: Int,
+    pageCount: Int,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (pageCount <= 1) return
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        PagerButton("◀ Voltar", enabled = page > 0, onClick = onPrev)
+        Text(
+            text = "Página ${page + 1} de $pageCount",
+            color = ReptorTextDim,
+            fontSize = 11.sp,
+            modifier = Modifier.padding(horizontal = 14.dp)
+        )
+        PagerButton("Próximo ▶", enabled = page < pageCount - 1, onClick = onNext)
+    }
+}
+
+@Composable
+private fun PagerButton(label: String, enabled: Boolean, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(
+                if (focused && enabled) ReptorGreen.copy(alpha = 0.18f) else ReptorSurfaceHigh
+            )
+            .border(
+                width = 1.5.dp,
+                color = if (focused && enabled) ReptorGreen else Color.Transparent,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = label,
+            color = if (enabled) ReptorGreen else ReptorTextDim.copy(alpha = 0.5f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 

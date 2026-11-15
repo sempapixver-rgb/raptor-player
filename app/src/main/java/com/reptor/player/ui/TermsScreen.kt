@@ -51,12 +51,12 @@ import kotlinx.coroutines.delay
 const val TERMS_VERSION = 2
 
 /**
- * Texto do Termo de Uso. O Reptor é só um tocador de vídeo: não fornece
+ * Texto do Termo de Uso. O Raptor é só um tocador de vídeo: não fornece
  * conteúdo e não responde pelo que o usuário cadastra na lista dele.
  */
 val TERMS_SECTIONS: List<Pair<String, String>> = listOf(
-    "1. O que é o Reptor Player" to
-        "O Reptor Player é apenas um tocador de vídeo (media player). " +
+    "1. O que é o Raptor Player" to
+        "O Raptor Player é apenas um tocador de vídeo (media player). " +
         "Não fornecemos, hospedamos, distribuímos, vendemos, transmitimos nem " +
         "indicamos canais, filmes, séries ou qualquer outro conteúdo.",
     "2. Origem do conteúdo" to
@@ -121,7 +121,7 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "REPTOR",
+                text = "RAPTOR",
                 color = ReptorGreen,
                 fontSize = 34.sp,
                 fontWeight = FontWeight.Black,

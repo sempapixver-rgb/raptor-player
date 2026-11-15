@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
  */
 object ContentStore {
 
-    private const val MAX_FOLDERS = 8
+    private const val MAX_FOLDERS = 4
 
     private val lock = Any()
     private val mutexes = HashMap<String, Mutex>()

@@ -19,6 +19,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -91,22 +96,40 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
         }
     }
 
-    fun play(entry: MediaEntry) {
+    /**
+     * Abre um canal/filme. [queue] é a página visível: com ela os botões
+     * Anterior/Próximo funcionam também em Canais e Filmes.
+     */
+    fun play(entry: MediaEntry, queue: List<MediaEntry> = emptyList()) {
         if (resolving) return
         scope.launch {
             resolving = true
             toast = null
-            val url = try {
-                source.playUrl(entry)
-            } catch (e: Exception) {
-                toast = e.message ?: "Não foi possível abrir o item"
-                null
-            }
-            resolving = false
-            if (!url.isNullOrBlank()) {
+            try {
+                val url = source.playUrl(entry)
+                if (url.isNullOrBlank()) {
+                    toast = "Item sem link de reprodução"
+                    return@launch
+                }
+                val items = ArrayList<PlayItem>(queue.size.coerceAtLeast(1))
+                var start = 0
+                if (queue.size > 1) {
+                    for (e in queue) {
+                        val u = if (e.id == entry.id) url
+                        else runCatching { source.playUrl(e) }.getOrNull()
+                        if (u.isNullOrBlank()) continue
+                        if (e.id == entry.id) start = items.size
+                        items.add(PlayItem(u, e.name))
+                    }
+                }
+                if (items.isEmpty()) items.add(PlayItem(url, entry.name))
                 prefs.addRecent(entry)
                 recents = prefs.recents()
-                playing = PlayRequest(listOf(PlayItem(url, entry.name)), 0)
+                playing = PlayRequest(items, start.coerceIn(0, items.lastIndex))
+            } catch (e: Exception) {
+                toast = e.message ?: "Não foi possível abrir o item"
+            } finally {
+                resolving = false
             }
         }
     }
@@ -130,7 +153,19 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
 
     BackHandler(enabled = current == null && open != null) { tab = null }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { event ->
+                // Botão ☰ (Menu) do controle do Fire TV: abre/fecha os Ajustes.
+                if (current == null && event.type == KeyEventType.KeyDown && event.key == Key.Menu) {
+                    tab = if (tab == Tab.SETTINGS) null else Tab.SETTINGS
+                    true
+                } else {
+                    false
+                }
+            }
+    ) {
         if (open == null) {
             MainMenuScreen(
                 accountLabel = session.displayName(),
@@ -159,7 +194,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         cacheKey = session.key(),
                         refreshKey = refreshTick,
                         previewEnabled = current == null,
-                        onPlay = { play(it) },
+                        onPlay = { entry, queue -> play(entry, queue) },
                         onToggleFavorite = { toggleFavorite(it) }
                     )
 
@@ -169,7 +204,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         recents = recents,
                         cacheKey = session.key(),
                         refreshKey = refreshTick,
-                        onPlay = { play(it) },
+                        onPlay = { entry, queue -> play(entry, queue) },
                         onToggleFavorite = { toggleFavorite(it) }
                     )
 

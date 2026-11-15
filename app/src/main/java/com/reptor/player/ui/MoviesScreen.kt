@@ -58,7 +58,7 @@ fun MoviesScreen(
     recents: List<MediaEntry>,
     cacheKey: String = "",
     refreshKey: Int = 0,
-    onPlay: (MediaEntry) -> Unit,
+    onPlay: (MediaEntry, List<MediaEntry>) -> Unit,
     onToggleFavorite: (MediaEntry) -> Unit
 ) {
     var categories by remember { mutableStateOf<List<Category>>(emptyList()) }
@@ -283,15 +283,37 @@ fun MoviesScreen(
                     }
                 )
 
-                else -> BoxWithConstraints(Modifier.fillMaxSize()) {
-                    val columns = (maxWidth.value / 128f).toInt().coerceIn(2, 10)
-                    PosterGrid(
-                        items = visible,
-                        favoriteIds = favoriteIds,
-                        onClick = onPlay,
-                        onStar = onToggleFavorite,
-                        columns = columns
-                    )
+                else -> {
+                    // Paginação igual à LG: só 60 pôsteres existem por vez.
+                    // Antes a pasta inteira era desenhada e baixava centenas de
+                    // imagens de uma vez — era o "peso" ao abrir Filmes.
+                    var page by remember(visible) { mutableIntStateOf(0) }
+                    val pageCount = ((visible.size + PAGE_SIZE - 1) / PAGE_SIZE).coerceAtLeast(1)
+                    val safePage = page.coerceIn(0, pageCount - 1)
+                    val pageItems = remember(visible, safePage) {
+                        val from = safePage * PAGE_SIZE
+                        val to = (from + PAGE_SIZE).coerceAtMost(visible.size)
+                        if (from >= to) emptyList() else visible.subList(from, to)
+                    }
+
+                    Column(Modifier.fillMaxSize()) {
+                        BoxWithConstraints(Modifier.weight(1f)) {
+                            val columns = (maxWidth.value / 128f).toInt().coerceIn(2, 10)
+                            PosterGrid(
+                                items = pageItems,
+                                favoriteIds = favoriteIds,
+                                onClick = { entry -> onPlay(entry, pageItems) },
+                                onStar = onToggleFavorite,
+                                columns = columns
+                            )
+                        }
+                        PagerBar(
+                            page = safePage,
+                            pageCount = pageCount,
+                            onPrev = { page = safePage - 1 },
+                            onNext = { page = safePage + 1 }
+                        )
+                    }
                 }
             }
         }
