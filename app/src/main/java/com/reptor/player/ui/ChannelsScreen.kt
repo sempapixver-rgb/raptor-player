@@ -83,6 +83,11 @@ fun ChannelsScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var retry by remember { mutableIntStateOf(0) }
 
+    // Busca em todas as pastas (igual à LG): o índice só é baixado quando o
+    // usuário digita 2+ letras, nunca ao entrar na aba.
+    var searchIndex by remember { mutableStateOf<List<MediaEntry>?>(null) }
+    var searchLoading by remember { mutableStateOf(false) }
+
     var filter by remember { mutableStateOf(Filter.ALL) }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
@@ -156,6 +161,27 @@ fun ChannelsScreen(
         }
     }
 
+    // Busca global da aba: baixa o índice uma vez, só depois de digitar.
+    LaunchedEffect(query) {
+        val q = query.trim()
+        if (q.length < 2 || searchIndex != null || searchLoading) return@LaunchedEffect
+        // Aba já pesquisada antes: reaproveita o índice sem tocar na rede.
+        ContentStore.cachedSearch(base, MediaKind.LIVE)?.let {
+            searchIndex = it
+            return@LaunchedEffect
+        }
+        searchLoading = true
+        try {
+            searchIndex = kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
+                ContentStore.searchIndex(source, base, MediaKind.LIVE)
+            }
+        } catch (_: Throwable) {
+            // Sem o índice a busca continua na pasta aberta.
+        } finally {
+            searchLoading = false
+        }
+    }
+
     // Grade do meuguia.tv: uma carga só, reaproveitada por todos os canais.
     LaunchedEffect(Unit) {
         runCatching { EpgClient.board() }.onSuccess { epgBoard = it }
@@ -186,16 +212,22 @@ fun ChannelsScreen(
     val recentsLive = remember(recents) { recents.filter { it.kind == MediaKind.LIVE } }
     val favoriteIds = remember(favoritesLive) { favoritesLive.mapTo(HashSet()) { it.id } }
 
-    val visible = remember(filter, selectedCategory, query, allItems, favoritesLive, recentsLive) {
-        val base = when (filter) {
-            Filter.FAVORITES -> favoritesLive
-            Filter.RECENTS -> recentsLive
-            Filter.ALL -> allItems.filter {
+    val trimmedQuery = query.trim()
+    val searching = trimmedQuery.isNotBlank()
+
+    val visible = remember(filter, selectedCategory, trimmedQuery, allItems, favoritesLive, recentsLive, searchIndex) {
+        val base = when {
+            // Busca em todas as pastas da aba (igual à LG). Enquanto o índice
+            // não chega, procura só na pasta aberta.
+            searching -> searchIndex ?: allItems
+            filter == Filter.FAVORITES -> favoritesLive
+            filter == Filter.RECENTS -> recentsLive
+            else -> allItems.filter {
                 selectedCategory == null || selectedCategory in it.allCategoryIds()
             }
         }
-        if (query.isBlank()) base
-        else base.filter { it.name.contains(query.trim(), ignoreCase = true) }
+        if (!searching) base
+        else base.filter { it.name.contains(trimmedQuery, ignoreCase = true) }
     }
 
     if (loading) {
@@ -253,11 +285,25 @@ fun ChannelsScreen(
                     .padding(horizontal = 10.dp, vertical = 8.dp)
             )
 
+            if (searching) {
+                Text(
+                    text = "${visible.size} resultados" + when {
+                        searchLoading -> " · buscando em todas as pastas…"
+                        searchIndex != null -> " · todas as pastas"
+                        else -> " · nesta pasta"
+                    },
+                    color = ReptorTextDim,
+                    fontSize = 10.sp,
+                    modifier = Modifier.padding(start = 12.dp, bottom = 6.dp)
+                )
+            }
+
             if (itemsLoading && allItems.isEmpty()) {
                 LoadingBox("Carregando canais…")
             } else if (visible.isEmpty()) {
                 EmptyBox(
-                    when (filter) {
+                    if (searching) "Nenhum resultado para \"$trimmedQuery\"."
+                    else when (filter) {
                         Filter.FAVORITES -> "Nenhum canal favorito."
                         Filter.RECENTS -> "Nenhum canal visto ainda."
                         Filter.ALL -> "Nenhum canal nesta categoria."

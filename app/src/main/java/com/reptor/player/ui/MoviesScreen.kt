@@ -74,6 +74,11 @@ fun MoviesScreen(
     var query by remember { mutableStateOf("") }
     var sort by remember { mutableStateOf(SortMode.DEFAULT) }
 
+    // Busca em todas as pastas (igual à LG): o índice só é baixado quando o
+    // usuário digita 2+ letras, nunca ao entrar na aba.
+    var searchIndex by remember { mutableStateOf<List<MediaEntry>?>(null) }
+    var searchLoading by remember { mutableStateOf(false) }
+
     val base = cacheKey
     // Muda quando as pastas terminam de carregar. Os itens esperam por isso
     // para não baixar a pasta errada antes da hora.
@@ -145,6 +150,27 @@ fun MoviesScreen(
         }
     }
 
+    // Busca global da aba: baixa o índice uma vez, só depois de digitar.
+    LaunchedEffect(query) {
+        val q = query.trim()
+        if (q.length < 2 || searchIndex != null || searchLoading) return@LaunchedEffect
+        // Aba já pesquisada antes: reaproveita o índice sem tocar na rede.
+        ContentStore.cachedSearch(base, MediaKind.VOD)?.let {
+            searchIndex = it
+            return@LaunchedEffect
+        }
+        searchLoading = true
+        try {
+            searchIndex = kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
+                ContentStore.searchIndex(source, base, MediaKind.VOD)
+            }
+        } catch (_: Throwable) {
+            // Sem o índice a busca continua na pasta aberta.
+        } finally {
+            searchLoading = false
+        }
+    }
+
     val favoritesVod = remember(favorites) { favorites.filter { it.kind == MediaKind.VOD } }
     val recentsVod = remember(recents) { recents.filter { it.kind == MediaKind.VOD } }
     val favoriteIds = remember(favoritesVod) { favoritesVod.mapTo(HashSet()) { it.id } }
@@ -160,19 +186,26 @@ fun MoviesScreen(
 
     // Só a pasta atual está em memória; a contagem das outras não é conhecida.
     val counts = remember(allItems, selectedCategory) {
-        if (selectedCategory == null) emptyMap() else mapOf(selectedCategory to allItems.size)
+        val folder = selectedCategory
+        if (folder == null) emptyMap() else mapOf(folder to allItems.size)
     }
 
-    val visible = remember(filter, selectedCategory, query, sort, allItems, favoritesVod, recentsVod) {
-        val base = when (filter) {
-            Filter.FAVORITES -> favoritesVod
-            Filter.RECENTS -> recentsVod
-            Filter.ALL -> allItems.filter {
+    val trimmedQuery = query.trim()
+    val searching = trimmedQuery.isNotBlank()
+
+    val visible = remember(filter, selectedCategory, trimmedQuery, sort, allItems, favoritesVod, recentsVod, searchIndex) {
+        val base = when {
+            // Busca em todas as pastas da aba (igual à LG). Enquanto o índice
+            // não chega, procura só na pasta aberta.
+            searching -> searchIndex ?: allItems
+            filter == Filter.FAVORITES -> favoritesVod
+            filter == Filter.RECENTS -> recentsVod
+            else -> allItems.filter {
                 selectedCategory == null || it.categoryId == selectedCategory
             }
         }
-        val filtered = if (query.isBlank()) base
-        else base.filter { it.name.contains(query.trim(), ignoreCase = true) }
+        val filtered = if (!searching) base
+        else base.filter { it.name.contains(trimmedQuery, ignoreCase = true) }
 
         when (sort) {
             SortMode.DEFAULT -> filtered
@@ -224,7 +257,15 @@ fun MoviesScreen(
                 SortButton(sort) { sort = it }
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    text = "${visible.size} títulos",
+                    text = if (searching) {
+                        "${visible.size} resultados" + when {
+                            searchLoading -> " · buscando em todas as pastas…"
+                            searchIndex != null -> " · todas as pastas"
+                            else -> " · nesta pasta"
+                        }
+                    } else {
+                        "${visible.size} títulos"
+                    },
                     color = ReptorTextDim,
                     fontSize = 11.sp
                 )
@@ -234,7 +275,8 @@ fun MoviesScreen(
                 itemsLoading && allItems.isEmpty() -> LoadingBox("Carregando filmes…")
 
                 visible.isEmpty() -> EmptyBox(
-                    when (filter) {
+                    if (searching) "Nenhum resultado para \"$trimmedQuery\"."
+                    else when (filter) {
                         Filter.FAVORITES -> "Nenhum filme favorito."
                         Filter.RECENTS -> "Nenhum filme visto ainda."
                         Filter.ALL -> "Nenhum filme nesta categoria."

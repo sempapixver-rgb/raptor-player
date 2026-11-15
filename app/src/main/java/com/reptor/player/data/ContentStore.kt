@@ -1,7 +1,9 @@
 package com.reptor.player.data
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 /**
  * Cache da lista no mesmo modelo da TV (LG 1.0.21):
@@ -24,6 +26,11 @@ object ContentStore {
     private val itemCache = HashMap<String, List<MediaEntry>>()
     private val itemOrder = ArrayList<String>()
     private val lastFolder = HashMap<String, String>()
+
+    // Índice de busca: só a aba atual fica na memória, como na LG.
+    private var searchBase: String? = null
+    private var searchKind: MediaKind? = null
+    private var searchList: List<MediaEntry>? = null
 
     private fun mutexFor(key: String): Mutex = synchronized(lock) {
         mutexes.getOrPut(key) { Mutex() }
@@ -112,6 +119,59 @@ object ContentStore {
         }
     }
 
+    // ------------------------------------------------------------------- busca
+
+    /**
+     * Índice de busca da aba já baixado (se for a mesma aba do índice atual).
+     * Só a aba mais recente fica guardada, como na versão da LG.
+     */
+    fun cachedSearch(base: String, kind: MediaKind): List<MediaEntry>? = synchronized(lock) {
+        if (searchBase == base && searchKind == kind) searchList else null
+    }
+
+    /**
+     * Busca em TODAS as pastas da aba (igual à LG 1.0.21).
+     *
+     * Só é chamada quando o usuário digita 2+ letras — nunca na entrada do app.
+     * Guarda uma cópia enxuta (sem sinopse) para não pesar na memória do Fire TV
+     * Stick antigo. Fica na memória até o botão "Atualizar".
+     */
+    suspend fun searchIndex(
+        source: PlaylistSource,
+        base: String,
+        kind: MediaKind
+    ): List<MediaEntry> = mutexFor("$base|SEARCH|${kind.name}").withLock {
+        synchronized(lock) {
+            if (searchBase == base && searchKind == kind) {
+                searchList?.let { return@withLock it }
+            }
+        }
+
+        val all = source.items(kind, null)
+        val lean = withContext(Dispatchers.Default) {
+            all.map { entry ->
+                MediaEntry(
+                    id = entry.id,
+                    name = entry.name,
+                    logo = entry.logo,
+                    categoryId = entry.categoryId,
+                    kind = entry.kind,
+                    containerExtension = entry.containerExtension,
+                    directUrl = entry.directUrl,
+                    rating = entry.rating,
+                    plot = null,
+                    year = entry.year
+                )
+            }
+        }
+        synchronized(lock) {
+            searchBase = base
+            searchKind = kind
+            searchList = lean
+        }
+        lean
+    }
+
     /**
      * Adianta só as pastas das três abas. É o que a LG faz ao entrar: pequeno,
      * rápido e sem baixar filmes/séries inteiros.
@@ -130,6 +190,9 @@ object ContentStore {
             categoryCache.clear()
             itemCache.clear()
             itemOrder.clear()
+            searchBase = null
+            searchKind = null
+            searchList = null
         }
     }
 }
