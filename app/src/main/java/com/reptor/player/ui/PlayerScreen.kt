@@ -42,6 +42,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -77,8 +78,11 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import com.reptor.player.data.Dlna
+import com.reptor.player.data.DlnaDevice
 import com.reptor.player.data.Prefs
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val SPEEDS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
 
@@ -124,11 +128,26 @@ fun PlayerScreen(
     var audioLabel by remember { mutableStateOf("Áudio") }
     var subsLabel by remember { mutableStateOf("Legendas") }
 
+    // Transmissão DLNA: o vídeo vai direto para a TV, sem espelhar a tela.
+    var showCast by remember { mutableStateOf(false) }
+    var castLoading by remember { mutableStateOf(false) }
+    var castDevices by remember { mutableStateOf<List<DlnaDevice>>(emptyList()) }
+    var castStatus by remember { mutableStateOf<String?>(null) }
+    var castDevice by remember { mutableStateOf<DlnaDevice?>(null) }
+    val castScope = rememberCoroutineScope()
+    val castFocus = remember { FocusRequester() }
+    val castRetryFocus = remember { FocusRequester() }
+
     BackHandler {
-        if (showSpeed || showAudio || showSubs) {
-            showSpeed = false; showAudio = false; showSubs = false
-        } else {
-            onClose()
+        when {
+            showCast -> {
+                showCast = false
+                controlsVisible = true
+            }
+            showSpeed || showAudio || showSubs -> {
+                showSpeed = false; showAudio = false; showSubs = false
+            }
+            else -> onClose()
         }
     }
 
@@ -310,6 +329,52 @@ fun PlayerScreen(
         }
     }
 
+    fun openCast() {
+        showCast = true
+        controlsVisible = false
+        castStatus = null
+        castDevices = emptyList()
+        castLoading = true
+        castScope.launch {
+            val found = Dlna.discover(context)
+            castDevices = found
+            castLoading = false
+            if (found.isEmpty()) {
+                castStatus = "Nenhuma TV encontrada. Confira se o celular e a TV estão na mesma Wi-Fi."
+            }
+        }
+    }
+
+    fun castTo(device: DlnaDevice) {
+        val item = current
+        castStatus = "Enviando para ${device.name}…"
+        castScope.launch {
+            Dlna.cast(device, item.url, item.title)
+                .onSuccess {
+                    castDevice = device
+                    // O vídeo agora toca na TV: pausa o player local para não
+                    // gastar duas conexões da lista.
+                    player.pause()
+                    showCast = false
+                    castStatus = null
+                    controlsVisible = true
+                }
+                .onFailure { error ->
+                    castStatus = "Não foi possível: ${error.message ?: "erro de rede"}"
+                }
+        }
+    }
+
+    fun stopCast() {
+        val device = castDevice ?: return
+        castScope.launch {
+            Dlna.stop(device)
+            castDevice = null
+            showCast = false
+            controlsVisible = true
+        }
+    }
+
     // Foco raiz do player: permite usar o D-pad/controle remoto.
     val rootFocus = remember { FocusRequester() }
     val playFocus = remember { FocusRequester() }
@@ -320,6 +385,16 @@ fun PlayerScreen(
             // Controles visíveis: foco no play (D-pad navega os botões).
             // Controles escondidos: foco no vídeo (qualquer tecla reabre).
             if (controlsVisible) playFocus.requestFocus() else rootFocus.requestFocus()
+        }
+    }
+
+    // Ao abrir a lista de TVs, leva o foco do controle para o primeiro item.
+    LaunchedEffect(showCast, castLoading, castDevices.size) {
+        if (!showCast) return@LaunchedEffect
+        delay(150)
+        runCatching {
+            if (castDevices.isNotEmpty()) castFocus.requestFocus()
+            else if (!castLoading) castRetryFocus.requestFocus()
         }
     }
 
@@ -545,6 +620,13 @@ fun PlayerScreen(
                             }
                         }
                     }
+                    TextButton(onClick = { openCast() }) {
+                        Text(
+                            text = if (castDevice != null) "📺 ON" else "📺 TV",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 13.sp
+                        )
+                    }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         TextButton(onClick = { enterPip() }) {
                             Text("PiP", color = MaterialTheme.colorScheme.primary, fontSize = 13.sp)
@@ -676,6 +758,121 @@ fun PlayerScreen(
                         color = Color.White,
                         fontSize = 12.sp
                     )
+                }
+            }
+        }
+
+        // Escolha da TV (DLNA). Fica fora dos controles para continuar
+        // visível mesmo com a barra escondida.
+        if (showCast) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.86f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth(0.72f)
+                        .background(Color(0xFF0E1A12), RoundedCornerShape(16.dp))
+                        .padding(22.dp)
+                ) {
+                    Text(
+                        text = "📺 Transmitir para a TV",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "O celular e a TV precisam estar na mesma rede Wi-Fi.",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 12.sp
+                    )
+                    Spacer(Modifier.height(16.dp))
+
+                    when {
+                        castLoading -> Text(
+                            text = "Procurando TVs…",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 14.sp
+                        )
+
+                        castDevices.isEmpty() -> Text(
+                            text = castStatus ?: "Nenhuma TV encontrada.",
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 13.sp
+                        )
+
+                        else -> {
+                            castStatus?.let { status ->
+                                Text(
+                                    text = status,
+                                    color = Color(0xFFFFB74D),
+                                    fontSize = 12.sp
+                                )
+                                Spacer(Modifier.height(8.dp))
+                            }
+                            castDevices.forEachIndexed { i, device ->
+                                TextButton(
+                                    onClick = { castTo(device) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .then(
+                                            if (i == 0) Modifier.focusRequester(castFocus)
+                                            else Modifier
+                                        )
+                                ) {
+                                    Text(
+                                        text = "▶  ${device.name}",
+                                        color = Color.White,
+                                        fontSize = 15.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (castDevice != null) {
+                        Spacer(Modifier.height(10.dp))
+                        TextButton(onClick = { stopCast() }) {
+                            Text(
+                                text = "⏹ Parar TV (${castDevice?.name})",
+                                color = Color(0xFFFF8A80),
+                                fontSize = 13.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(
+                            onClick = { openCast() },
+                            modifier = if (castDevices.isEmpty() && !castLoading) {
+                                Modifier.focusRequester(castRetryFocus)
+                            } else {
+                                Modifier
+                            }
+                        ) {
+                            Text(
+                                text = "Procurar de novo",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 13.sp
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        TextButton(onClick = { showCast = false; controlsVisible = true }) {
+                            Text(
+                                text = "Fechar",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 13.sp
+                            )
+                        }
+                    }
                 }
             }
         }
