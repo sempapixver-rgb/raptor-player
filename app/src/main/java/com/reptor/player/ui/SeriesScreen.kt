@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.reptor.player.data.Category
-import com.reptor.player.data.ContentCache
+import com.reptor.player.data.ContentStore
 import com.reptor.player.data.Episode
 import com.reptor.player.data.MediaEntry
 import com.reptor.player.data.MediaKind
@@ -90,34 +90,32 @@ fun SeriesScreen(
     var detailError by remember { mutableStateOf<String?>(null) }
     var detailTick by remember { mutableIntStateOf(0) }
 
-    val cacheId = "$cacheKey|SERIES"
+    val cacheId = ContentStore.cacheId(cacheKey, MediaKind.SERIES)
     val mountRefreshKey = remember { refreshKey }
 
     LaunchedEffect(retry, refreshKey) {
-        // Conteúdo já carregado volta na hora ao reabrir a aba.
+        // Conteúdo carregado uma única vez na entrada do app: reabrir a aba é
+        // instantâneo. Só baixa de novo no "Atualizar" ou no "Tentar de novo".
         val isRefresh = refreshKey != mountRefreshKey
-        if (retry == 0 && !isRefresh) {
-            val cachedCategories = ContentCache.categories(cacheId)
-            val cachedItems = ContentCache.items(cacheId)
-            if (cachedCategories != null && cachedItems != null) {
-                categories = cachedCategories
-                allItems = cachedItems
+        val force = isRefresh || retry > 0
+
+        if (!force) {
+            ContentStore.cached(cacheId)?.let { bundle ->
+                categories = bundle.categories
+                allItems = bundle.items
                 loading = false
                 return@LaunchedEffect
             }
         }
 
-        if (isRefresh) ContentCache.clear(cacheId)
-
         loading = true
         error = null
         try {
-            kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
-                categories = source.categories(MediaKind.SERIES)
-                allItems = source.items(MediaKind.SERIES, null)
+            val bundle = kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
+                ContentStore.load(source, cacheId, MediaKind.SERIES, force)
             }
-            ContentCache.putCategories(cacheId, categories)
-            ContentCache.putItems(cacheId, allItems)
+            categories = bundle.categories
+            allItems = bundle.items
         } catch (e: Throwable) {
             error = loadErrorMessage(e, "as séries")
         } finally {

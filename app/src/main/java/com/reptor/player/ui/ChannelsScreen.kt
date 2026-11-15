@@ -49,7 +49,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.reptor.player.data.Category
 import com.reptor.player.data.ChannelEpg
-import com.reptor.player.data.ContentCache
+import com.reptor.player.data.ContentStore
 import com.reptor.player.data.EpgClient
 import com.reptor.player.data.EpgProgram
 import com.reptor.player.data.MediaEntry
@@ -91,37 +91,34 @@ fun ChannelsScreen(
     var epgLoading by remember { mutableStateOf(false) }
     var previewUrl by remember { mutableStateOf<String?>(null) }
 
-    val cacheId = "$cacheKey|LIVE"
+    val cacheId = ContentStore.cacheId(cacheKey, MediaKind.LIVE)
     val mountRefreshKey = remember { refreshKey }
 
     LaunchedEffect(retry, refreshKey) {
-        // Ao voltar para esta aba o conteúdo já carregado é reaproveitado na
-        // hora. Só baixa de novo quando o usuário pede "Atualizar" (refreshKey)
-        // ou tenta novamente depois de um erro (retry).
+        // A lista é carregada uma única vez na entrada do app. Ao voltar para
+        // esta aba o conteúdo guardado aparece na hora; só baixa de novo no
+        // "Atualizar" (refreshKey) ou no "Tentar de novo" depois de um erro.
         val isRefresh = refreshKey != mountRefreshKey
-        if (retry == 0 && !isRefresh) {
-            val cachedCategories = ContentCache.categories(cacheId)
-            val cachedItems = ContentCache.items(cacheId)
-            if (cachedCategories != null && cachedItems != null) {
-                categories = cachedCategories
-                allItems = cachedItems
+        val force = isRefresh || retry > 0
+
+        if (!force) {
+            ContentStore.cached(cacheId)?.let { bundle ->
+                categories = bundle.categories
+                allItems = bundle.items
                 if (selected == null) selected = allItems.firstOrNull()
                 loading = false
                 return@LaunchedEffect
             }
         }
 
-        if (isRefresh) ContentCache.clear(cacheId)
-
         loading = true
         error = null
         try {
-            kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
-                categories = source.categories(MediaKind.LIVE)
-                allItems = source.items(MediaKind.LIVE, null)
+            val bundle = kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
+                ContentStore.load(source, cacheId, MediaKind.LIVE, force)
             }
-            ContentCache.putCategories(cacheId, categories)
-            ContentCache.putItems(cacheId, allItems)
+            categories = bundle.categories
+            allItems = bundle.items
             if (selected == null) selected = allItems.firstOrNull()
         } catch (e: Throwable) {
             error = loadErrorMessage(e, "os canais")

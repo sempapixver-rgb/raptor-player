@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reptor.player.data.Activation
 import com.reptor.player.data.ContentCache
+import com.reptor.player.data.ContentStore
 import com.reptor.player.data.MediaEntry
 import com.reptor.player.data.MediaKind
 import com.reptor.player.data.Prefs
@@ -62,6 +63,32 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
     var playing by remember { mutableStateOf<PlayRequest?>(null) }
     var resolving by remember { mutableStateOf(false) }
     var toast by remember { mutableStateOf<String?>(null) }
+
+    // Status da carga única da lista (mostrado no menu principal).
+    var preloadLabel by remember { mutableStateOf<String?>("Preparando a lista…") }
+
+    LaunchedEffect(session.key()) {
+        // A lista inteira é baixada UMA vez, aqui na entrada do app.
+        // Depois disso Canais, Filmes e Séries abrem na hora; só o botão
+        // "Atualizar" volta a baixar. Carrega em sequência para não estourar
+        // a memória do Fire TV Stick antigo.
+        for (kind in listOf(MediaKind.LIVE, MediaKind.VOD, MediaKind.SERIES)) {
+            preloadLabel = "Carregando ${kind.label.lowercase()}…"
+            try {
+                kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
+                    ContentStore.load(
+                        source = source,
+                        cacheId = ContentStore.cacheId(session.key(), kind),
+                        kind = kind
+                    )
+                }
+            } catch (_: Throwable) {
+                // Se uma aba falhar, as outras continuam. Ao abrir a aba que
+                // falhou ela tenta carregar de novo, com a mensagem de erro.
+            }
+        }
+        preloadLabel = null
+    }
 
     var clock by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
@@ -118,6 +145,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
             MainMenuScreen(
                 accountLabel = session.displayName(),
                 deviceCode = deviceCode,
+                loadingLabel = preloadLabel,
                 onOpen = { tab = it }
             )
         } else {

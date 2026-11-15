@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,6 +51,7 @@ import com.reptor.player.ui.theme.ReptorTextDim
 fun MainMenuScreen(
     accountLabel: String,
     deviceCode: String,
+    loadingLabel: String? = null,
     onOpen: (Tab) -> Unit
 ) {
     val firstFocus = remember { FocusRequester() }
@@ -156,12 +159,37 @@ fun MainMenuScreen(
                 )
             }
 
-            Text(
-                text = "Voltar fecha esta tela. Dentro de uma aba, Voltar retorna ao menu.",
-                color = ReptorTextDim,
-                fontSize = 11.sp,
-                modifier = Modifier.padding(top = 14.dp)
-            )
+            Row(
+                modifier = Modifier.padding(top = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (loadingLabel != null) {
+                    CircularProgressIndicator(
+                        color = ReptorGreen,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = loadingLabel,
+                        color = ReptorGreen,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = "A lista é carregada uma vez só. Você já pode abrir uma aba.",
+                        color = ReptorTextDim,
+                        fontSize = 11.sp
+                    )
+                } else {
+                    Text(
+                        text = "Lista pronta. Voltar fecha esta tela. Dentro de uma aba, Voltar retorna ao menu.",
+                        color = ReptorTextDim,
+                        fontSize = 11.sp
+                    )
+                }
+            }
         }
     }
 }
