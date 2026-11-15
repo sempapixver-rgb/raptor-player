@@ -409,6 +409,16 @@ private fun SeriesDetailView(
         flatEpisodes.withIndex().associate { it.value.id to it.index }
     }
 
+    // Ao abrir a série, o primeiro episódio já começa a tocar. Quando o player
+    // fecha, esta lista (temporadas/episódios) continua exatamente aqui.
+    var autoStarted by remember(detail?.id) { mutableStateOf(false) }
+    LaunchedEffect(detail?.id, playQueue.size) {
+        if (!autoStarted && playQueue.isNotEmpty()) {
+            autoStarted = true
+            onPlayEpisode(playQueue, 0)
+        }
+    }
+
     Column(Modifier.fillMaxSize()) {
 
         // ------------------------------------------------------- barra voltar
