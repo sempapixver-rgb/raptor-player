@@ -95,10 +95,11 @@ Livre para todos os públicos (o app não traz conteúdo próprio)
 **Observação para o revisor (campo "notas de teste")**
 ```
 O app abre na tela de termos. Aceite e, na tela seguinte, use o botão
-"Testar o player (vídeos de exemplo)" — ele toca 4 vídeos públicos
-(MP4/H.264) sem login, lista ou credenciais. Os botões Anterior/Próximo,
-Play/Pause, Voltar e as setas do controle funcionam nessa demonstração.
-Nenhum conteúdo de terceiros está embutido no APK.
+"Testar o player (vídeos de exemplo)" — ele toca 4 clipes abertos
+(CC-BY, MP4/H.264) hospedados na página de releases do próprio
+desenvolvedor, sem login, lista ou credenciais. Os botões
+Anterior/Próximo, Play/Pause, Voltar e as setas do controle funcionam
+nessa demonstração. Nenhum conteúdo de terceiros está embutido no APK.
 ```
 
 ---
