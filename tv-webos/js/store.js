@@ -4,6 +4,12 @@ var Store = {
 
   PREFIX: 'raptor.',
 
+  // Cache em memória. Na TV, ler o localStorage e converter o JSON a cada
+  // item da lista (60 por página) travava a navegação.
+  _favorites: null,
+  _favoriteKeys: null,
+  _recents: null,
+
   get: function (key, fallback) {
     try {
       var raw = window.localStorage.getItem(this.PREFIX + key);
@@ -18,6 +24,12 @@ var Store = {
     try {
       window.localStorage.setItem(this.PREFIX + key, JSON.stringify(value));
     } catch (e) { /* sem espaço: ignora */ }
+    if (key === 'favorites') {
+      this._favorites = value || [];
+      this._favoriteKeys = null;
+    } else if (key === 'recents') {
+      this._recents = value || [];
+    }
   },
 
   remove: function (key) {
@@ -72,18 +84,27 @@ var Store = {
   /* --------------------------------------------------- favoritos/vistos */
 
   favorites: function () {
-    var list = this.get('favorites', []);
-    return list && list.length ? list : [];
+    if (!this._favorites) {
+      var list = this.get('favorites', []);
+      this._favorites = list && list.length ? list : [];
+    }
+    return this._favorites;
+  },
+
+  /** Índice "kind|id" dos favoritos: evita varrer a lista por item. */
+  favoriteKeys: function () {
+    if (!this._favoriteKeys) {
+      var list = this.favorites();
+      var map = {};
+      for (var i = 0; i < list.length; i++) map[entryKey(list[i])] = true;
+      this._favoriteKeys = map;
+    }
+    return this._favoriteKeys;
   },
 
   isFavorite: function (entry) {
     if (!entry) return false;
-    var key = entryKey(entry);
-    var list = this.favorites();
-    for (var i = 0; i < list.length; i++) {
-      if (entryKey(list[i]) === key) return true;
-    }
-    return false;
+    return this.favoriteKeys()[entryKey(entry)] === true;
   },
 
   /** Salva/remove dos favoritos. Devolve true quando ficou salvo. */
@@ -106,8 +127,11 @@ var Store = {
   },
 
   recents: function () {
-    var list = this.get('recents', []);
-    return list && list.length ? list : [];
+    if (!this._recents) {
+      var list = this.get('recents', []);
+      this._recents = list && list.length ? list : [];
+    }
+    return this._recents;
   },
 
   addRecent: function (entry) {

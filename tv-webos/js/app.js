@@ -1,6 +1,6 @@
 /* Raptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.0.21';
+var APP_VERSION = '1.2.0';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
@@ -33,6 +33,8 @@ var App = {
   selected: null,
   previewUrl: null,
   previewTimer: null,
+  previewDebounce: null,
+  synopsisDebounce: null,
   previewFailed: false,
   epgPrograms: null,
   epgToken: 0,
@@ -1032,6 +1034,7 @@ var App = {
     var self = this;
     var holder = $('items');
     clear(holder);
+    Thumbs.reset();
     hide($('loading'));
 
     if (!list || !list.length) {
@@ -1103,7 +1106,7 @@ var App = {
 
     var logo = make('span', 'logo');
     if (entry.logo) {
-      logo.style.backgroundImage = 'url("' + String(entry.logo).replace(/"/g, '%22') + '")';
+      Thumbs.set(logo, entry.logo);
     }
     row.appendChild(logo);
 
@@ -1330,7 +1333,6 @@ var App = {
       var jaRodando = !!url && this.previewUrl === url && video &&
         video.readyState >= 2 && !video.paused;
 
-      this.startPreview(url);
       if (jaRodando) {
         this.hidePreviewCover();
         this.previewStatus('', false);
@@ -1338,7 +1340,9 @@ var App = {
         this.showPreviewCover(entry);
         this.previewStatus('Conectando…', false);
       }
-      this.loadEpg(entry);
+      // Só conecta depois que o usuário para de navegar: abrir um stream por
+      // linha (segurando a seta) derrubava a TV.
+      this.scheduleLivePreview(entry, url);
     } else {
       this.stopPreview();
       this.epgPrograms = null;
@@ -1349,11 +1353,47 @@ var App = {
         ? 'url("' + String(entry.logo).replace(/"/g, '%22') + '")'
         : '';
       show($('previewPoster'));
-      this.loadSynopsis(entry);
+      this.scheduleSynopsis(entry);
     }
 
     this.updateFavStar();
     this.updateStepButtons();
+  },
+
+  /**
+   * Abre a prévia do canal só quando a navegação para.
+   * Sem isso, cada linha visitada abria um stream novo — segurando a seta a
+   * TV chegava a abrir dezenas de conexões e travava.
+   */
+  scheduleLivePreview: function (entry, url) {
+    var self = this;
+    if (this.previewDebounce) {
+      clearTimeout(this.previewDebounce);
+      this.previewDebounce = null;
+    }
+    if (!url) return;
+    this.previewDebounce = setTimeout(function () {
+      self.previewDebounce = null;
+      if (self.section !== MediaKind.LIVE) return;
+      if (!self.selected || String(self.selected.id) !== String(entry.id)) return;
+      self.startPreview(url);
+      self.loadEpg(entry);
+    }, 450);
+  },
+
+  /** Sinopse também espera a navegação parar (uma requisição por item). */
+  scheduleSynopsis: function (entry) {
+    var self = this;
+    if (this.synopsisDebounce) {
+      clearTimeout(this.synopsisDebounce);
+      this.synopsisDebounce = null;
+    }
+    this.synopsisDebounce = setTimeout(function () {
+      self.synopsisDebounce = null;
+      if (self.section === MediaKind.LIVE) return;
+      if (!self.selected || String(self.selected.id) !== String(entry.id)) return;
+      self.loadSynopsis(entry);
+    }, 300);
   },
 
   /** Sinopse do filme: a lista do servidor não traz o texto, só o detalhe. */
@@ -1493,6 +1533,10 @@ var App = {
   stopPreview: function () {
     this.previewUrl = null;
     this.previewFailed = false;
+    if (this.previewDebounce) {
+      clearTimeout(this.previewDebounce);
+      this.previewDebounce = null;
+    }
     if (this.previewTimer) {
       clearTimeout(this.previewTimer);
       this.previewTimer = null;
@@ -1599,7 +1643,7 @@ var App = {
 
     var thumb = make('div', 'thumb');
     if (entry.logo) {
-      thumb.style.backgroundImage = 'url("' + String(entry.logo).replace(/"/g, '%22') + '")';
+      Thumbs.set(thumb, entry.logo);
     } else {
       thumb.textContent = (entry.name || '?').charAt(0).toUpperCase();
     }
@@ -1797,6 +1841,56 @@ var App = {
     var name = this.detail ? this.detail.name : 'Episódio';
     Player.open(url, name + ' · T' + episode.season + ' E' + episode.number + ' — ' + episode.title, false);
     this.updatePlayerNav();
+  },
+
+  /**
+   * Chamado quando o vídeo termina.
+   * Série: abre o próximo episódio sozinho (e a temporada seguinte, se acabar a atual).
+   * Devolve true quando já começou outro vídeo.
+   */
+  onPlaybackEnded: function () {
+    if (!this.playingSeason) return false;
+
+    var season = this.playingSeason;
+    var eps = season.episodes || [];
+    var next = this.playingEpIndex + 1;
+
+    if (next >= 0 && next < eps.length) {
+      this.playEpisode(eps[next], season, next);
+      return true;
+    }
+
+    var following = this.seasonAfter(season);
+    if (following && following.episodes && following.episodes.length) {
+      this.showSeason(following);
+      this.playEpisode(following.episodes[0], following, 0);
+      return true;
+    }
+
+    return false;
+  },
+
+  /** Próxima temporada (pelo número) dentro da série aberta. */
+  seasonAfter: function (season) {
+    var seasons = (this.detail && this.detail.seasons) || [];
+    for (var i = 0; i < seasons.length; i++) {
+      if (seasons[i].number === season.number) {
+        return i + 1 < seasons.length ? seasons[i + 1] : null;
+      }
+    }
+    return null;
+  },
+
+  /** Marca a aba da temporada e redesenha os episódios na tela de detalhe. */
+  showSeason: function (season) {
+    var tabs = $('seasonTabs');
+    var buttons = tabs.getElementsByTagName('button');
+    var seasons = (this.detail && this.detail.seasons) || [];
+    for (var i = 0; i < buttons.length; i++) {
+      if (seasons[i] && seasons[i].number === season.number) buttons[i].classList.add('active');
+      else buttons[i].classList.remove('active');
+    }
+    this.renderEpisodes(season);
   },
 
   /** Anterior/Próximo com o vídeo rodando: canal, filme ou episódio. */
@@ -2097,7 +2191,11 @@ var Player = {
 
     this.video.addEventListener('timeupdate', function () { self.onTime(); }, false);
     this.video.addEventListener('loadedmetadata', function () { self.onTime(); }, false);
-    this.video.addEventListener('ended', function () { self.showOverlay(); }, false);
+    this.video.addEventListener('ended', function () {
+      // Série emenda o próximo episódio; se não houver, só mostra os controles.
+      if (App.onPlaybackEnded && App.onPlaybackEnded()) return;
+      self.showOverlay();
+    }, false);
     this.video.addEventListener('click', function () { self.toggleOverlay(); }, false);
   },
 

@@ -139,3 +139,62 @@ function makeButton(className, text) {
 function pad2(n) {
   return (n < 10 ? '0' : '') + n;
 }
+
+/**
+ * Fila de imagens (capas e logos).
+ *
+ * A TV não aguenta 60 pedidos de imagem ao mesmo tempo: o navegador abre
+ * todas as conexões, a rede satura e o app parece travado. Aqui carregamos
+ * no máximo 4 por vez, e ao trocar de página a fila antiga é descartada.
+ */
+var Thumbs = {
+
+  MAX: 4,
+  running: 0,
+  queue: [],
+  gen: 0,
+
+  /** Descarta o que ainda não começou (troca de página/pasta). */
+  reset: function () {
+    this.gen++;
+    this.queue.length = 0;
+  },
+
+  /** Aplica a imagem no elemento quando ela estiver pronta. */
+  set: function (el, url) {
+    if (!el) return;
+    var clean = String(url || '').replace(/"/g, '%22');
+    if (!clean) return;
+    var css = 'url("' + clean + '")';
+    if (el._thumbUrl === css) return;
+    el._thumbUrl = css;
+
+    var gen = this.gen;
+    this.queue.push({ gen: gen, el: el, css: css, src: clean });
+    this.next();
+  },
+
+  next: function () {
+    var self = this;
+    while (this.running < this.MAX && this.queue.length) {
+      var job = this.queue.shift();
+      if (job.gen !== this.gen) continue;
+      this.running++;
+      (function (item) {
+        var img = new Image();
+        var done = false;
+        function finish() {
+          if (done) return;
+          done = true;
+          self.running--;
+          // Só pinta se o elemento ainda quer esta imagem.
+          if (item.el._thumbUrl === item.css) item.el.style.backgroundImage = item.css;
+          self.next();
+        }
+        img.onload = finish;
+        img.onerror = finish;
+        img.src = item.src;
+      })(job);
+    }
+  }
+};
