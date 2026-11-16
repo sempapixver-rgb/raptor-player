@@ -28,6 +28,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -74,7 +75,10 @@ import java.io.File
 import java.io.IOException
 
 @Composable
-fun LoginScreen(onLoggedIn: (Session) -> Unit) {
+fun LoginScreen(
+    onLoggedIn: (Session) -> Unit,
+    onDemo: () -> Unit = {}
+) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val prefs = remember { Prefs(context) }
@@ -235,6 +239,25 @@ fun LoginScreen(onLoggedIn: (Session) -> Unit) {
 
             // Ativação sem digitar nada: QR Code + código da TV.
             ActivationCard(onActivated = { login(it) })
+
+            Spacer(Modifier.height(14.dp))
+
+            // Modo demonstração: testa o player com vídeos públicos, sem lista
+            // e sem login. É o que permite avaliar o app (Amazon/LG) na hora.
+            OutlinedButton(
+                onClick = onDemo,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 520.dp)
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text(
+                    text = "▶  Testar o player (vídeos de exemplo)",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
 
             Spacer(Modifier.height(24.dp))
 

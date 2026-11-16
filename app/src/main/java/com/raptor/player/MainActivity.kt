@@ -16,8 +16,10 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.raptor.player.data.Prefs
 import com.raptor.player.data.Session
+import com.raptor.player.ui.Demo
 import com.raptor.player.ui.HomeScreen
 import com.raptor.player.ui.LoginScreen
+import com.raptor.player.ui.PlayerScreen
 import com.raptor.player.ui.TERMS_VERSION
 import com.raptor.player.ui.TermsScreen
 import com.raptor.player.ui.theme.RaptorTheme
@@ -42,6 +44,9 @@ class MainActivity : ComponentActivity() {
                     var accepted by remember {
                         mutableStateOf(prefs.acceptedTermsVersion() >= TERMS_VERSION)
                     }
+                    // Modo demonstração: toca vídeos públicos de exemplo, sem
+                    // lista e sem login (usado por quem avalia o app).
+                    var demo by remember { mutableStateOf(false) }
 
                     if (!accepted) {
                         // Primeiro acesso (ou termo novo): só libera depois do aceite.
@@ -52,6 +57,13 @@ class MainActivity : ComponentActivity() {
                             },
                             onDecline = { finish() }
                         )
+                    } else if (demo) {
+                        PlayerScreen(
+                            url = Demo.first.url,
+                            title = Demo.first.title,
+                            queue = Demo.items,
+                            onClose = { demo = false }
+                        )
                     } else {
                         val current = session
                         if (current == null) {
@@ -60,7 +72,8 @@ class MainActivity : ComponentActivity() {
                                     prefs.saveList(logged)
                                     prefs.setCurrent(logged)
                                     session = logged
-                                }
+                                },
+                                onDemo = { demo = true }
                             )
                         } else {
                             HomeScreen(
