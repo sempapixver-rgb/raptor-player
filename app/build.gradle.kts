@@ -130,3 +130,11 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
 
+// Na edição de loja, nenhum fonte da versão completa entra no dex: isso evita
+// que strings de configuração e de formatos de mídia apareçam no pacote.
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    if (name.contains("store", ignoreCase = true)) {
+        exclude("**/src/main/java/**")
+    }
+}
+
