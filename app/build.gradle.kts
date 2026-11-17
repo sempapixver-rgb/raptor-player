@@ -66,6 +66,14 @@ android {
         }
     }
 
+    // A edição de loja compila somente arquivos próprios: nenhum código de
+    // listas, credenciais ou formatos de mídia entra nesse pacote.
+    sourceSets {
+        getByName("store") {
+            java.setSrcDirs(listOf("src/store/java"))
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -123,8 +131,12 @@ dependencies {
     add("mobileImplementation", "androidx.media3:media3-exoplayer-hls:1.3.1")
     add("firetvImplementation", "androidx.media3:media3-exoplayer-hls:1.3.1")
 
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("io.coil-kt:coil-compose:2.6.0")
+    // Essas bibliotecas só são usadas pelas versões completas. A edição de loja
+    // não faz requisições de configuração nem carrega capas remotas.
+    add("mobileImplementation", "com.squareup.okhttp3:okhttp:4.12.0")
+    add("firetvImplementation", "com.squareup.okhttp3:okhttp:4.12.0")
+    add("mobileImplementation", "io.coil-kt:coil-compose:2.6.0")
+    add("firetvImplementation", "io.coil-kt:coil-compose:2.6.0")
     implementation("com.google.zxing:core:3.5.3")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
