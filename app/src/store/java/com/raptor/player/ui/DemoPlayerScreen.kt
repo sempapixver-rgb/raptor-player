@@ -86,7 +86,7 @@ import kotlinx.coroutines.launch
 
 private val SPEEDS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
 
-private data class TrackOption(val label: String, val override: TrackSelectionOverride?)
+private data class DemoTrackOption(val label: String, val override: TrackSelectionOverride?)
 
 /** Um item reproduzível: episódio ou filme/canal. */
 data class DemoPlayItem(val url: String, val title: String)
@@ -122,8 +122,8 @@ fun DemoPlayerScreen(
     var isPlaying by remember { mutableStateOf(true) }
     var position by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(0L) }
-    var audioTracks by remember { mutableStateOf<List<TrackOption>>(emptyList()) }
-    var textTracks by remember { mutableStateOf<List<TrackOption>>(emptyList()) }
+    var audioTracks by remember { mutableStateOf<List<DemoTrackOption>>(emptyList()) }
+    var textTracks by remember { mutableStateOf<List<DemoTrackOption>>(emptyList()) }
     var showSpeed by remember { mutableStateOf(false) }
     var showAudio by remember { mutableStateOf(false) }
     var showSubs by remember { mutableStateOf(false) }
@@ -259,8 +259,8 @@ fun DemoPlayerScreen(
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
-                val audio = ArrayList<TrackOption>()
-                val text = ArrayList<TrackOption>()
+                val audio = ArrayList<DemoTrackOption>()
+                val text = ArrayList<DemoTrackOption>()
                 tracks.groups.forEach { group ->
                     if (group.type != C.TRACK_TYPE_AUDIO && group.type != C.TRACK_TYPE_TEXT) return@forEach
                     val target = if (group.type == C.TRACK_TYPE_AUDIO) audio else text
@@ -271,7 +271,7 @@ fun DemoPlayerScreen(
                             ?: format.language
                             ?: if (group.type == C.TRACK_TYPE_AUDIO) "Faixa ${index + 1}" else "Legenda ${index + 1}"
                         target.add(
-                            TrackOption(
+                            DemoTrackOption(
                                 label = label,
                                 override = TrackSelectionOverride(group.mediaTrackGroup, index)
                             )
@@ -288,7 +288,7 @@ fun DemoPlayerScreen(
         onDispose { player.removeListener(listener) }
     }
 
-    fun applyAudio(option: TrackOption?) {
+    fun applyAudio(option: DemoTrackOption?) {
         val builder = player.trackSelectionParameters.buildUpon()
         if (option?.override == null) {
             builder.clearOverridesOfType(C.TRACK_TYPE_AUDIO)
@@ -299,7 +299,7 @@ fun DemoPlayerScreen(
         audioLabel = option?.label ?: "Áudio"
     }
 
-    fun applySubs(option: TrackOption?) {
+    fun applySubs(option: DemoTrackOption?) {
         val builder = player.trackSelectionParameters.buildUpon()
         if (option?.override == null) {
             builder.clearOverridesOfType(C.TRACK_TYPE_TEXT)

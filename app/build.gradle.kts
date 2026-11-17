@@ -123,12 +123,8 @@ dependencies {
     add("mobileImplementation", "androidx.media3:media3-exoplayer-hls:1.3.1")
     add("firetvImplementation", "androidx.media3:media3-exoplayer-hls:1.3.1")
 
-    // Essas bibliotecas só são usadas pelas versões completas. A edição de loja
-    // não faz requisições de configuração nem carrega capas remotas.
-    add("mobileImplementation", "com.squareup.okhttp3:okhttp:4.12.0")
-    add("firetvImplementation", "com.squareup.okhttp3:okhttp:4.12.0")
-    add("mobileImplementation", "io.coil-kt:coil-compose:2.6.0")
-    add("firetvImplementation", "io.coil-kt:coil-compose:2.6.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("com.google.zxing:core:3.5.3")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
