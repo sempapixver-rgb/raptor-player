@@ -16,4 +16,5 @@
   <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
   <tizen:profile name="tv"/>
   <tizen:metadata key="http://samsung.com/tv/metadata/prelaunch.support" value="true"/>
+  <feature name="http://tizen.org/feature/screen.size.all"/>
 </widget>
