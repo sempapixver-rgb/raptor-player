@@ -2,8 +2,9 @@
 
 **No ar:** https://raptor-player.netlify.app
 
-Site que ativa a TV pelo código (MAC) exibido no app. O cliente não digita nada
-no controle: ele preenche o site e o app busca a configuração sozinho.
+Site que cadastra a TV pelo código (MAC) exibido no app. Nas edições de loja,
+o cadastro apenas identifica o aparelho; a configuração de vídeos continua
+restrita ao painel do proprietário.
 
 ## Páginas
 
