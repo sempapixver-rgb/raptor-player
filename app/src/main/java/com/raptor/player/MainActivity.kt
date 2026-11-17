@@ -62,6 +62,7 @@ class MainActivity : ComponentActivity() {
                             url = Demo.first.url,
                             title = Demo.first.title,
                             queue = Demo.items,
+                            autoAdvance = true,
                             onClose = { demo = false }
                         )
                     } else {

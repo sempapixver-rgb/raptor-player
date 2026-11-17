@@ -98,7 +98,8 @@ fun PlayerScreen(
     title: String,
     onClose: () -> Unit,
     queue: List<PlayItem> = emptyList(),
-    startIndex: Int = 0
+    startIndex: Int = 0,
+    autoAdvance: Boolean = false
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -239,6 +240,20 @@ fun PlayerScreen(
         }
     }
 
+    // Série: quando um episódio termina, começa o próximo sozinho.
+    DisposableEffect(player, autoAdvance) {
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED && autoAdvance && index < items.lastIndex) {
+                    controlsVisible = true
+                    index += 1
+                }
+            }
+        }
+        player.addListener(listener)
+        onDispose { player.removeListener(listener) }
+    }
+
     // Lê as faixas de áudio e legenda disponíveis.
     DisposableEffect(player) {
         val listener = object : Player.Listener {
@@ -307,6 +322,17 @@ fun PlayerScreen(
             controlsVisible = true
             index = target
         }
+    }
+
+    /** Avança/volta no vídeo. Em canal ao vivo (sem duração) não faz nada. */
+    fun seekBy(delta: Long) {
+        val total = player.duration
+        if (total <= 0) {
+            controlsVisible = true
+            return
+        }
+        player.seekTo((player.currentPosition + delta).coerceIn(0L, total))
+        controlsVisible = true
     }
 
     fun cycleResize() {
@@ -425,16 +451,14 @@ fun PlayerScreen(
                         true
                     }
 
-                    // ⏪ / ⏩ do controle do Fire TV: volta/avança 10 segundos.
+                    // ⏪ / ⏩ do controle do Fire TV: volta/avança 30 segundos.
                     Key.MediaRewind -> {
-                        player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0))
-                        controlsVisible = true
+                        seekBy(-30_000L)
                         true
                     }
 
                     Key.MediaFastForward -> {
-                        player.seekTo(player.currentPosition + 10_000)
-                        controlsVisible = true
+                        seekBy(30_000L)
                         true
                     }
 
@@ -449,13 +473,13 @@ fun PlayerScreen(
                         true
                     }
 
-                    // Esquerda/direita: mostra os controles ou avança/volta 10s.
+                    // Esquerda/direita: mostra os controles ou avança/volta 30s.
                     Key.DirectionLeft -> {
                         if (!controlsVisible) {
                             controlsVisible = true
                             true
                         } else if (rootSelfFocused) {
-                            player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0))
+                            seekBy(-30_000L)
                             true
                         } else {
                             false
@@ -467,7 +491,7 @@ fun PlayerScreen(
                             controlsVisible = true
                             true
                         } else if (rootSelfFocused) {
-                            player.seekTo(player.currentPosition + 10_000)
+                            seekBy(30_000L)
                             true
                         } else {
                             false
@@ -640,71 +664,91 @@ fun PlayerScreen(
                 Spacer(Modifier.weight(1f))
 
                 // Centro
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    val canPrev = index > 0
-                    TextButton(onClick = { go(-1) }, enabled = canPrev) {
-                        Text(
-                            text = "⏮ Anterior",
-                            color = if (canPrev) Color.White else Color.White.copy(alpha = 0.35f),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Spacer(Modifier.width(10.dp))
-                    TextButton(onClick = { player.seekTo((player.currentPosition - 10_000).coerceAtLeast(0)) }) {
-                        Text("−10s", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(Modifier.width(24.dp))
-                    var playFocused by remember { mutableStateOf(false) }
-                    Box(
-                        modifier = Modifier
-                            .size(62.dp)
-                            .background(
-                                if (playFocused) Color.White.copy(alpha = 0.30f)
-                                else Color.White.copy(alpha = 0.16f),
-                                RoundedCornerShape(50)
-                            )
-                            .border(
-                                width = if (playFocused) 2.dp else 0.dp,
-                                color = if (playFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                                shape = RoundedCornerShape(50)
-                            ),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextButton(
-                            onClick = {
-                                if (player.isPlaying) player.pause() else player.play()
-                            },
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .focusRequester(playFocus)
-                                .onFocusChanged { playFocused = it.isFocused }
-                        ) {
+                        val canPrev = index > 0
+                        TextButton(onClick = { go(-1) }, enabled = canPrev) {
                             Text(
-                                text = if (isPlaying) "❚❚" else "▶",
-                                color = Color.White,
-                                fontSize = 22.sp,
+                                text = "⏮ Anterior",
+                                color = if (canPrev) Color.White else Color.White.copy(alpha = 0.35f),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        var playFocused by remember { mutableStateOf(false) }
+                        Box(
+                            modifier = Modifier
+                                .size(62.dp)
+                                .background(
+                                    if (playFocused) Color.White.copy(alpha = 0.30f)
+                                    else Color.White.copy(alpha = 0.16f),
+                                    RoundedCornerShape(50)
+                                )
+                                .border(
+                                    width = if (playFocused) 2.dp else 0.dp,
+                                    color = if (playFocused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    shape = RoundedCornerShape(50)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    if (player.isPlaying) player.pause() else player.play()
+                                },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .focusRequester(playFocus)
+                                    .onFocusChanged { playFocused = it.isFocused }
+                            ) {
+                                Text(
+                                    text = if (isPlaying) "❚❚" else "▶",
+                                    color = Color.White,
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        val canNext = index < items.lastIndex
+                        TextButton(onClick = { go(1) }, enabled = canNext) {
+                            Text(
+                                text = "Próximo ⏭",
+                                color = if (canNext) Color.White else Color.White.copy(alpha = 0.35f),
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
-                    Spacer(Modifier.width(24.dp))
-                    TextButton(onClick = { player.seekTo(player.currentPosition + 10_000) }) {
-                        Text("+10s", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(Modifier.width(10.dp))
-                    val canNext = index < items.lastIndex
-                    TextButton(onClick = { go(1) }, enabled = canNext) {
-                        Text(
-                            text = "Próximo ⏭",
-                            color = if (canNext) Color.White else Color.White.copy(alpha = 0.35f),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+
+                    // Pular no vídeo: 30 s, 5 min, 10 min e 30 min (voltar/avançar).
+                    // Só em filme/episódio: canal ao vivo não tem duração.
+                    if (duration > 0) {
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SeekButton("−30 min") { seekBy(-1_800_000L) }
+                            SeekButton("−10 min") { seekBy(-600_000L) }
+                            SeekButton("−5 min") { seekBy(-300_000L) }
+                            SeekButton("−30 s") { seekBy(-30_000L) }
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SeekButton("+30 s") { seekBy(30_000L) }
+                            SeekButton("+5 min") { seekBy(300_000L) }
+                            SeekButton("+10 min") { seekBy(600_000L) }
+                            SeekButton("+30 min") { seekBy(1_800_000L) }
+                        }
                     }
                 }
 
@@ -741,7 +785,32 @@ fun PlayerScreen(
                             value = position.coerceIn(0, duration).toFloat(),
                             onValueChange = { player.seekTo(it.toLong()) },
                             valueRange = 0f..duration.toFloat(),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                // Com a barra em foco, ←/→ volta/avança 30 s e
+                                // OK pausa ou continua o vídeo.
+                                .onPreviewKeyEvent { event ->
+                                    if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                                    when (event.key) {
+                                        Key.DirectionLeft -> {
+                                            seekBy(-30_000L)
+                                            true
+                                        }
+
+                                        Key.DirectionRight -> {
+                                            seekBy(30_000L)
+                                            true
+                                        }
+
+                                        Key.DirectionCenter, Key.Enter -> {
+                                            if (player.isPlaying) player.pause() else player.play()
+                                            controlsVisible = true
+                                            true
+                                        }
+
+                                        else -> false
+                                    }
+                                }
                         )
                     } else {
                         Text(
@@ -876,6 +945,18 @@ fun PlayerScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SeekButton(label: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick) {
+        Text(
+            text = label,
+            color = Color.White,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 

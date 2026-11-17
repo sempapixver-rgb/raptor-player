@@ -1,6 +1,6 @@
 /* Raptor Player — webOS. Controlador principal. */
 
-var APP_VERSION = '1.2.0';
+var APP_VERSION = '1.2.1';
 
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
@@ -137,6 +137,7 @@ var App = {
 
       // Player com a barra escondida: a primeira tecla só mostra os controles.
       if (self.isPlayerOpen() && $('playerOverlay').classList.contains('hidden') &&
+          $('playerError').classList.contains('hidden') &&
           (code === 13 || code === 37 || code === 38 || code === 39 || code === 40)) {
         event.preventDefault();
         Player.showOverlay();
@@ -144,6 +145,12 @@ var App = {
         return;
       }
 
+      // Barra de tempo do player: esquerda/direita avancam ou voltam 30 s.
+      if (self.isPlayerOpen() && active && active.id === 'progress') {
+        if (code === 37) { event.preventDefault(); Player.seek(-30); Player.scheduleHide(); return; }
+        if (code === 39) { event.preventDefault(); Player.seek(30); Player.scheduleHide(); return; }
+        if (code === 13) { event.preventDefault(); Player.toggle(); Player.scheduleHide(); return; }
+      }
       if (code === 37 || code === 38 || code === 39 || code === 40) {
         var digitando = document.activeElement && document.activeElement.id === 'searchInput';
         // Com o campo de busca em foco, as setas editam o texto; só "baixo"
@@ -1782,6 +1789,7 @@ var App = {
     }
 
     setTimeout(function () {
+      if (App.isPlayerOpen() || $('screen-detail').classList.contains('hidden')) return;
       var first = document.querySelector('#episodes .episode') ||
         document.querySelector('#seasonTabs .season');
       if (first) { try { first.focus(); } catch (e) { /* ignora */ } }
@@ -1833,14 +1841,15 @@ var App = {
     var url = this.source.episodeUrl(episode);
     if (!url) {
       toast('Não foi possível montar o endereço deste episódio.');
-      return;
+      return false;
     }
     this.playing = null;
     this.playingSeason = season || null;
     this.playingEpIndex = typeof index === 'number' ? index : -1;
     var name = this.detail ? this.detail.name : 'Episódio';
-    Player.open(url, name + ' · T' + episode.season + ' E' + episode.number + ' — ' + episode.title, false);
+    Player.open(url, name + ' - T' + episode.season + ' E' + episode.number + ' - ' + episode.title, false);
     this.updatePlayerNav();
+    return true;
   },
 
   /**
@@ -1856,15 +1865,24 @@ var App = {
     var next = this.playingEpIndex + 1;
 
     if (next >= 0 && next < eps.length) {
-      this.playEpisode(eps[next], season, next);
-      return true;
+      return this.playEpisode(eps[next], season, next);
     }
 
     var following = this.seasonAfter(season);
     if (following && following.episodes && following.episodes.length) {
-      this.showSeason(following);
-      this.playEpisode(following.episodes[0], following, 0);
-      return true;
+      if (App.isPlayerOpen()) {
+        this.renderEpisodes(following);
+        var tabs = seasonTabs;
+        var buttons = tabs ? tabs.getElementsByTagName('button') : [];
+        var seasons = (this.detail && this.detail.seasons) || [];
+        for (var i = 0; i < buttons.length; i++) {
+          if (seasons[i] && seasons[i].number === following.number) buttons[i].classList.add('active');
+          else buttons[i].classList.remove('active');
+        }
+      } else {
+        this.showSeason(following);
+      }
+      return this.playEpisode(following.episodes[0], following, 0);
     }
 
     return false;
@@ -2176,8 +2194,16 @@ var Player = {
   hls: null,
   hideTimer: null,
   currentUrl: null,
+  currentTitle: '',
   isLive: false,
   tryingHls: false,
+  loadTimer: null,
+  started: false,
+  wantPlay: false,
+  autoPlayTries: 0,
+  autoRetries: 0,
+  attempt: 0,
+  autoPlayTries: 0,
 
   /** Liga os eventos do <video> uma única vez. */
   bindVideo: function () {
@@ -2187,6 +2213,20 @@ var Player = {
     this.video.addEventListener('error', function () {
       if (!App.isPlayerOpen() || !self.currentUrl) return;
       self.onError();
+    }, false);
+
+    // Alguns modelos da LG só começam a tocar se pedirmos play() de novo
+    // quando os primeiros dados chegam. Sem isso o vídeo fica parado.
+    this.video.addEventListener('loadeddata', function () { self.onReady(); }, false);
+    this.video.addEventListener('canplay', function () { self.onReady(); }, false);
+    this.video.addEventListener('playing', function () {
+      self.started = true;
+      self.hideLoading();
+      self.clearWatchdog();
+      self.scheduleHide();
+    }, false);
+    this.video.addEventListener('waiting', function () {
+      if (!self.started) self.showLoading();
     }, false);
 
     this.video.addEventListener('timeupdate', function () { self.onTime(); }, false);
@@ -2200,22 +2240,29 @@ var Player = {
   },
 
   open: function (url, title, isLive) {
-    var self = this;
     if (!this.video) this.bindVideo();
 
     Screens.show('screen-player');
     hide($('playerError'));
     hide($('playerOverlay'));
 
-    $('playerTitle').textContent = title || '';
+    this.currentTitle = title || '';
+    $('playerTitle').textContent = this.currentTitle;
     var badge = $('playerBadge');
     badge.textContent = isLive ? 'AO VIVO' : 'VÍDEO';
     badge.className = 'player-badge' + (isLive ? '' : ' vod');
     toggle($('progress'), !isLive);
+    toggle($('skipBackRow'), !isLive);
+    toggle($('skipFwdRow'), !isLive);
 
     this.currentUrl = url;
     this.isLive = isLive;
     this.tryingHls = false;
+    this.started = false;
+    this.wantPlay = true;
+    this.autoPlayTries = 0;
+    this.autoRetries = 0;
+    this.clearWatchdog();
 
     this.destroyHls();
     var video = this.video;
@@ -2226,19 +2273,140 @@ var Player = {
     } catch (e) { /* ignora */ }
 
     this.showOverlay();
+    this.showLoading();
 
     video.src = url;
-    var started = video.play();
-    if (started && started.then) {
-      started.then(function () { self.scheduleHide(); }, function () { self.showOverlay(); });
-    } else {
-      this.scheduleHide();
-    }
+    this.tryPlay();
+    this.armWatchdog();
 
     setTimeout(function () {
       var button = $('btnPlay');
       if (button) { try { button.focus(); } catch (e) { /* ignora */ } }
     }, 60);
+  },
+
+  /** Pede o play e, se a TV recusar, tenta de novo sozinho em instantes. */
+  tryPlay: function () {
+    var self = this;
+    if (!this.video || !this.currentUrl) return;
+    var started;
+    try {
+      started = this.video.play();
+    } catch (e) {
+      this.scheduleAutoPlay();
+      return;
+    }
+    if (started && started.then) {
+      started.then(function () {
+        self.started = true;
+        self.autoPlayTries = 0;
+        self.hideLoading();
+        self.clearWatchdog();
+        self.scheduleHide();
+      }, function () {
+        // Autoplay recusado: mantem os controles e insiste sem o usuario.
+        self.showOverlay();
+        self.scheduleAutoPlay();
+      });
+    } else {
+      this.started = true;
+      this.hideLoading();
+      this.clearWatchdog();
+      this.scheduleHide();
+    }
+  },
+
+  /** Repete o play algumas vezes: alguns modelos so tocam apos os dados. */
+  scheduleAutoPlay: function () {
+    var self = this;
+    if (!this.wantPlay || !this.currentUrl) return;
+    this.autoPlayTries = this.autoPlayTries || 0;
+    if (this.autoPlayTries >= 8) return;
+    var delay = 700 + this.autoPlayTries * 500;
+    this.autoPlayTries += 1;
+    setTimeout(function () {
+      if (!self.wantPlay || !self.currentUrl || !App.isPlayerOpen()) return;
+      if (self.video && self.video.paused) self.tryPlay();
+    }, delay);
+  },
+
+  /** Chegaram dados suficientes: se ainda estiver parado, insiste no play. */
+  onReady: function () {
+    if (!this.currentUrl) return;
+    if (!this.started) this.hideLoading();
+    if (this.wantPlay && this.video && this.video.paused) this.tryPlay();
+  },
+
+  /**
+   * Tela preta nunca mais: se o vídeo não trouxe imagem, reconecta sozinho
+   * (o mesmo endereço costuma abrir na hora na tentativa seguinte) e, se
+   * ainda assim não vier nada, avisa com o botão "Tentar de novo".
+   */
+  armWatchdog: function () {
+    var self = this;
+    this.clearWatchdog();
+    this.loadTimer = setTimeout(function () {
+      self.loadTimer = null;
+      if (!App.isPlayerOpen() || !self.currentUrl) return;
+      var video = self.video;
+      if (!video) return;
+
+      if (video.readyState >= 2) {
+        // Tem dados: só não começou (play recusado ou travado).
+        if (self.wantPlay && video.paused) self.tryPlay();
+        return;
+      }
+
+      if (self.autoRetries < 2) {
+        self.autoRetries += 1;
+        self.reconnect();
+        return;
+      }
+
+      self.showError('O servidor demorou para responder. Toque em "Tentar de novo".');
+    }, 20000);
+  },
+
+  /** Recarrega o mesmo endereço mantendo o título e o tipo (ao vivo/vídeo). */
+  reconnect: function () {
+    var video = this.video;
+    if (!video || !this.currentUrl) return;
+
+    this.started = false;
+    this.tryingHls = false;
+    this.destroyHls();
+    try {
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    } catch (e) { /* ignora */ }
+
+    this.showLoading('Conectando de novo…');
+    video.src = this.currentUrl;
+    this.tryPlay();
+    this.armWatchdog();
+  },
+
+  clearWatchdog: function () {
+    if (this.loadTimer) {
+      clearTimeout(this.loadTimer);
+      this.loadTimer = null;
+    }
+  },
+
+  showLoading: function (text) {
+    $('playerLoadingText').textContent = text || 'Carregando…';
+    show($('playerLoading'));
+  },
+
+  hideLoading: function () {
+    hide($('playerLoading'));
+  },
+
+  /** Tenta abrir o mesmo endereço de novo (botão do aviso de erro). */
+  retry: function () {
+    if (!this.currentUrl) return;
+    this.open(this.currentUrl, this.currentTitle, this.isLive);
   },
 
   onError: function () {
@@ -2268,10 +2436,7 @@ var Player = {
     });
 
     hls.on(Hls.Events.MANIFEST_PARSED, function () {
-      var started = self.video.play();
-      if (started && started.then) {
-        started.then(function () { self.scheduleHide(); }, function () { /* ignora */ });
-      }
+      self.tryPlay();
     });
 
     hls.loadSource(url);
@@ -2286,24 +2451,28 @@ var Player = {
   },
 
   showError: function (message) {
+    this.clearWatchdog();
+    this.hideLoading();
     hide($('playerOverlay'));
     $('playerErrorSub').textContent = message || '';
     show($('playerError'));
     setTimeout(function () {
-      var back = $('playerError');
-      if (back) back.setAttribute('tabindex', '0');
+      var button = $('btnRetryPlay');
+      if (button) { try { button.focus(); } catch (e) { /* ignora */ } }
     }, 10);
   },
 
   play: function () {
     if (!this.video) return;
-    this.video.play();
+    this.wantPlay = true;
+    this.tryPlay();
     this.updatePlayButton();
     this.scheduleHide();
   },
 
   pause: function () {
     if (!this.video) return;
+    this.wantPlay = false;
     this.video.pause();
     this.updatePlayButton();
     this.showOverlay();
@@ -2328,6 +2497,19 @@ var Player = {
     this.video.currentTime = target;
     this.onTime();
     this.showOverlay();
+  },
+
+  /** Clique na barra: pula direto para a posicao tocada. */
+  seekToRatio: function (ratio) {
+    if (!this.video || this.isLive) return;
+    var total = this.video.duration;
+    if (!isFinite(total) || total <= 0) return;
+    if (ratio < 0) ratio = 0;
+    if (ratio > 1) ratio = 1;
+    this.video.currentTime = total * ratio;
+    this.onTime();
+    this.showOverlay();
+    this.scheduleHide();
   },
 
   onTime: function () {
@@ -2361,6 +2543,10 @@ var Player = {
   },
 
   close: function () {
+    this.clearWatchdog();
+    this.hideLoading();
+    this.started = false;
+    this.wantPlay = false;
     this.destroyHls();
     if (this.video) {
       try {
@@ -2380,7 +2566,23 @@ var Player = {
 document.addEventListener('DOMContentLoaded', function () {
   Player.bindVideo();
   $('btnPlay').addEventListener('click', function () { Player.toggle(); });
-  $('btnRew').addEventListener('click', function () { Player.seek(-10); });
-  $('btnFwd').addEventListener('click', function () { Player.seek(10); });
+  $('btnRetryPlay').addEventListener('click', function () { Player.retry(); });
+  var progressBar = $('progressBar');
+  if (progressBar) {
+    progressBar.addEventListener('click', function (event) {
+      var rect = progressBar.getBoundingClientRect();
+      if (!rect.width) return;
+      Player.seekToRatio((event.clientX - rect.left) / rect.width);
+    });
+  }
+  var skipButtons = document.querySelectorAll('.pbtn.skip[data-seek]');
+  for (var si = 0; si < skipButtons.length; si++) {
+    (function (btn) {
+      btn.addEventListener('click', function () {
+        var delta = parseInt(btn.getAttribute('data-seek'), 10) || 0;
+        Player.seek(delta);
+      });
+    })(skipButtons[si]);
+  }
   App.init();
 });

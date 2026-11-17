@@ -11,8 +11,8 @@ android {
         applicationId = "com.raptor.player"
         minSdk = 23
         targetSdk = 35
-        versionCode = 20
-        versionName = "1.3.3"
+        versionCode = 21
+        versionName = "1.3.4"
 
         vectorDrawables { useSupportLibrary = true }
 

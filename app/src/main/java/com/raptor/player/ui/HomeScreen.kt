@@ -48,7 +48,11 @@ import java.util.Locale
  * Casca do app: topo + uma aba por vez + menu inferior.
  * Canais ao vivo ficam somente em Canais, filmes em Filmes e séries em Séries.
  */
-private data class PlayRequest(val queue: List<PlayItem>, val index: Int)
+private data class PlayRequest(
+    val queue: List<PlayItem>,
+    val index: Int,
+    val autoAdvance: Boolean = false
+)
 
 @Composable
 fun HomeScreen(session: Session, onSwitch: () -> Unit) {
@@ -125,7 +129,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                 if (items.isEmpty()) items.add(PlayItem(url, entry.name))
                 prefs.addRecent(entry)
                 recents = prefs.recents()
-                playing = PlayRequest(items, start.coerceIn(0, items.lastIndex))
+                playing = PlayRequest(items, start.coerceIn(0, items.lastIndex), autoAdvance = false)
             } catch (e: Exception) {
                 toast = e.message ?: "Não foi possível abrir o item"
             } finally {
@@ -145,7 +149,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
             toast = "Episódio sem link de reprodução"
             return
         }
-        playing = PlayRequest(queue, index)
+        playing = PlayRequest(queue, index, autoAdvance = true)
     }
 
     val current = playing
@@ -282,6 +286,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         title = item.title,
                         queue = current.queue,
                         startIndex = current.index,
+                        autoAdvance = current.autoAdvance,
                         onClose = { playing = null }
                     )
                 }
