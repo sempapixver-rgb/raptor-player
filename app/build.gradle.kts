@@ -66,14 +66,6 @@ android {
         }
     }
 
-    // A edição de loja compila somente arquivos próprios: nenhum código de
-    // listas, credenciais ou formatos de mídia entra nesse pacote.
-    sourceSets {
-        getByName("store") {
-            java.setSrcDirs(listOf("src/store/java"))
-        }
-    }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -142,10 +134,3 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
 
-// O flavor de loja tem fontes próprios com os mesmos nomes de arquivo dos
-// fontes completos. Remove os arquivos de main apenas da compilação da loja.
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    if (name.contains("store", ignoreCase = true)) {
-        setSource(source.filter { !it.path.replace('\\', '/').contains("/src/main/java/") })
-    }
-}

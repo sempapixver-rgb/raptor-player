@@ -78,9 +78,9 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import com.raptor.player.data.Dlna
-import com.raptor.player.data.DlnaDevice
-import com.raptor.player.data.Prefs
+import com.raptor.player.data.StoreDlna
+import com.raptor.player.data.StoreDlnaDevice
+import com.raptor.player.data.StorePrefs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -89,32 +89,32 @@ private val SPEEDS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
 private data class TrackOption(val label: String, val override: TrackSelectionOverride?)
 
 /** Um item reproduzível: episódio ou filme/canal. */
-data class PlayItem(val url: String, val title: String)
+data class DemoPlayItem(val url: String, val title: String)
 
 @OptIn(UnstableApi::class)
 @Composable
-fun PlayerScreen(
+fun DemoPlayerScreen(
     url: String,
     title: String,
     onClose: () -> Unit,
-    queue: List<PlayItem> = emptyList(),
+    queue: List<DemoPlayItem> = emptyList(),
     startIndex: Int = 0,
     autoAdvance: Boolean = false,
     showCastButton: Boolean = true
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val prefs = remember(context) { Prefs(context) }
+    val prefs = remember(context) { StorePrefs(context) }
 
     // Sem fila (filme/canal) toca um item só. Com fila (série) os botões
     // Anterior/Próximo trocam o episódio sem fechar o player.
     val items = remember(queue, url, title) {
-        if (queue.isNotEmpty()) queue else listOf(PlayItem(url, title))
+        if (queue.isNotEmpty()) queue else listOf(DemoPlayItem(url, title))
     }
     var index by remember(items) {
         mutableIntStateOf(startIndex.coerceIn(0, (items.size - 1).coerceAtLeast(0)))
     }
-    val current = items.getOrNull(index) ?: PlayItem(url, title)
+    val current = items.getOrNull(index) ?: DemoPlayItem(url, title)
 
     var resizeMode by remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
     var speed by remember { mutableFloatStateOf(1f) }
@@ -133,9 +133,9 @@ fun PlayerScreen(
     // Transmissão DLNA: o vídeo vai direto para a TV, sem espelhar a tela.
     var showCast by remember { mutableStateOf(false) }
     var castLoading by remember { mutableStateOf(false) }
-    var castDevices by remember { mutableStateOf<List<DlnaDevice>>(emptyList()) }
+    var castDevices by remember { mutableStateOf<List<StoreDlnaDevice>>(emptyList()) }
     var castStatus by remember { mutableStateOf<String?>(null) }
-    var castDevice by remember { mutableStateOf<DlnaDevice?>(null) }
+    var castDevice by remember { mutableStateOf<StoreDlnaDevice?>(null) }
     val castScope = rememberCoroutineScope()
     val castFocus = remember { FocusRequester() }
     val castRetryFocus = remember { FocusRequester() }
@@ -363,7 +363,7 @@ fun PlayerScreen(
         castDevices = emptyList()
         castLoading = true
         castScope.launch {
-            val found = Dlna.discover(context)
+            val found = StoreDlna.discover(context)
             castDevices = found
             castLoading = false
             if (found.isEmpty()) {
@@ -372,11 +372,11 @@ fun PlayerScreen(
         }
     }
 
-    fun castTo(device: DlnaDevice) {
+    fun castTo(device: StoreDlnaDevice) {
         val item = current
         castStatus = "Enviando para ${device.name}…"
         castScope.launch {
-            Dlna.cast(device, item.url, item.title)
+            StoreDlna.cast(device, item.url, item.title)
                 .onSuccess {
                     castDevice = device
                     // O vídeo agora toca na TV: pausa o player local para não
@@ -395,7 +395,7 @@ fun PlayerScreen(
     fun stopCast() {
         val device = castDevice ?: return
         castScope.launch {
-            Dlna.stop(device)
+            StoreDlna.stop(device)
             castDevice = null
             showCast = false
             controlsVisible = true

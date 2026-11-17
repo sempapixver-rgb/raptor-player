@@ -48,10 +48,10 @@ import com.raptor.player.ui.theme.RaptorTextDim
 import kotlinx.coroutines.delay
 
 /** Versão do termo. Se o texto mudar, aumente para pedir o aceite novamente. */
-const val TERMS_VERSION = 2
+const val STORE_TERMS_VERSION = 2
 
 /** Termos da edição de loja: apenas o tocador, o aparelho e os exemplos. */
-val STORE_TERMS_SECTIONS: List<Pair<String, String>> = listOf(
+val LOJA_TERMS_SECTIONS: List<Pair<String, String>> = listOf(
     "1. O que é o Raptor Player" to
         "O Raptor Player é um tocador de vídeo. Ele reproduz os vídeos públicos " +
         "de demonstração incluídos no aplicativo.",
@@ -72,17 +72,17 @@ val STORE_TERMS_SECTIONS: List<Pair<String, String>> = listOf(
         "com estes termos."
 )
 
-const val STORE_TERMS_NOTICE =
+const val LOJA_TERMS_NOTICE =
     "Este aplicativo é um tocador de vídeo com exemplos públicos. Não há login " +
     "nem dados de acesso a informar."
 
 /** Tela de primeiro acesso: o aceite é obrigatório antes de usar o app. */
 @Composable
-fun TermsScreen(
+fun StoreTermsScreen(
     onAccept: () -> Unit,
     onDecline: () -> Unit,
-    sections: List<Pair<String, String>> = STORE_TERMS_SECTIONS,
-    notice: String = STORE_TERMS_NOTICE
+    sections: List<Pair<String, String>> = LOJA_TERMS_SECTIONS,
+    notice: String = LOJA_TERMS_NOTICE
 ) {
     var acceptFocused by remember { mutableStateOf(false) }
     var declineFocused by remember { mutableStateOf(false) }

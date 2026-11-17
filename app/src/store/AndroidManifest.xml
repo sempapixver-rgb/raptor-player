@@ -24,7 +24,7 @@
         android:theme="@style/Theme.Raptor">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".StoreMainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode"
             android:launchMode="singleTop"

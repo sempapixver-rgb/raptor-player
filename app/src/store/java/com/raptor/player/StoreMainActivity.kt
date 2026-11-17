@@ -14,15 +14,16 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.raptor.player.data.Prefs
+import com.raptor.player.data.StorePrefs
 import com.raptor.player.ui.Demo
-import com.raptor.player.ui.PlayerScreen
-import com.raptor.player.ui.StoreScreen
-import com.raptor.player.ui.TERMS_VERSION
-import com.raptor.player.ui.TermsScreen
+import com.raptor.player.ui.DemoPlayItem
+import com.raptor.player.ui.DemoPlayerScreen
+import com.raptor.player.ui.StoreHomeScreen
+import com.raptor.player.ui.STORE_TERMS_VERSION
+import com.raptor.player.ui.StoreTermsScreen
 import com.raptor.player.ui.theme.RaptorTheme
 
-class MainActivity : ComponentActivity() {
+class StoreMainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,7 +31,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         hideSystemBars()
 
-        val prefs = Prefs(this)
+        val prefs = StorePrefs(this)
 
         setContent {
             RaptorTheme {
@@ -39,29 +40,29 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     var accepted by remember {
-                        mutableStateOf(prefs.acceptedTermsVersion() >= TERMS_VERSION)
+                        mutableStateOf(prefs.acceptedTermsVersion() >= STORE_TERMS_VERSION)
                     }
                     var demo by remember { mutableStateOf(false) }
 
                     if (!accepted) {
-                        TermsScreen(
+                        StoreTermsScreen(
                             onAccept = {
-                                prefs.acceptTerms(TERMS_VERSION)
+                                prefs.acceptTerms(STORE_TERMS_VERSION)
                                 accepted = true
                             },
                             onDecline = { finish() }
                         )
                     } else if (demo) {
-                        PlayerScreen(
+                        DemoPlayerScreen(
                             url = Demo.first.url,
                             title = Demo.first.title,
-                            queue = Demo.items,
+                            queue = Demo.items.map { DemoPlayItem(it.url, it.title) },
                             autoAdvance = true,
                             showCastButton = false,
                             onClose = { demo = false }
                         )
                     } else {
-                        StoreScreen(onDemo = { demo = true })
+                        StoreHomeScreen(onDemo = { demo = true })
                     }
                 }
             }

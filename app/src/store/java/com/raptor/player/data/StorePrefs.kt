@@ -3,7 +3,7 @@ package com.raptor.player.data
 import android.content.Context
 
 /** Preferências locais da edição de loja. Nada é enviado para fora. */
-class Prefs(context: Context) {
+class StorePrefs(context: Context) {
 
     private val sp = context.applicationContext
         .getSharedPreferences("raptor_session", Context.MODE_PRIVATE)

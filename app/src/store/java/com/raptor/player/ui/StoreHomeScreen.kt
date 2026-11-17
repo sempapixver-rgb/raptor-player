@@ -42,7 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.raptor.player.data.Activation
+import com.raptor.player.data.StoreActivation
 import com.raptor.player.ui.theme.RaptorBackground
 import com.raptor.player.ui.theme.RaptorGreen
 import com.raptor.player.ui.theme.RaptorOutline
@@ -55,11 +55,11 @@ import kotlinx.coroutines.delay
  * Ativar TV e o teste do player. Não abre login nem configuração de mídia.
  */
 @Composable
-fun StoreScreen(onDemo: () -> Unit) {
+fun StoreHomeScreen(onDemo: () -> Unit) {
     val context = LocalContext.current
-    val code = remember { Activation.deviceCode(context) }
-    val link = remember(code) { Activation.siteLink(code) }
-    val qr = remember(link) { Activation.qrBitmap(link, 512) }
+    val code = remember { StoreActivation.deviceCode(context) }
+    val link = remember(code) { StoreActivation.siteLink(code) }
+    val qr = remember(link) { StoreActivation.qrBitmap(link, 512) }
 
     var showQr by remember { mutableStateOf(false) }
     var qrFocused by remember { mutableStateOf(false) }
@@ -211,7 +211,7 @@ fun StoreScreen(onDemo: () -> Unit) {
                 textAlign = TextAlign.Center
             )
             Text(
-                text = Activation.SITE_BASE.removePrefix("https://")
+                text = StoreActivation.SITE_BASE.removePrefix("https://")
                     .removePrefix("http://").removeSuffix("/"),
                 color = RaptorTextDim,
                 fontSize = 10.sp,

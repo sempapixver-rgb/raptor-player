@@ -15,7 +15,7 @@ import java.security.MessageDigest
  * Cadastro do aparelho pelo código MAC. A edição de loja não recebe
  * configuração do site: ela apenas mostra o código e o QR Code.
  */
-object Activation {
+object StoreActivation {
 
     /** Endereço do site de cadastro. */
     const val SITE_BASE = "https://raptor-player.netlify.app"
