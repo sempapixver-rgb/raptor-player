@@ -78,6 +78,39 @@ export default async (req) => {
     });
   }
 
+  // Formulário público: só o código do aparelho é enviado. A configuração dos
+  // vídeos fica no painel do proprietário, protegido por token.
+  const hasConfig = data.mode !== undefined || data.host !== undefined ||
+    data.user !== undefined || data.pass !== undefined || data.m3u !== undefined;
+
+  if (!hasConfig) {
+    const publicLabel = String(data.label || "").trim().slice(0, 60);
+    const record = {
+      code,
+      label: publicLabel,
+      status: "active",
+      activatedAt: new Date().toISOString(),
+    };
+    try {
+      const store = getStore({ name: STORE, consistency: "strong" });
+      const previous = await store.get(`device-${code}`, { type: "json" }).catch(() => null);
+      if (previous) {
+        for (const key of ["mode", "host", "user", "pass", "m3u", "plan", "expiresAt", "notes"]) {
+          if (previous[key] !== undefined) record[key] = previous[key];
+        }
+        if (previous.status === "blocked") record.status = "blocked";
+      }
+      await store.setJSON(`device-${code}`, record);
+    } catch (err) {
+      return json(500, {
+        ok: false,
+        error: "storage_unavailable",
+        message: "Não foi possível salvar agora. Tente novamente.",
+      });
+    }
+    return json(200, { ok: true, code, message: "Aparelho cadastrado." });
+  }
+
   const mode = String(data.mode || "").toUpperCase() === "M3U" ? "M3U" : "XTREAM";
   const label = String(data.label || "").trim().slice(0, 60);
 

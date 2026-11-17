@@ -1,6 +1,6 @@
 # Site de ativação — Raptor Player
 
-**No ar:** https://reptor-player.netlify.app
+**No ar:** https://raptor-player.netlify.app
 
 Site que ativa a TV pelo código (MAC) exibido no app. O cliente não digita nada
 no controle: ele preenche o site e o app busca a configuração sozinho.
@@ -21,7 +21,7 @@ Os links e o checklist para submissão nas lojas estão em `LOJAS.md`.
 
 ## Publicação atual
 
-Projeto Netlify: `reptor-player` (time `pix-ver-sempa`), ID
+Projeto Netlify: `raptor-player` (time `pix-ver-sempa`), ID
 `0843606b-c53b-4da1-9430-055151404dd1`.
 
 Para publicar uma alteração:
@@ -42,7 +42,7 @@ netlify deploy --prod --site 0843606b-c53b-4da1-9430-055151404dd1 \
    - **Publish directory:** `public`
    - **Functions directory:** `netlify/functions` (já vem do `netlify.toml`)
 4. Publique. A Netlify instala o `@netlify/blobs` e ativa o armazenamento sozinha.
-5. Anote a URL final (ex.: `https://reptor-player.netlify.app`).
+5. Anote a URL final (ex.: `https://raptor-player.netlify.app`).
 
 ## Ligar o site ao app
 
@@ -51,7 +51,7 @@ No Android, o endereço fica em uma única linha:
 `app/src/main/java/com/raptor/player/data/Activation.kt`
 
 ```kotlin
-const val SITE_BASE = "https://reptor-player.netlify.app"
+const val SITE_BASE = "https://raptor-player.netlify.app"
 ```
 
 Se o site ficar em outro endereço, troque essa linha e gere o APK de novo.

@@ -1,0 +1,42 @@
+name: Build webOS Store
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tv-webos-store/**'
+      - '.github/workflows/webos-store.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Empacotar IPK de loja
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar webOS CLI
+        run: npm install -g @webos-tools/cli
+
+      - name: Empacotar app de loja
+        run: |
+          mkdir -p dist
+          ares-package tv-webos-store -o dist --no-minify
+          ls -la dist
+
+      - name: Salvar IPK de loja
+        uses: actions/upload-artifact@v4
+        with:
+          name: Raptor-webOS-Store
+          path: dist/*.ipk
+          if-no-files-found: error

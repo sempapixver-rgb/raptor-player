@@ -52,7 +52,7 @@ Publicar uma página pública e informar a URL na ficha. Texto base:
 > liberado. O app não usa anúncios, rastreamento, câmera, microfone,
 > localização ou contatos. Nenhum dado é vendido ou compartilhado.
 
-URL prevista: `https://reptor-player.netlify.app/privacidade.html`
+URL prevista: `https://raptor-player.netlify.app/privacidade.html`
 (a página ainda precisa ser publicada no site).
 
 ## 3. Checklist técnico

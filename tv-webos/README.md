@@ -69,10 +69,10 @@ Também dá para instalar por pendrive usando o app **Developer Mode** da TV
 ## Ativação
 
 O app usa `Activation.SITE_BASE` (`js/store.js`) apontando para
-`https://reptor-player.netlify.app` — o mesmo site do app Android.
+`https://raptor-player.netlify.app` — o mesmo site do app Android.
 
 1. A TV mostra `AA:BB:CC:DD:EE:FF` e o QR.
-2. O QR abre `https://reptor-player.netlify.app/?code=<MAC sem separadores>`.
+2. O QR abre `https://raptor-player.netlify.app/?code=<MAC sem separadores>`.
 3. O cliente preenche a lista e envia.
 4. A TV recebe em até 5 segundos e entra.
 

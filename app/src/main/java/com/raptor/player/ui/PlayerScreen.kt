@@ -99,7 +99,8 @@ fun PlayerScreen(
     onClose: () -> Unit,
     queue: List<PlayItem> = emptyList(),
     startIndex: Int = 0,
-    autoAdvance: Boolean = false
+    autoAdvance: Boolean = false,
+    showCastButton: Boolean = true
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -644,12 +645,14 @@ fun PlayerScreen(
                             }
                         }
                     }
-                    TextButton(onClick = { openCast() }) {
-                        Text(
-                            text = if (castDevice != null) "📺 ON" else "📺 TV",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 13.sp
-                        )
+                    if (showCastButton) {
+                        TextButton(onClick = { openCast() }) {
+                            Text(
+                                text = if (castDevice != null) "📺 ON" else "📺 TV",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 13.sp
+                            )
+                        }
                     }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         TextButton(onClick = { enterPip() }) {

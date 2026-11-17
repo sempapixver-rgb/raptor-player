@@ -95,7 +95,13 @@ fun termsPlainText(): String =
  * Se recusar, o app fecha — igual aos players de referência.
  */
 @Composable
-fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
+fun TermsScreen(
+    onAccept: () -> Unit,
+    onDecline: () -> Unit,
+    sections: List<Pair<String, String>> = TERMS_SECTIONS,
+    notice: String = "Este aplicativo não fornece conteúdo. " +
+        "É apenas um player de vídeo."
+) {
     // No controle remoto, o foco já abre em "Aceitar e continuar".
     var acceptFocused by remember { mutableStateOf(false) }
     var declineFocused by remember { mutableStateOf(false) }
@@ -163,7 +169,7 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = 20.dp, vertical = 16.dp)
                 ) {
-                    TERMS_SECTIONS.forEach { (title, body) ->
+                    sections.forEach { (title, body) ->
                         Text(
                             text = title,
                             color = RaptorGreen,
@@ -193,8 +199,7 @@ fun TermsScreen(onAccept: () -> Unit, onDecline: () -> Unit) {
                             .padding(horizontal = 12.dp, vertical = 10.dp)
                     ) {
                         Text(
-                            text = "Este aplicativo não fornece conteúdo. " +
-                                "É apenas um player de vídeo.",
+                            text = notice,
                             color = RaptorGreen,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,

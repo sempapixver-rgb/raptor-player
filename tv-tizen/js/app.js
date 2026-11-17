@@ -6,6 +6,15 @@ var APP_VERSION = '1.2.1';
 /* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
 
+/* Vídeos públicos de demonstração (CC-BY, Blender Foundation), em MP4/H.264.
+   Servem para testar o player sem lista, login ou credencial. */
+var DEMO_ITEMS = [
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-1.mp4', title: 'Exemplo 1 · Sintel (720p)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-2.mp4', title: 'Exemplo 2 · Big Buck Bunny (trailer)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-3.mp4', title: 'Exemplo 3 · Sintel (trailer)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-4.mp4', title: 'Exemplo 4 · Águas-vivas (720p)' }
+];
+
 var App = {
 
   session: null,
@@ -44,6 +53,8 @@ var App = {
   playing: null,
   playingSeason: null,
   playingEpIndex: -1,
+  demoMode: false,
+  demoIndex: -1,
   vodCache: {},
   vodToken: 0,
 
@@ -483,6 +494,9 @@ var App = {
     $('btnCheck').addEventListener('click', function () {
       self.checkNow();
     });
+
+    var btnDemo = $('btnDemo');
+    if (btnDemo) btnDemo.addEventListener('click', function () { self.startDemo(); });
 
     $('loginForm').addEventListener('submit', function (event) {
       event.preventDefault();
@@ -1831,6 +1845,26 @@ var App = {
 
   /* ============================================================== player */
 
+  /** Entra no modo demonstração: reproduz os clipes públicos em sequência. */
+  startDemo: function () {
+    this.demoMode = true;
+    this.stopPolling();
+    this.playDemo(0);
+  },
+
+  /** Abre o clipe de índice informado. Devolve false quando a fila acabou. */
+  playDemo: function (index) {
+    if (index < 0 || index >= DEMO_ITEMS.length) return false;
+    this.demoIndex = index;
+    var item = DEMO_ITEMS[index];
+    this.playing = null;
+    this.playingSeason = null;
+    this.playingEpIndex = -1;
+    Player.open(item.url, item.title, false);
+    this.updatePlayerNav();
+    return true;
+  },
+
   playEntry: function (entry) {
     var url = this.source.playUrl(entry);
     if (!url) {
@@ -1868,6 +1902,7 @@ var App = {
    * Devolve true quando já começou outro vídeo.
    */
   onPlaybackEnded: function () {
+    if (this.demoMode) return this.playDemo(this.demoIndex + 1);
     if (!this.playingSeason) return false;
 
     var season = this.playingSeason;
@@ -1923,6 +1958,10 @@ var App = {
 
   /** Anterior/Próximo com o vídeo rodando: canal, filme ou episódio. */
   stepPlayback: function (delta) {
+    if (this.demoMode) {
+      this.playDemo(this.demoIndex + delta);
+      return;
+    }
     if (this.playingSeason) {
       var eps = this.playingSeason.episodes || [];
       var i = this.playingEpIndex + delta;
@@ -1964,6 +2003,15 @@ var App = {
     var hasPrev = false;
     var hasNext = false;
 
+    if (this.demoMode) {
+      hasPrev = this.demoIndex > 0;
+      hasNext = this.demoIndex >= 0 && this.demoIndex < DEMO_ITEMS.length - 1;
+      prev.disabled = !hasPrev;
+      next.disabled = !hasNext;
+      toggle(prev.parentNode, true);
+      return;
+    }
+
     if (this.playingSeason) {
       var eps = this.playingSeason.episodes || [];
       hasPrev = this.playingEpIndex > 0;
@@ -1993,10 +2041,18 @@ var App = {
 
   closePlayer: function () {
     var fromDetail = !!(this.playingSeason && this.detail);
+    var fromDemo = this.demoMode;
     Player.close();
     this.playing = null;
     this.playingSeason = null;
     this.playingEpIndex = -1;
+
+    if (fromDemo) {
+      this.demoMode = false;
+      this.demoIndex = -1;
+      this.showLogin();
+      return;
+    }
 
     if (fromDetail) {
       Screens.show('screen-detail');
@@ -2101,7 +2157,7 @@ var App = {
       '<p>Versão: <b>' + APP_VERSION + '</b><br>' +
       'Aparelho: <b>' + esc(Device.modelName()) + '</b><br>' +
       'Código: <b>' + esc(code) + '</b></p>' +
-      '<p>Ativação e gerenciamento: <b>reptor-player.netlify.app</b></p>';
+      '<p>Ativação e gerenciamento: <b>raptor-player.netlify.app</b></p>';
   },
 
   privacyHtml: function () {

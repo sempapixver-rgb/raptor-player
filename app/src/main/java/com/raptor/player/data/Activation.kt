@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
 object Activation {
 
     /** Endereço do site de ativação (Netlify). */
-    const val SITE_BASE = "https://reptor-player.netlify.app"
+    const val SITE_BASE = "https://raptor-player.netlify.app"
 
     private const val SP = "raptor_session"
     private const val KEY_CODE = "device_code"

@@ -14,12 +14,17 @@ import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.raptor.player.BuildConfig
 import com.raptor.player.data.Prefs
 import com.raptor.player.data.Session
 import com.raptor.player.ui.Demo
 import com.raptor.player.ui.HomeScreen
 import com.raptor.player.ui.LoginScreen
 import com.raptor.player.ui.PlayerScreen
+import com.raptor.player.ui.STORE_TERMS_NOTICE
+import com.raptor.player.ui.STORE_TERMS_SECTIONS
+import com.raptor.player.ui.StoreScreen
+import com.raptor.player.ui.TERMS_SECTIONS
 import com.raptor.player.ui.TERMS_VERSION
 import com.raptor.player.ui.TermsScreen
 import com.raptor.player.ui.theme.RaptorTheme
@@ -55,7 +60,18 @@ class MainActivity : ComponentActivity() {
                                 prefs.acceptTerms(TERMS_VERSION)
                                 accepted = true
                             },
-                            onDecline = { finish() }
+                            onDecline = { finish() },
+                            sections = if (BuildConfig.IS_STORE) {
+                                STORE_TERMS_SECTIONS
+                            } else {
+                                TERMS_SECTIONS
+                            },
+                            notice = if (BuildConfig.IS_STORE) {
+                                STORE_TERMS_NOTICE
+                            } else {
+                                "Este aplicativo não fornece conteúdo. " +
+                                    "É apenas um player de vídeo."
+                            }
                         )
                     } else if (demo) {
                         PlayerScreen(
@@ -63,8 +79,11 @@ class MainActivity : ComponentActivity() {
                             title = Demo.first.title,
                             queue = Demo.items,
                             autoAdvance = true,
+                            showCastButton = !BuildConfig.IS_STORE,
                             onClose = { demo = false }
                         )
+                    } else if (BuildConfig.IS_STORE) {
+                        StoreScreen(onDemo = { demo = true })
                     } else {
                         val current = session
                         if (current == null) {

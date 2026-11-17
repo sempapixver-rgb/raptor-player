@@ -372,7 +372,7 @@ var Device = {
 
 var Activation = {
 
-  SITE_BASE: 'https://reptor-player.netlify.app',
+  SITE_BASE: 'https://raptor-player.netlify.app',
 
   siteLink: function (code) {
     return this.SITE_BASE + '/?code=' + normalizeCode(code);

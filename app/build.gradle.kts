@@ -36,21 +36,33 @@ android {
         }
     }
 
-    // Duas cópias do mesmo app:
+    // Cópias do mesmo app:
     //  - mobile: celular / TV Box (minSdk 23)
     //  - firetv: Fire TV / Fire Stick antigos (Fire OS 5 = API 22), minSdk 21
+    //  - store: edição de loja (somente ativação do aparelho e vídeos de exemplo)
     flavorDimensions += "store"
 
     productFlavors {
         create("mobile") {
             dimension = "store"
             // Mesmo ID de sempre: atualiza o app já instalado.
+            buildConfigField("boolean", "IS_STORE", "false")
         }
         create("firetv") {
             dimension = "store"
             applicationId = "com.raptor.player.firetv"
             minSdk = 21
             versionNameSuffix = "-firetv"
+            buildConfigField("boolean", "IS_STORE", "false")
+        }
+        create("store") {
+            dimension = "store"
+            applicationId = "com.raptor.player.store"
+            minSdk = 21
+            versionCode = 1
+            versionName = "1.0"
+            versionNameSuffix = "-store"
+            buildConfigField("boolean", "IS_STORE", "true")
         }
     }
 
@@ -65,6 +77,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {

@@ -1,0 +1,36 @@
+name: Build Tizen Store
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tv-tizen-store/**'
+      - '.github/workflows/tizen-store.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Empacotar WGT de loja
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Empacotar widget de loja
+        run: |
+          mkdir -p dist
+          cd tv-tizen-store
+          zip -r ../dist/Raptor-Tizen-Store.wgt . -x '*.DS_Store'
+          cd ..
+          ls -la dist
+
+      - name: Salvar WGT de loja
+        uses: actions/upload-artifact@v4
+        with:
+          name: Raptor-Tizen-Store
+          path: dist/*.wgt
+          if-no-files-found: error

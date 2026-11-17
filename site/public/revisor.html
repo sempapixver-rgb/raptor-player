@@ -24,9 +24,9 @@
       <h1>Como testar o Raptor Player</h1>
       <p class="updated">Informações para análise nas lojas Amazon, LG e Samsung.</p>
       <p class="sub">
-        O Raptor Player é apenas um tocador de vídeo. Ele não traz conteúdo próprio,
-        canais, catálogo, assinaturas nem anúncios. O usuário informa a própria fonte
-        de vídeo; todo o material reproduzido é de sua responsabilidade.
+        O Raptor Player é apenas um tocador de vídeo. Ele não traz vídeos próprios,
+        anúncios nem compras. Para testar, basta usar os vídeos públicos
+        de exemplo incluídos no aplicativo.
       </p>
     </section>
 
@@ -36,7 +36,7 @@
         <a href="/privacidade.html">Política de privacidade (português)</a><br />
         <a href="/privacy.html">Privacy policy (English)</a><br />
         <a href="/termos.html">Termos de uso</a><br />
-        <a href="/ativar.html">Página de ativação</a>
+        <a href="/ativar.html">Página de ativação do aparelho</a>
       </p>
     </section>
 
@@ -44,7 +44,7 @@
       <h2>Vídeos públicos de demonstração</h2>
       <p>
         Quatro clipes abertos (CC-BY, MP4/H.264), hospedados na página de
-        releases do desenvolvedor. Não exigem conta, lista ou credencial:
+        lançamentos do desenvolvedor. Não exigem conta nem credencial:
       </p>
       <ol>
         <li><a href="https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-1.mp4" target="_blank" rel="noopener">Exemplo 1 — Sintel (720p)</a></li>
@@ -61,20 +61,21 @@
       <ol>
         <li>Instale o app e aceite os termos na primeira abertura.</li>
         <li>Na tela de acesso, escolha <strong>Testar o player (vídeos de exemplo)</strong>.</li>
-        <li>Reproduza um clipe: use Play/Pause, avançar, retroceder, Voltar e o botão Próximo.</li>
+        <li>Use Play/Pause, avançar, retroceder, Voltar e os botões Anterior/Próximo.</li>
+        <li>Quando um clipe termina, o próximo começa automaticamente.</li>
       </ol>
 
       <h3>LG webOS</h3>
       <ol>
         <li>Instale o IPK e aceite os termos na primeira abertura.</li>
-        <li>O app mostra um código de ativação e um QR Code na tela de acesso.</li>
-        <li>Configure uma fonte em <strong>/ativar</strong> com o mesmo código para testar reprodução, pulos de tempo e o próximo episódio automático.</li>
+        <li>Na tela de acesso, escolha <strong>Ativar TV</strong> para ver o QR Code em destaque, ou use <strong>Testar o player (vídeos de exemplo)</strong>.</li>
+        <li>O código exibido na tela identifica o aparelho no site de ativação.</li>
       </ol>
 
       <h3>Samsung Tizen</h3>
       <ol>
         <li>Instale o pacote WGT no modo desenvolvedor e aceite os termos.</li>
-        <li>O fluxo é idêntico ao do webOS: ativação pelo site com o código exibido na TV.</li>
+        <li>O fluxo é idêntico ao do webOS: botão <strong>Ativar TV</strong> com QR Code e botão de vídeos de exemplo.</li>
         <li>A interface e o player são os mesmos da versão LG.</li>
       </ol>
     </section>
@@ -82,10 +83,11 @@
     <section class="steps">
       <h2>O que o aplicativo faz</h2>
       <p>
-        • Reproduz fontes de vídeo informadas pelo usuário (M3U, MP4, MKV, HLS).<br />
-        • Organiza a biblioteca em pastas, com busca e retomada de onde parou.<br />
+        • Reproduz os quatro vídeos públicos de demonstração.<br />
+        • Avança e retrocede no tempo, com barra de progresso navegável.<br />
+        • Reproduz o próximo vídeo automaticamente ao final.<br />
         • Navegação por D-pad, teclas de mídia e botão Voltar do controle.<br />
-        • Ativação pelo site, sem digitar credenciais no controle remoto.<br />
+        • Identificação do aparelho pelo código MAC, com QR Code para o site.<br />
         • Sem anúncios, sem compras dentro do app e sem login social.
       </p>
     </section>
@@ -93,17 +95,17 @@
     <section class="steps">
       <h2>Dados e permissões</h2>
       <p>
-        O app guarda no próprio aparelho apenas o código de ativação, a fonte
-        informada e as preferências de uso. A consulta ao site de ativação serve
-        somente para entregar essa configuração. Não há coleta de histórico,
-        localização, câmera, microfone, contatos, rastreamento nem publicidade.
-        A íntegra está na <a href="/privacidade.html">política de privacidade</a>.
+        O aplicativo guarda no próprio aparelho apenas o código de identificação e
+        as preferências de uso. O site é usado somente para cadastrar esse código.
+        Não há coleta de histórico, localização, câmera, microfone, contatos,
+        rastreamento nem publicidade. A íntegra está na
+        <a href="/privacidade.html">política de privacidade</a>.
       </p>
     </section>
 
     <p class="terms-note">
-      O Raptor Player não fornece, hospeda ou distribui conteúdo. Ele apenas
-      reproduz a fonte configurada pelo usuário.
+      O Raptor Player não fornece, hospeda nem distribui conteúdo. Ele apenas reproduz
+      os vídeos de demonstração incluídos no aplicativo.
     </p>
   </main>
 

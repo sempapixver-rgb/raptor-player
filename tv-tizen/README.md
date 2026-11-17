@@ -28,7 +28,7 @@ A interface, o player e todos os recursos são idênticos aos da versão LG.
 | `js/ui.js` | Constante `BACK_ALT` para o Voltar alternativo. |
 | `js/net.js` | User-Agent identifica a plataforma Tizen. |
 
-O site de ativação continua sendo `https://reptor-player.netlify.app` — o mesmo
+O site de ativação continua sendo `https://raptor-player.netlify.app` — o mesmo
 do Android e do webOS. O código gerado na Tizen é estável por aparelho, então o
 cliente não percebe diferença.
 

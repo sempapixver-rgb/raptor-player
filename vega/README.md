@@ -92,7 +92,7 @@ Upload de binário**. A ficha da loja e o checklist estão em
 
 O app não inclui, hospeda ou distribui conteúdo. Ele guarda no aparelho
 apenas o código de ativação e a configuração da conta. A única chamada
-externa é a consulta de ativação em `https://reptor-player.netlify.app`.
+externa é a consulta de ativação em `https://raptor-player.netlify.app`.
 Não usa anúncios, Google Play Services, Firebase ou rastreamento.
 
 O modo de demonstração reproduz vídeos públicos, sem conta e sem lista,

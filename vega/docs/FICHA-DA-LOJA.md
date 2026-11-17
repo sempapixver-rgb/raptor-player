@@ -69,7 +69,7 @@ Na tela inicial, toque em "Testar o player (vídeos de exemplo)". O app abre o p
 
 PRIVACIDADE
 Não coletamos dados pessoais. Não há login obrigatório, anúncios ou rastreamento. A política completa está em:
-https://reptor-player.netlify.app/privacidade.html
+https://raptor-player.netlify.app/privacidade.html
 ```
 
 **Palavras-chave (5)**
@@ -79,7 +79,7 @@ player de vídeo, video player, reprodutor de mídia, media player, DLNA
 
 **Política de privacidade**
 ```
-https://reptor-player.netlify.app/privacidade.html
+https://raptor-player.netlify.app/privacidade.html
 ```
 
 **E-mail de contato do desenvolvedor**
