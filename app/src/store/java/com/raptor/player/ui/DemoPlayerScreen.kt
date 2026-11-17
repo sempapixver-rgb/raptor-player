@@ -86,7 +86,8 @@ fun DemoPlayerScreen(
 
     fun seekBy(deltaMs: Long) {
         val video = videoRef.value ?: return
-        val target = (video.currentPosition + deltaMs).coerceIn(0, video.duration.coerceAtLeast(0))
+        val target = (video.currentPosition.toLong() + deltaMs)
+            .coerceIn(0L, video.duration.coerceAtLeast(0).toLong())
         video.seekTo(target.toInt())
         position = target
     }

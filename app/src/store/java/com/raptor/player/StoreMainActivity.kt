@@ -15,9 +15,8 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.raptor.player.data.StorePrefs
-import com.raptor.player.ui.Demo
-import com.raptor.player.ui.DemoPlayItem
 import com.raptor.player.ui.DemoPlayerScreen
+import com.raptor.player.ui.StoreDemo
 import com.raptor.player.ui.StoreHomeScreen
 import com.raptor.player.ui.STORE_TERMS_VERSION
 import com.raptor.player.ui.StoreTermsScreen
@@ -54,9 +53,9 @@ class StoreMainActivity : ComponentActivity() {
                         )
                     } else if (demo) {
                         DemoPlayerScreen(
-                            url = Demo.first.url,
-                            title = Demo.first.title,
-                            queue = Demo.items.map { DemoPlayItem(it.url, it.title) },
+                            url = StoreDemo.items.first().url,
+                            title = StoreDemo.items.first().title,
+                            queue = StoreDemo.items,
                             autoAdvance = true,
                             showCastButton = false,
                             onClose = { demo = false }
