@@ -5,6 +5,7 @@
   var codeInput = document.getElementById("code");
   var submit = document.getElementById("submit");
   var result = document.getElementById("result");
+  var terms = document.getElementById("terms");
 
   function formatCode(value) {
     var clean = String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
@@ -57,6 +58,12 @@
     if (code.length < 8) {
       showResult("err", "Confira o código da TV. Ele tem 12 caracteres, como AA:BB:CC:DD:EE:FF.");
       codeInput.focus();
+      return;
+    }
+
+    if (terms && !terms.checked) {
+      showResult("err", "Aceite os termos de uso para cadastrar o aparelho.");
+      terms.focus();
       return;
     }
 
