@@ -116,8 +116,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
     implementation("androidx.media3:media3-exoplayer:1.3.1")
-    implementation("androidx.media3:media3-exoplayer-hls:1.3.1")
     implementation("androidx.media3:media3-ui:1.3.1")
+
+    // HLS fica só nas versões completas. A edição de loja toca apenas os
+    // vídeos MP4 de demonstração e não precisa do analisador #EXTM3U.
+    mobileImplementation("androidx.media3:media3-exoplayer-hls:1.3.1")
+    firetvImplementation("androidx.media3:media3-exoplayer-hls:1.3.1")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
