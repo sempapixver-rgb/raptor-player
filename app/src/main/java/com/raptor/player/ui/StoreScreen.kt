@@ -163,7 +163,7 @@ fun StoreScreen(onDemo: () -> Unit) {
                         modifier = Modifier
                             .size(210.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color.WHITE)
+                            .background(Color.White)
                             .padding(8.dp)
                             .onFocusChanged { qrFocused = it.isFocused }
                             .border(
@@ -284,7 +284,7 @@ fun StoreScreen(onDemo: () -> Unit) {
                             modifier = Modifier
                                 .size(260.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color.WHITE)
+                                .background(Color.White)
                                 .padding(8.dp)
                                 .focusRequester(qrFocus)
                                 .onFocusChanged { qrFocused = it.isFocused }
