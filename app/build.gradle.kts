@@ -141,3 +141,11 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
+
+// O flavor de loja tem fontes próprios com os mesmos nomes de arquivo dos
+// fontes completos. Remove os arquivos de main apenas da compilação da loja.
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    if (name.contains("store", ignoreCase = true)) {
+        setSource(source.filter { !it.path.replace('\\', '/').contains("/src/main/java/") })
+    }
+}
