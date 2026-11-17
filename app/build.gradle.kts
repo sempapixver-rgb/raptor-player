@@ -66,6 +66,24 @@ android {
         }
     }
 
+    sourceSets {
+        // O tema é o único código comum às duas edições. Todo o resto da
+        // versão completa fica em src/full e nunca é compilado no flavor store,
+        // para que nenhuma string de configuração entre no APK de loja.
+        getByName("main") {
+            java.setSrcDirs(listOf("src/common/java"))
+        }
+        getByName("mobile") {
+            java.setSrcDirs(listOf("src/full/java"))
+        }
+        getByName("firetv") {
+            java.setSrcDirs(listOf("src/full/java"))
+        }
+        getByName("store") {
+            java.setSrcDirs(listOf("src/store/java"))
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -134,16 +152,5 @@ dependencies {
     implementation("com.google.zxing:core:3.5.3")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
-}
-
-// Na edição de loja, nenhum fonte da versão completa entra no dex: isso evita
-// que strings de configuração e de formatos de mídia apareçam no pacote.
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    if (name.contains("store", ignoreCase = true)) {
-        val files = (this as org.gradle.api.tasks.SourceTask).getSource().filter {
-            !it.path.replace('\\', '/').contains("/src/main/java/")
-        }
-        setSource(files)
-    }
 }
 
