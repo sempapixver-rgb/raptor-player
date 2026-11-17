@@ -13,10 +13,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,12 +34,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.raptor.player.data.Activation
+import com.raptor.player.data.LoginMode
 import com.raptor.player.data.Session
 import com.raptor.player.ui.theme.RaptorGreen
 import com.raptor.player.ui.theme.RaptorOutline
@@ -62,6 +68,20 @@ fun ActivationCard(onActivated: (Session) -> Unit) {
     var activated by remember { mutableStateOf(false) }
     var checking by remember { mutableStateOf(false) }
     var missed by remember { mutableStateOf(false) }
+    var videoUrl by remember { mutableStateOf("") }
+    var urlError by remember { mutableStateOf<String?>(null) }
+    val clipboard = LocalClipboardManager.current
+
+    /** Atalho: a pessoa cola a URL dos vídeos direto na tela de ativação. */
+    fun useVideoUrl() {
+        val url = videoUrl.trim()
+        if (url.isBlank()) {
+            urlError = "Cole a URL dos vídeos."
+            return
+        }
+        activated = true
+        onActivated(Session(LoginMode.LINK, linkUrl = url))
+    }
 
     fun manualCheck() {
         if (checking || activated) return
@@ -181,6 +201,60 @@ fun ActivationCard(onActivated: (Session) -> Unit) {
                         fontWeight = FontWeight.SemiBold
                     )
                 }
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+        ) {
+            Text(
+                text = "URL DOS VÍDEOS",
+                color = RaptorTextDim,
+                fontSize = 10.sp,
+                letterSpacing = 1.5.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = videoUrl,
+                onValueChange = { videoUrl = it; urlError = null },
+                label = { Text("Cole a URL dos vídeos") },
+                placeholder = { Text("https://...") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                trailingIcon = {
+                    TextButton(onClick = {
+                        val text = clipboard.getText()?.text.orEmpty().trim()
+                        if (text.isNotEmpty()) {
+                            videoUrl = text
+                            urlError = null
+                        }
+                    }) {
+                        Text("Colar", color = RaptorGreen, fontSize = 11.sp)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(
+                    onClick = { useVideoUrl() },
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Text("Usar URL", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "Ou use o código da TV acima.",
+                    color = RaptorTextDim,
+                    fontSize = 10.sp
+                )
+            }
+            urlError?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(text = it, color = MaterialTheme.colorScheme.error, fontSize = 11.sp)
             }
         }
 

@@ -186,6 +186,17 @@ html, body {
 }
 .activate-row { display: flex; margin-top: 26px; -webkit-align-items: center; align-items: center; }
 
+.url-shortcut { margin-top: 24px; max-width: 660px; }
+.url-shortcut label { display: block; font-size: 13px; letter-spacing: 2.2px; color: #6F8A77; margin-bottom: 9px; }
+.url-shortcut input {
+  width: 100%; height: 52px; padding: 0 14px;
+  background: rgba(0,0,0,.28); border: 1px solid var(--outline);
+  border-radius: 10px; color: var(--text); font-size: 18px; outline: none;
+}
+.url-shortcut input:focus, .url-shortcut input.hover { border-color: var(--green); box-shadow: 0 0 0 3px rgba(0,230,118,.2); }
+.url-shortcut button { margin-top: 12px; }
+.url-shortcut .hint { font-size: 13px; color: var(--dim); margin-top: 8px; }
+
 .qr-box {
   width: 236px;
   height: 236px;
