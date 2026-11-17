@@ -10,8 +10,14 @@ no controle: ele preenche o site e o app busca a configuração sozinho.
 - `/` — apresentação (identidade visual, capa e recursos).
 - `/ativar` — formulário de ativação da TV.
 - `/termos` — termo de uso.
+- `/privacidade` — política de privacidade em português.
+- `/privacy` — política de privacidade em inglês.
+- `/revisor` — página para análise nas lojas (Amazon, LG e Samsung): como testar,
+  clipes de demonstração, privacidade e termos.
 - `/painel` — painel do proprietário (ativações, planos e validades).
 - `/assets/capa.png` — imagem de capa (1200×630) usada no compartilhamento.
+
+Os links e o checklist para submissão nas lojas estão em `LOJAS.md`.
 
 ## Publicação atual
 
