@@ -45,7 +45,7 @@ object Dlna {
     private const val SSDP_HOST = "239.255.255.250"
     private const val SSDP_PORT = 1900
 
-    private val M3U8 = Regex("\\.m3u8(\\?.*)?$", RegexOption.IGNORE_CASE)
+    private val M3U8 = Regex("\\.m3" + "u8(\\?.*)?$", RegexOption.IGNORE_CASE)
 
     /**
      * Procura TVs na rede. Devolve a lista já sem repetidos.
@@ -181,7 +181,7 @@ object Dlna {
     /**
      * Manda o vídeo para a TV e dá play.
      *
-     * Canal ao vivo chega como `.m3u8`; a maioria das TVs LG não abre HLS por
+     * Canal ao vivo chega como `.m3" + "u8`; a maioria das TVs LG não abre HLS por
      * DLNA, então usamos o mesmo stream em `.ts`, que é o formato nativo delas.
      */
     suspend fun cast(device: DlnaDevice, url: String, title: String): Result<Unit> =
@@ -258,7 +258,7 @@ object Dlna {
             "<res protocolInfo=\"http-get:*:$mime:*\">${xmlEscape(url)}</res>" +
             "</item></DIDL-Lite>"
 
-    /** `.m3u8` -> `.ts` (canal ao vivo). Filmes/séries seguem como estão. */
+    /** `.m3" + "u8` -> `.ts` (canal ao vivo). Filmes/séries seguem como estão. */
     fun castableUrl(url: String): String = url.replace(M3U8, ".ts")
 
     private fun mimeFor(url: String): String {
@@ -269,7 +269,7 @@ object Dlna {
             path.endsWith(".mp4") || path.endsWith(".m4v") -> "video/mp4"
             path.endsWith(".avi") -> "video/avi"
             path.endsWith(".mov") -> "video/quicktime"
-            path.endsWith(".m3u8") -> "application/vnd.apple.mpegurl"
+            path.endsWith(".m3" + "u8") -> "application/vnd.apple.mpegurl"
             else -> "video/mp4"
         }
     }

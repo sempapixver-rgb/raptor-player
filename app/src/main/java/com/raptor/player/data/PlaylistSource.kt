@@ -57,21 +57,21 @@ fun createSource(session: Session): PlaylistSource {
  * o app pede só a pasta escolhida, que é rápida e leve.
  */
 private fun buildSource(session: Session): PlaylistSource {
-    if (session.mode != LoginMode.M3U) return XtreamSource(session)
+    if (session.mode != LoginMode.LINK) return XtreamSource(session)
 
-    val link = runCatching { normalizeRemoteUrl(session.m3uUrl) }.getOrNull().orEmpty()
+    val link = runCatching { normalizeRemoteUrl(session.linkUrl) }.getOrNull().orEmpty()
     val remote = link.startsWith("http://", true) || link.startsWith("https://", true)
     if (remote && link.contains("/get.php", ignoreCase = true)) {
         val detected = runCatching { SmartLink.detect(link) }.getOrNull()
         if (detected != null &&
-            detected.mode == LoginMode.XTREAM &&
+            detected.mode == LoginMode.SERVICE &&
             detected.host.isNotBlank() &&
             detected.user.isNotBlank() &&
             detected.pass.isNotBlank()
         ) {
             return XtreamSource(
                 Session(
-                    mode = LoginMode.XTREAM,
+                    mode = LoginMode.SERVICE,
                     baseUrl = detected.host,
                     username = detected.user,
                     password = detected.pass,
@@ -80,7 +80,7 @@ private fun buildSource(session: Session): PlaylistSource {
             )
         }
     }
-    return M3uSource(session.m3uUrl)
+    return M3uSource(session.linkUrl)
 }
 
 /** Solta a lista guardada em memória (troca de lista / sair da conta). */

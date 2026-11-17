@@ -115,16 +115,22 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
-    implementation("androidx.media3:media3-exoplayer:1.3.1")
-    implementation("androidx.media3:media3-ui:1.3.1")
+    add("mobileImplementation", "androidx.media3:media3-exoplayer:1.3.1")
+    add("firetvImplementation", "androidx.media3:media3-exoplayer:1.3.1")
+    add("mobileImplementation", "androidx.media3:media3-ui:1.3.1")
+    add("firetvImplementation", "androidx.media3:media3-ui:1.3.1")
 
     // HLS fica só nas versões completas. A edição de loja toca apenas os
     // vídeos MP4 de demonstração e não precisa do analisador #EXTM3U.
     add("mobileImplementation", "androidx.media3:media3-exoplayer-hls:1.3.1")
     add("firetvImplementation", "androidx.media3:media3-exoplayer-hls:1.3.1")
 
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("io.coil-kt:coil-compose:2.6.0")
+    // Com os fontes completos fora do dex da loja, estas bibliotecas também
+    // ficam só nas versões completas.
+    add("mobileImplementation", "com.squareup.okhttp3:okhttp:4.12.0")
+    add("firetvImplementation", "com.squareup.okhttp3:okhttp:4.12.0")
+    add("mobileImplementation", "io.coil-kt:coil-compose:2.6.0")
+    add("firetvImplementation", "io.coil-kt:coil-compose:2.6.0")
     implementation("com.google.zxing:core:3.5.3")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
@@ -134,7 +140,10 @@ dependencies {
 // que strings de configuração e de formatos de mídia apareçam no pacote.
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
     if (name.contains("store", ignoreCase = true)) {
-        exclude("**/src/main/java/**")
+        val files = (this as org.gradle.api.tasks.SourceTask).getSource().filter {
+            !it.path.replace('\\', '/').contains("/src/main/java/")
+        }
+        setSource(files)
     }
 }
 

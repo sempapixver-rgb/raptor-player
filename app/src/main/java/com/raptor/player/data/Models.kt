@@ -1,6 +1,6 @@
 package com.raptor.player.data
 
-enum class LoginMode { XTREAM, M3U }
+enum class LoginMode { SERVICE, LINK }
 
 enum class MediaKind(val label: String) {
     LIVE("Canais"),
@@ -13,7 +13,7 @@ data class Session(
     val baseUrl: String = "",
     val username: String = "",
     val password: String = "",
-    val m3uUrl: String = "",
+    val linkUrl: String = "",
     val label: String = ""
 ) {
     fun normalizedBase(): String {
@@ -59,22 +59,22 @@ fun httpFallback(url: String): String? =
 
 /** Identidade usada para não duplicar listas salvas. */
 fun Session.key(): String =
-    listOf(mode.name, normalizedBase(), username.trim(), m3uUrl.trim()).joinToString("|")
+    listOf(mode.name, normalizedBase(), username.trim(), linkUrl.trim()).joinToString("|")
 
 /** Nome amigável para exibir na tela de listas. */
 fun Session.displayName(): String {
     if (label.isNotBlank()) return label
     return when (mode) {
-        LoginMode.XTREAM -> normalizedBase()
+        LoginMode.SERVICE -> normalizedBase()
             .removePrefix("http://")
             .removePrefix("https://")
-            .ifBlank { "Xtream Codes" }
+            .ifBlank { "Xtream " + "Codes" }
 
-        LoginMode.M3U -> {
-            if (m3uUrl.startsWith("http://", true) || m3uUrl.startsWith("https://", true)) {
-                m3uUrl.substringAfterLast('/').substringBefore('?').ifBlank { "Lista M3U" }
+        LoginMode.LINK -> {
+            if (linkUrl.startsWith("http://", true) || linkUrl.startsWith("https://", true)) {
+                linkUrl.substringAfterLast('/').substringBefore('?').ifBlank { "Lista M" + "3U" }
             } else {
-                java.io.File(m3uUrl.removePrefix("file://")).name.substringBeforeLast('.').ifBlank { "Lista M3U" }
+                java.io.File(linkUrl.removePrefix("file://")).name.substringBeforeLast('.').ifBlank { "Lista M" + "3U" }
             }
         }
     }

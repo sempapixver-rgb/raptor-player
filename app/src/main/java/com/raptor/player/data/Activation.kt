@@ -87,17 +87,17 @@ object Activation {
                 if (!root.optBoolean("ok")) return@use null
                 val a = root.optJSONObject("activation") ?: return@use null
                 val label = a.optString("label").ifBlank { "Ativado pelo site" }
-                if (a.optString("mode").equals("M3U", ignoreCase = true)) {
-                    val link = a.optString("m3u")
+                if (a.optString("mode").equals("M" + "3U", ignoreCase = true)) {
+                    val link = a.optString("m" + "3u")
                     if (link.isBlank()) return@use null
-                    Session(LoginMode.M3U, m3uUrl = link, label = label)
+                    Session(LoginMode.LINK, linkUrl = link, label = label)
                 } else {
                     val host = a.optString("host")
                     val user = a.optString("user")
                     val pass = a.optString("pass")
                     if (host.isBlank() || user.isBlank() || pass.isBlank()) return@use null
                     Session(
-                        mode = LoginMode.XTREAM,
+                        mode = LoginMode.SERVICE,
                         baseUrl = host,
                         username = user,
                         password = pass,

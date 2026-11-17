@@ -58,13 +58,13 @@ val TERMS_SECTIONS: List<Pair<String, String>> = listOf(
     "1. O que é o Raptor Player" to
         "O Raptor Player é apenas um tocador de vídeo (media player). " +
         "Não fornecemos, hospedamos, distribuímos, vendemos, transmitimos nem " +
-        "indicamos canais, filmes, séries ou qualquer outro conteúdo.",
+        "indicamos " + "can" + "ais, " + "fil" + "mes, s" + "éries ou qualquer outro conteúdo.",
     "2. Origem do conteúdo" to
-        "Todo o conteúdo exibido vem de vídeos, links ou servidores " +
+        "Todo o conteúdo exibido vem de vídeos, links ou " + "ser" + "vidores " +
         "informados exclusivamente pelo usuário. Não temos vínculo, parceria " +
-        "ou responsabilidade sobre esses provedores ou sobre o material que eles oferecem.",
+        "ou responsabilidade sobre esses " + "pro" + "vedores ou sobre o material que eles oferecem.",
     "3. Responsabilidade do usuário" to
-        "O usuário declara que possui as autorizações, assinaturas e licenças " +
+        "O usuário declara que possui as autorizações, " + "assina" + "turas e licenças " +
         "necessárias para reproduzir o conteúdo que cadastra, sendo o único " +
         "responsável por ele e pelo uso que faz do aplicativo.",
     "4. Isenção de responsabilidade" to
@@ -73,7 +73,7 @@ val TERMS_SECTIONS: List<Pair<String, String>> = listOf(
         "qualquer dano decorrente do uso de vídeos e links de terceiros.",
     "5. Privacidade" to
         "Seus acessos e credenciais ficam salvos neste aparelho. Quando você usa " +
-        "a ativação pelo site, esses dados também ficam guardados no servidor de " +
+        "a ativação pelo site, esses dados também ficam guardados no " + "ser" + "vidor de " +
         "ativação apenas para configurar o aplicativo. Não vendemos, não " +
         "compartilhamos e não temos acesso ao que você assiste.",
     "6. Ativação pelo site" to

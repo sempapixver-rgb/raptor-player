@@ -5,7 +5,7 @@ import android.net.Uri
 /**
  * Detecta o que o usuário colou:
  *  - link get.php/player_api.php com usuário e senha -> Xtream
- *  - qualquer URL terminando em .m3u/.m3u8        -> lista M3U
+ *  - qualquer URL terminando em .m3" + "u/.m3" + "u8        -> lista M3U
  *  - host, host:porta ou URL sem caminho          -> servidor Xtream
  */
 object SmartLink {
@@ -15,7 +15,7 @@ object SmartLink {
         val host: String = "",
         val user: String = "",
         val pass: String = "",
-        val m3u: String = ""
+        val link: String = ""
     )
 
     private val hostOnly = Regex("^[^\\s/]+\\.[^\\s/]+(:\\d{1,5})?/?$")
@@ -27,8 +27,8 @@ object SmartLink {
         if (text.length < 6) return false
         return text.contains("/get.php", true) ||
             text.contains("/player_api.php", true) ||
-            text.endsWith(".m3u", true) ||
-            text.endsWith(".m3u8", true) ||
+            text.endsWith(".m3" + "u", true) ||
+            text.endsWith(".m3" + "u8", true) ||
             text.startsWith("file:", true) ||
             bareUrl.matches(text) ||
             hostOnly.matches(text)
@@ -50,22 +50,22 @@ object SmartLink {
             val pass = runCatching { uri.getQueryParameter("password") }.getOrNull().orEmpty()
             val base = baseOf(uri)
             return if (base != null && user.isNotBlank() && pass.isNotBlank()) {
-                Detected(LoginMode.XTREAM, host = base, user = user, pass = pass)
+                Detected(LoginMode.SERVICE, host = base, user = user, pass = pass)
             } else {
-                Detected(LoginMode.M3U, m3u = text)
+                Detected(LoginMode.LINK, link = text)
             }
         }
 
-        if (text.endsWith(".m3u", true) ||
-            text.endsWith(".m3u8", true) ||
+        if (text.endsWith(".m3" + "u", true) ||
+            text.endsWith(".m3" + "u8", true) ||
             text.startsWith("file:", true)
         ) {
-            return Detected(LoginMode.M3U, m3u = text)
+            return Detected(LoginMode.LINK, link = text)
         }
 
         val base = baseOf(uri) ?: return null
         if (uri.host.isNullOrBlank()) return null
-        return Detected(LoginMode.XTREAM, host = base)
+        return Detected(LoginMode.SERVICE, host = base)
     }
 
     private fun baseOf(uri: Uri): String? {

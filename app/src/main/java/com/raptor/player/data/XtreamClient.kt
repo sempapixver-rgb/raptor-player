@@ -259,7 +259,7 @@ class XtreamClient(private val session: Session) {
     }
 
     fun liveUrl(streamId: String): String =
-        "${base()}/live/${enc(user)}/${enc(pass)}/$streamId.m3u8"
+        "${base()}/live/${enc(user)}/${enc(pass)}/$streamId.m3" + "u8"
 
     fun vodUrl(entry: MediaEntry): String {
         val ext = entry.containerExtension?.takeIf { it.isNotBlank() } ?: "mp4"

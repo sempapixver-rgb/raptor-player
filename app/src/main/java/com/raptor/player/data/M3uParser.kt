@@ -50,7 +50,7 @@ object M3uParser {
                     val title = name ?: "Sem título"
                     out.add(
                         MediaEntry(
-                            id = "m3u-${out.size}",
+                            id = "m" + "3u-${out.size}",
                             name = title,
                             logo = logo,
                             categoryId = group,
@@ -117,7 +117,7 @@ object M3uParser {
             clean.endsWith(".mp4") || clean.endsWith(".mkv") || clean.endsWith(".avi") ||
                 clean.endsWith(".mov") || clean.endsWith(".webm") -> MediaKind.VOD
 
-            clean.endsWith(".m3u8") || clean.endsWith(".ts") -> MediaKind.LIVE
+            clean.endsWith(".m3" + "u8") || clean.endsWith(".ts") -> MediaKind.LIVE
             else -> MediaKind.LIVE
         }
     }

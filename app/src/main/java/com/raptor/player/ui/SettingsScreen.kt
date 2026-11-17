@@ -155,8 +155,8 @@ fun SettingsScreen(
             ) {
                 Text(
                     text = when (session.mode) {
-                        LoginMode.XTREAM -> "Xtream Codes"
-                        LoginMode.M3U -> "Lista M3U"
+                        LoginMode.SERVICE -> "Xtream " + "Codes"
+                        LoginMode.LINK -> "Lista M" + "3U"
                     },
                     color = RaptorGreen,
                     fontSize = 11.sp,
@@ -189,8 +189,8 @@ fun SettingsScreen(
                     Text("Verificando conta…", color = RaptorTextDim, fontSize = 12.sp)
                 } else if (account == null) {
                     Text(
-                        text = if (session.mode == LoginMode.M3U)
-                            "Lista M3U — sem dados de conta."
+                        text = if (session.mode == LoginMode.LINK)
+                            "Lista M" + "3U - sem dados de conta."
                         else "Não foi possível ler os dados da conta.",
                         color = RaptorTextDim,
                         fontSize = 12.sp

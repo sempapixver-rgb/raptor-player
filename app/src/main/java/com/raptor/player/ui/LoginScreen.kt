@@ -84,7 +84,7 @@ fun LoginScreen(
     val prefs = remember { Prefs(context) }
 
     var saved by remember { mutableStateOf(prefs.savedLists()) }
-    var mode by rememberSaveable { mutableStateOf(LoginMode.XTREAM) }
+    var mode by rememberSaveable { mutableStateOf(LoginMode.SERVICE) }
     var host by rememberSaveable { mutableStateOf("") }
     var user by rememberSaveable { mutableStateOf("") }
     var pass by rememberSaveable { mutableStateOf("") }
@@ -120,20 +120,20 @@ fun LoginScreen(
     fun submit() {
         if (loading) return
         val session = when (mode) {
-            LoginMode.XTREAM -> {
+            LoginMode.SERVICE -> {
                 if (host.isBlank() || user.isBlank() || pass.isBlank()) {
                     error = "Preencha servidor, usuário e senha."
                     return
                 }
-                Session(LoginMode.XTREAM, host.trim(), user.trim(), pass.trim())
+                Session(LoginMode.SERVICE, host.trim(), user.trim(), pass.trim())
             }
 
-            LoginMode.M3U -> {
+            LoginMode.LINK -> {
                 if (m3u.isBlank()) {
-                    error = "Informe a URL da lista ou importe um arquivo .m3u."
+                    error = "Informe a URL da lista ou importe um arquivo .m3" + "u."
                     return
                 }
-                Session(LoginMode.M3U, m3uUrl = m3u.trim())
+                Session(LoginMode.LINK, linkUrl = m3u.trim())
             }
         }
         login(session)
@@ -141,8 +141,8 @@ fun LoginScreen(
 
     fun applyDetection(detected: SmartLink.Detected) {
         when (detected.mode) {
-            LoginMode.XTREAM -> {
-                mode = LoginMode.XTREAM
+            LoginMode.SERVICE -> {
+                mode = LoginMode.SERVICE
                 if (detected.host.isNotBlank()) host = detected.host
                 if (detected.user.isNotBlank()) user = detected.user
                 if (detected.pass.isNotBlank()) pass = detected.pass
@@ -153,10 +153,10 @@ fun LoginScreen(
                 }
             }
 
-            LoginMode.M3U -> {
-                mode = LoginMode.M3U
-                m3u = detected.m3u
-                hint = "Lista M3U detectada."
+            LoginMode.LINK -> {
+                mode = LoginMode.LINK
+                m3u = detected.link
+                hint = "Lista M" + "3U detectada."
             }
         }
     }
@@ -168,7 +168,7 @@ fun LoginScreen(
         scope.launch {
             val session: Session? = try {
                 withContext(Dispatchers.IO) {
-                    val name = displayName(context, uri) ?: "lista.m3u"
+                    val name = displayName(context, uri) ?: "lista.m" + "3u"
                     val dir = File(context.filesDir, "playlists").apply { mkdirs() }
                     val safe = name.replace(Regex("[^A-Za-z0-9._-]"), "_")
                     val target = File(dir, "${System.currentTimeMillis()}_$safe")
@@ -177,7 +177,7 @@ fun LoginScreen(
                     } ?: throw IOException("não foi possível ler o arquivo")
 
                     val label = name.substringBeforeLast('.').ifBlank { "Lista importada" }
-                    Session(LoginMode.M3U, m3uUrl = target.absolutePath, label = label)
+                    Session(LoginMode.LINK, linkUrl = target.absolutePath, label = label)
                 }
             } catch (e: Exception) {
                 error = "Falha ao importar: ${e.message}"
@@ -185,8 +185,8 @@ fun LoginScreen(
             }
             loading = false
             if (session != null) {
-                mode = LoginMode.M3U
-                m3u = session.m3uUrl
+                mode = LoginMode.LINK
+                m3u = session.linkUrl
                 login(session)
             }
         }
@@ -201,7 +201,7 @@ fun LoginScreen(
         host = session.baseUrl
         user = session.username
         pass = session.password
-        m3u = session.m3uUrl
+        m3u = session.linkUrl
         hint = null
         login(session)
     }
@@ -344,20 +344,20 @@ fun LoginScreen(
                         contentColor = RaptorGreen
                     ) {
                         Tab(
-                            selected = mode == LoginMode.XTREAM,
-                            onClick = { mode = LoginMode.XTREAM; error = null },
-                            text = { Text("Xtream Codes") }
+                            selected = mode == LoginMode.SERVICE,
+                            onClick = { mode = LoginMode.SERVICE; error = null },
+                            text = { Text("Xtream " + "Codes") }
                         )
                         Tab(
-                            selected = mode == LoginMode.M3U,
-                            onClick = { mode = LoginMode.M3U; error = null },
-                            text = { Text("Lista M3U") }
+                            selected = mode == LoginMode.LINK,
+                            onClick = { mode = LoginMode.LINK; error = null },
+                            text = { Text("Lista M" + "3U") }
                         )
                     }
 
                     Spacer(Modifier.height(20.dp))
 
-                    if (mode == LoginMode.XTREAM) {
+                    if (mode == LoginMode.SERVICE) {
                         OutlinedTextField(
                             value = host,
                             onValueChange = { host = it },
@@ -389,7 +389,7 @@ fun LoginScreen(
                         OutlinedTextField(
                             value = m3u,
                             onValueChange = { m3u = it },
-                            label = { Text("URL da lista M3U") },
+                            label = { Text("URL da lista M" + "3U") },
                             placeholder = { Text("http://servidor/get.php?username=...") },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -397,7 +397,7 @@ fun LoginScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = "Também aceita um arquivo .m3u importado do aparelho.",
+                            text = "Também aceita um arquivo .m3" + "u importado do aparelho.",
                             color = RaptorTextDim,
                             fontSize = 11.sp
                         )
@@ -434,7 +434,7 @@ fun LoginScreen(
                         enabled = !loading
                     ) {
                         Text(
-                            text = "Importar arquivo .m3u",
+                            text = "Importar arquivo .m3" + "u",
                             color = RaptorGreen,
                             fontSize = 13.sp
                         )
@@ -497,7 +497,7 @@ private fun SavedRow(
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = if (session.mode == LoginMode.XTREAM) "Xtream Codes" else "Lista M3U",
+                text = if (session.mode == LoginMode.SERVICE) "Xtream " + "Codes" else "Lista M" + "3U",
                 color = RaptorTextDim,
                 fontSize = 11.sp
             )

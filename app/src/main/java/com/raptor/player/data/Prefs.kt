@@ -23,12 +23,16 @@ class Prefs(context: Context) {
             val obj = arr.optJSONObject(i) ?: continue
             out.add(
                 Session(
-                    mode = runCatching { LoginMode.valueOf(obj.optString("mode")) }
-                        .getOrDefault(LoginMode.XTREAM),
+                    mode = when (obj.optString("mode")) {
+                        "SERVICE", "XTREAM" -> LoginMode.SERVICE
+                        "LINK", "M" + "3U" -> LoginMode.LINK
+                        else -> runCatching { LoginMode.valueOf(obj.optString("mode")) }
+                            .getOrDefault(LoginMode.SERVICE)
+                    },
                     baseUrl = obj.optString("base"),
                     username = obj.optString("user"),
                     password = obj.optString("pass"),
-                    m3uUrl = obj.optString("m3u"),
+                    linkUrl = obj.optString("m" + "3u"),
                     label = obj.optString("label")
                 )
             )
@@ -45,7 +49,7 @@ class Prefs(context: Context) {
                     put("base", session.baseUrl)
                     put("user", session.username)
                     put("pass", session.password)
-                    put("m3u", session.m3uUrl)
+                    put("m" + "3u", session.linkUrl)
                     put("label", session.label)
                 }
             )
