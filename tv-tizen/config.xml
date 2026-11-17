@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets"
+        xmlns:tizen="http://tizen.org/ns/widgets"
+        id="http://raptor.player/tv"
+        version="1.2.1"
+        viewmodes="maximized">
+  <tizen:application id="raptorPlayer" package="raptor" required_version="4.0"/>
+  <content src="index.html"/>
+  <name>Raptor Player</name>
+  <description>Tocador de video para Smart TV Samsung (Tizen).</description>
+  <author email="contato@raptor.player">Raptor</author>
+  <icon src="assets/icon.png"/>
+  <access origin="*" subdomains="true"/>
+  <tizen:privilege name="http://tizen.org/privilege/internet"/>
+  <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+  <tizen:profile name="tv"/>
+  <tizen:metadata key="http://samsung.com/tv/metadata/prelaunch.support" value="true"/>
+</widget>
