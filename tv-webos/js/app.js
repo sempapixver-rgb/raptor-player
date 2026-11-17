@@ -1507,7 +1507,8 @@ var App = {
   },
 
   startPreview: function (url) {
-    if (!url) return;
+    // Com o player aberto, um segundo video decodificando trava a TV.
+    if (!url || (window.App && App.isPlayerOpen())) return;
     if (this.previewUrl === url) {
       var atual = $('previewVideo');
       if (atual && atual.readyState >= 2 && !atual.paused) return;
@@ -2201,9 +2202,11 @@ var Player = {
   started: false,
   wantPlay: false,
   autoPlayTries: 0,
+  autoPlayTimer: null,
+  playPending: false,
+  playPendingTimer: null,
   autoRetries: 0,
   attempt: 0,
-  autoPlayTries: 0,
 
   /** Liga os eventos do <video> uma única vez. */
   bindVideo: function () {
@@ -2262,6 +2265,11 @@ var Player = {
     this.wantPlay = true;
     this.autoPlayTries = 0;
     this.autoRetries = 0;
+    this.settlePlay();
+    if (this.autoPlayTimer) {
+      clearTimeout(this.autoPlayTimer);
+      this.autoPlayTimer = null;
+    }
     this.clearWatchdog();
 
     this.destroyHls();
@@ -2286,45 +2294,75 @@ var Player = {
   },
 
   /** Pede o play e, se a TV recusar, tenta de novo sozinho em instantes. */
+  /** Libera o sinal de "play em andamento" (inclusive em caso de erro). */
+  settlePlay: function () {
+    if (this.playPendingTimer) {
+      clearTimeout(this.playPendingTimer);
+      this.playPendingTimer = null;
+    }
+    this.playPending = false;
+  },
+
   tryPlay: function () {
     var self = this;
     if (!this.video || !this.currentUrl) return;
+    // Nunca deixe duas chamadas play() disputarem o mesmo video: isso
+    // trava a decodificacao em alguns modelos da LG.
+    if (this.playPending) return;
+    if (!this.video.paused) { this.onStarted(); return; }
+    this.playPending = true;
+    // Em alguns modelos a promise do play() nunca resolve (nem rejeita)
+    // quando o video falha. Esse timer impede que o travamento fique preso.
+    this.playPendingTimer = setTimeout(function () {
+      self.settlePlay();
+    }, 8000);
     var started;
     try {
       started = this.video.play();
     } catch (e) {
+      this.settlePlay();
       this.scheduleAutoPlay();
       return;
     }
     if (started && started.then) {
       started.then(function () {
-        self.started = true;
-        self.autoPlayTries = 0;
-        self.hideLoading();
-        self.clearWatchdog();
-        self.scheduleHide();
+        self.settlePlay();
+        self.onStarted();
       }, function () {
         // Autoplay recusado: mantem os controles e insiste sem o usuario.
+        self.settlePlay();
         self.showOverlay();
         self.scheduleAutoPlay();
       });
     } else {
-      this.started = true;
-      this.hideLoading();
-      this.clearWatchdog();
-      this.scheduleHide();
+      this.settlePlay();
+      this.onStarted();
     }
+  },
+
+  /** Play aceito: cancela as novas tentativas e libera o watchdog. */
+  onStarted: function () {
+    if (this.autoPlayTimer) {
+      clearTimeout(this.autoPlayTimer);
+      this.autoPlayTimer = null;
+    }
+    this.started = true;
+    this.autoPlayTries = 0;
+    this.hideLoading();
+    this.clearWatchdog();
+    this.scheduleHide();
   },
 
   /** Repete o play algumas vezes: alguns modelos so tocam apos os dados. */
   scheduleAutoPlay: function () {
     var self = this;
-    if (!this.wantPlay || !this.currentUrl) return;
+    if (!this.wantPlay || !this.currentUrl || this.autoPlayTimer) return;
     this.autoPlayTries = this.autoPlayTries || 0;
     if (this.autoPlayTries >= 8) return;
     var delay = 700 + this.autoPlayTries * 500;
     this.autoPlayTries += 1;
-    setTimeout(function () {
+    this.autoPlayTimer = setTimeout(function () {
+      self.autoPlayTimer = null;
       if (!self.wantPlay || !self.currentUrl || !App.isPlayerOpen()) return;
       if (self.video && self.video.paused) self.tryPlay();
     }, delay);
@@ -2374,6 +2412,12 @@ var Player = {
 
     this.started = false;
     this.tryingHls = false;
+    this.settlePlay();
+    this.autoPlayTries = 0;
+    if (this.autoPlayTimer) {
+      clearTimeout(this.autoPlayTimer);
+      this.autoPlayTimer = null;
+    }
     this.destroyHls();
     try {
       video.pause();
@@ -2410,6 +2454,7 @@ var Player = {
   },
 
   onError: function () {
+    this.settlePlay();
     if (this.tryingHls || !this.currentUrl) {
       this.showError('Verifique se o link ainda está disponível.');
       return;
@@ -2451,6 +2496,7 @@ var Player = {
   },
 
   showError: function (message) {
+    this.settlePlay();
     this.clearWatchdog();
     this.hideLoading();
     hide($('playerOverlay'));
@@ -2545,6 +2591,15 @@ var Player = {
   close: function () {
     this.clearWatchdog();
     this.hideLoading();
+    if (this.autoPlayTimer) {
+      clearTimeout(this.autoPlayTimer);
+      this.autoPlayTimer = null;
+    }
+    if (this.hideTimer) {
+      clearTimeout(this.hideTimer);
+      this.hideTimer = null;
+    }
+    this.settlePlay();
     this.started = false;
     this.wantPlay = false;
     this.destroyHls();
