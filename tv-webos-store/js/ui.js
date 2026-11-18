@@ -1,4 +1,4 @@
-/* Navegação por controle remoto (D-pad e Magic Remote). */
+/* Remote-control navigation (D-pad and Magic Remote). */
 
 var Focus = {
 
@@ -23,7 +23,7 @@ var Focus = {
       if (node.offsetParent === null) continue;
       var rect = node.getBoundingClientRect();
       if (rect.width === 0 && rect.height === 0) continue;
-      // Itens fora da tela não recebem foco (evita pulos para o menu escondido).
+      // Off-screen items do not receive focus (avoids jumps to the hidden menu).
       if (rect.bottom <= 0 || rect.top >= vh || rect.right <= 0 || rect.left >= vw) continue;
       out.push({ el: node, r: rect });
     }
@@ -47,10 +47,10 @@ var Focus = {
     if (!el) return;
     try {
       el.focus();
-    } catch (e) { /* ignora */ }
+    } catch (e) { /* ignore */ }
   },
 
-  /** Move o foco na direção pedida. */
+  /** Moves focus in the requested direction. */
   move: function (dir) {
     var cur = this.current();
     if (!cur) {
@@ -61,7 +61,7 @@ var Focus = {
     var c = cur.getBoundingClientRect();
     var all = this.list();
 
-    // Do campo de busca, "baixo" vai para o primeiro resultado.
+    // From the search field, "down" goes to the first result.
     if (dir === 'down' && cur.id === 'searchInput' && window.App && App.focusFirstResult) {
       App.focusFirstResult();
       return;
@@ -95,8 +95,8 @@ var Focus = {
 
       if (score === Infinity) continue;
 
-      // Esquerda/direita só aceitam quem está na mesma faixa vertical:
-      // sem isso, "direita" pulava dos itens para o campo de busca do topo.
+      // Left/right only accept candidates on the same vertical band:
+      // otherwise "right" jumped from the items to the top search field.
       var alinhado = horizontal
         ? (r.bottom > c.top + 4 && r.top < c.bottom - 4)
         : (r.right > c.left + 4 && r.left < c.right - 4);
@@ -109,9 +109,9 @@ var Focus = {
       }
     }
 
-    // Na horizontal só vale o vizinho alinhado (evita saltos para o topo).
-    // Para cima, dentro dos itens/categorias, também não vale "salto solto":
-    // se não há item acima, o atalho da barra de busca abaixo resolve.
+    // Horizontally only the aligned neighbor counts (avoids jumps to the top).
+    // Up within items/categories also rejects a "loose jump":
+    // if there is no item above, the search-bar shortcut handles it.
     var semSalto = horizontal ||
       (dir === 'up' && cur.closest && (cur.closest('#items') || cur.closest('#cats')));
     var chosen = best || (semSalto ? null : loose);
@@ -122,8 +122,8 @@ var Focus = {
       return;
     }
 
-    // Para cima quando não há mais item acima: vai direto para a barra de
-    // busca no topo da tela (não importa se está nos itens ou nas categorias).
+    // Up with no item above: go straight to the search bar
+    // at the top of the screen (whether in items or categories).
     if (dir === 'up' && cur.closest && (cur.closest('#items') || cur.closest('#cats'))) {
       var busca = $('searchInput');
       if (busca && busca.offsetParent !== null) {
@@ -133,7 +133,7 @@ var Focus = {
       }
     }
 
-    // Esquerda a partir da prévia: volta para o item selecionado.
+    // Left from the preview: return to the selected item.
     if (dir === 'left' && cur.closest && cur.closest('#previewPane')) {
       var linha = document.querySelector('#items .item-row.selected, #items .card-item.selected') ||
         document.querySelector('#items .item-row, #items .card-item');
@@ -144,7 +144,7 @@ var Focus = {
       }
     }
 
-    // Direita a partir dos itens: entra na prévia (mesmo em outra altura).
+    // Right from the items: enter the preview (even at another height).
     if (dir === 'right' && cur.closest && cur.closest('#items')) {
       var pane = $('previewPane');
       if (pane && !pane.classList.contains('hidden')) {
@@ -168,28 +168,28 @@ var Focus = {
       }
     }
 
-    // Não existe mais menu inferior: cada aba é um ambiente fechado e
-    // para sair dela o usuário aperta Voltar (volta ao menu principal).
+    // There is no bottom menu: each tab is a closed environment, and
+    // to leave it the user presses Back (returns to the main menu).
   },
   ensureVisible: function (el) {
     try {
       el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     } catch (e) {
-      try { el.scrollIntoView(false); } catch (e2) { /* ignora */ }
+      try { el.scrollIntoView(false); } catch (e2) { /* ignore */ }
     }
   },
 
-  /** Liga o foco automático ao passar o ponteiro do Magic Remote. */
+  /** Enables automatic focus when the Magic Remote pointer passes over. */
   bindPointer: function () {
     document.addEventListener('mouseover', function (event) {
       var target = event.target;
       while (target && target !== document.body) {
         if (target.classList && target.classList.contains('focusable')) {
-          // Abas do menu inferior não recebem foco ao passar o ponteiro:
-          // a aba só troca quando o usuário clica (ou aperta OK no D-pad).
+          // Bottom-menu tabs do not receive focus on pointer hover:
+          // the tab changes only on click (or OK on the D-pad).
           if (target.getAttribute('data-nohover') === 'true') return;
           if (document.activeElement !== target) {
-            try { target.focus(); } catch (e) { /* ignora */ }
+            try { target.focus(); } catch (e) { /* ignore */ }
           }
           return;
         }
@@ -199,7 +199,7 @@ var Focus = {
   }
 };
 
-/** Troca de tela com pilha de foco. */
+/** Screen switching with a focus stack. */
 var Screens = {
 
   stack: [],
@@ -222,7 +222,7 @@ var Screens = {
     var el = this.stack.pop();
     if (el) {
       setTimeout(function () {
-        try { el.focus(); } catch (e) { /* ignora */ }
+        try { el.focus(); } catch (e) { /* ignore */ }
       }, 30);
       return true;
     }

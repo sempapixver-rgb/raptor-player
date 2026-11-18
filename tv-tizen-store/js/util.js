@@ -1,4 +1,4 @@
-/* Utilidades gerais do app. */
+/* General app utilities. */
 
 function $(id) {
   return document.getElementById(id);
@@ -26,12 +26,12 @@ function esc(value) {
     .replace(/'/g, '&#39;');
 }
 
-/** Só A-Z e 0-9, como o site espera. */
+/** Only A-Z and 0-9, as expected by the website. */
 function normalizeCode(value) {
   return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
-/** Código em formato MAC (AA:BB:CC:DD:EE:FF). */
+/** Code in MAC format (AA:BB:CC:DD:EE:FF). */
 function formatMac(code) {
   var clean = normalizeCode(code).slice(0, 12);
   var out = [];
@@ -41,7 +41,7 @@ function formatMac(code) {
   return out.join(':');
 }
 
-/** Minúsculas, sem acentos e sem pontuação — para comparar textos. */
+/** Lowercase, no accents and no punctuation — for text comparison. */
 function fold(value) {
   var lower = String(value || '').toLowerCase();
   if (lower.normalize) {
@@ -50,7 +50,7 @@ function fold(value) {
   return lower.replace(/[^a-z0-9]+/g, ' ').replace(/^\s+|\s+$/g, '');
 }
 
-/** Compara nomes em ordem alfabética, com números em ordem natural (2 antes de 10). */
+/** Compares names alphabetically, with natural number order (2 before 10). */
 function compareNames(a, b) {
   var ka = fold(a && a.name);
   var kb = fold(b && b.name);
@@ -81,7 +81,7 @@ function compareNames(a, b) {
   return pa.length - pb.length;
 }
 
-/** Cópia dos itens em ordem alfabética (não altera a original). */
+/** Copy of the items in alphabetical order (does not change the original). */
 function sortByName(list) {
   if (!list || !list.length) return list || [];
   var copy = list.slice();
@@ -113,14 +113,14 @@ function toast(message) {
   }, 3200);
 }
 
-/** Remove todos os filhos de um elemento. */
+/** Removes all children of an element. */
 function clear(node) {
   while (node && node.firstChild) {
     node.removeChild(node.firstChild);
   }
 }
 
-/** Cria um elemento com classe e texto. */
+/** Creates an element with a class and text. */
 function make(tag, className, text) {
   var node = document.createElement(tag);
   if (className) node.className = className;
@@ -128,7 +128,7 @@ function make(tag, className, text) {
   return node;
 }
 
-/** Cria um <button> já focável. */
+/** Creates an already focusable <button>. */
 function makeButton(className, text) {
   var node = make('button', className + ' focusable', text);
   node.setAttribute('tabindex', '0');
@@ -141,11 +141,11 @@ function pad2(n) {
 }
 
 /**
- * Fila de imagens (capas e logos).
+ * Image queue (covers and logos).
  *
- * A TV não aguenta 60 pedidos de imagem ao mesmo tempo: o navegador abre
- * todas as conexões, a rede satura e o app parece travado. Aqui carregamos
- * no máximo 4 por vez, e ao trocar de página a fila antiga é descartada.
+ * A TV cannot handle 60 image requests at once: the browser opens all
+ * connections, the network saturates and the app looks frozen. Here we load
+ * at most 4 at a time, and the old queue is discarded on page changes.
  */
 var Thumbs = {
 
@@ -154,13 +154,13 @@ var Thumbs = {
   queue: [],
   gen: 0,
 
-  /** Descarta o que ainda não começou (troca de página/pasta). */
+  /** Discards items not started yet (page/folder change). */
   reset: function () {
     this.gen++;
     this.queue.length = 0;
   },
 
-  /** Aplica a imagem no elemento quando ela estiver pronta. */
+  /** Applies the image to the element when it is ready. */
   set: function (el, url) {
     if (!el) return;
     var clean = String(url || '').replace(/"/g, '%22');
@@ -187,7 +187,7 @@ var Thumbs = {
           if (done) return;
           done = true;
           self.running--;
-          // Só pinta se o elemento ainda quer esta imagem.
+          // Only paint if the element still wants this image.
           if (item.el._thumbUrl === item.css) item.el.style.backgroundImage = item.css;
           self.next();
         }

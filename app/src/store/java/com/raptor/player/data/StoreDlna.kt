@@ -2,7 +2,7 @@ package com.raptor.player.data
 
 import android.content.Context
 
-/** Aparelho de tela encontrado na rede local. */
+/** Screen device found on the local network. */
 data class StoreDlnaDevice(
     val name: String,
     val controlUrl: String,
@@ -10,14 +10,14 @@ data class StoreDlnaDevice(
 )
 
 /**
- * Na edição de loja o botão de enviar para outra tela fica desligado.
- * Estes métodos existem apenas para manter a mesma interface do player.
+ * In the store edition, the cast-to-screen button is disabled.
+ * These methods exist only to keep the player interface consistent.
  */
 object StoreDlna {
     suspend fun discover(context: Context, timeoutMs: Int = 3200): List<StoreDlnaDevice> = emptyList()
 
     suspend fun cast(device: StoreDlnaDevice, url: String, title: String): Result<Unit> =
-        Result.failure(IllegalStateException("indisponível"))
+        Result.failure(IllegalStateException("unavailable"))
 
     suspend fun stop(device: StoreDlnaDevice): Result<Unit> = Result.success(Unit)
 }

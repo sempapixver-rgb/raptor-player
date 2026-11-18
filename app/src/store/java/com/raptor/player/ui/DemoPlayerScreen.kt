@@ -51,12 +51,12 @@ import com.raptor.player.ui.theme.RaptorGreen
 import com.raptor.player.ui.theme.RaptorText
 import kotlinx.coroutines.delay
 
-/** Um vídeo de demonstração. */
+/** One sample video. */
 data class DemoPlayItem(val url: String, val title: String)
 
 /**
- * Player dos vídeos de exemplo da edição de loja. Usa o player do próprio
- * Android, sem bibliotecas de formatos de mídia.
+ * Player for the store edition's sample videos. Uses Android's own player,
+ * with no media-format libraries.
  */
 @Composable
 fun DemoPlayerScreen(
@@ -207,7 +207,7 @@ fun DemoPlayerScreen(
             ) {
                 ControlButton("-30s") { seekBy(-30_000L) }
                 ControlButton("-5min") { seekBy(-300_000L) }
-                ControlButton(if (playing) "Pausar" else "Tocar") {
+                ControlButton(if (playing) "Pause" else "Play") {
                     playing = !playing
                     if (playing) videoRef.value?.start() else videoRef.value?.pause()
                 }
@@ -225,7 +225,7 @@ fun DemoPlayerScreen(
                         contentColor = RaptorGreen
                     )
                 ) {
-                    Text("Fechar", fontSize = 11.sp)
+                    Text("Close", fontSize = 11.sp)
                 }
             }
         }

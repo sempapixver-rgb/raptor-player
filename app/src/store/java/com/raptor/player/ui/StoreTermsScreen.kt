@@ -47,36 +47,36 @@ import com.raptor.player.ui.theme.RaptorText
 import com.raptor.player.ui.theme.RaptorTextDim
 import kotlinx.coroutines.delay
 
-/** Versão do termo. Se o texto mudar, aumente para pedir o aceite novamente. */
-const val STORE_TERMS_VERSION = 2
+/** Terms version. Increase it when the text changes so acceptance is requested again. */
+const val STORE_TERMS_VERSION = 3
 
-/** Termos da edição de loja: apenas o tocador, o aparelho e os exemplos. */
+/** Store-edition terms: only the player, the device and the samples. */
 val LOJA_TERMS_SECTIONS: List<Pair<String, String>> = listOf(
-    "1. O que é o Raptor Player" to
-        "O Raptor Player é um tocador de vídeo. Ele reproduz os vídeos públicos " +
-        "de demonstração incluídos no aplicativo.",
-    "2. Código do aparelho" to
-        "O aplicativo mostra o código MAC do aparelho e um QR Code. Eles servem " +
-        "apenas para identificar a TV no site de cadastro.",
-    "3. Cadastro da TV" to
-        "Ao cadastrar o código no site, o aparelho fica reconhecido. O aplicativo " +
-        "não pede login e não recebe dados de acesso pelo site.",
-    "4. Vídeos de demonstração" to
-        "O botão de teste reproduz vídeos públicos de exemplo, hospedados nos " +
-        "arquivos do próprio projeto.",
-    "5. Privacidade" to
-        "Não coletamos localização, contatos, fotos nem arquivos do aparelho. " +
-        "O código do aparelho é usado somente para o cadastro da TV.",
-    "6. Aceite" to
-        "Ao tocar em “Aceitar e continuar”, você confirma que leu e concorda " +
-        "com estes termos."
+    "1. What Raptor Player is" to
+        "Raptor Player is a video player. It plays the public sample videos " +
+        "included in the app.",
+    "2. Device code" to
+        "The app shows the device's MAC code and a QR code. They are used only " +
+        "to identify the TV on the registration website.",
+    "3. TV registration" to
+        "When you register the code on the website, the device is recognized. The app " +
+        "does not ask for sign-in details and receives no access data from the website.",
+    "4. Sample videos" to
+        "The test button plays public sample videos hosted in the project's " +
+        "own release files.",
+    "5. Privacy" to
+        "We do not collect location, contacts, photos or device files. " +
+        "The device code is used only to register the TV.",
+    "6. Acceptance" to
+        "By selecting “Accept and continue”, you confirm that you have read and " +
+        "agree to these terms."
 )
 
 const val LOJA_TERMS_NOTICE =
-    "Este aplicativo é um tocador de vídeo com exemplos públicos. Não há login " +
-    "nem dados de acesso a informar."
+    "This app is a video player with public samples. No sign-in or access " +
+    "details are required."
 
-/** Tela de primeiro acesso: o aceite é obrigatório antes de usar o app. */
+/** First-launch screen: acceptance is mandatory before using the app. */
 @Composable
 fun StoreTermsScreen(
     onAccept: () -> Unit,
@@ -124,7 +124,7 @@ fun StoreTermsScreen(
             Spacer(Modifier.height(14.dp))
 
             Text(
-                text = "TERMO DE USO E AVISO DE RESPONSABILIDADE",
+                text = "TERMS OF USE AND LIABILITY NOTICE",
                 color = RaptorText,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
@@ -194,7 +194,7 @@ fun StoreTermsScreen(
             Spacer(Modifier.height(12.dp))
 
             Text(
-                text = "Se não concordar com os termos, feche o aplicativo.",
+                text = "If you do not agree to the terms, close the app.",
                 color = RaptorTextDim,
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center
@@ -214,7 +214,7 @@ fun StoreTermsScreen(
                     modifier = Modifier.onFocusChanged { declineFocused = it.isFocused }
                 ) {
                     Text(
-                        text = "Não aceito",
+                        text = "I do not accept",
                         color = if (declineFocused) RaptorText else RaptorTextDim,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
@@ -235,7 +235,7 @@ fun StoreTermsScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "Aceitar e continuar",
+                        text = "Accept and continue",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     )

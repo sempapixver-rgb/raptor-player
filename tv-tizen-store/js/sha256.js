@@ -1,5 +1,5 @@
-/* SHA-256 em JavaScript puro.
-   Necessário porque o app roda em file:// (sem crypto.subtle). */
+/* Pure JavaScript SHA-256.
+   Needed because the app runs from file:// (no crypto.subtle). */
 
 function sha256Hex(ascii) {
   function rightRotate(value, amount) {

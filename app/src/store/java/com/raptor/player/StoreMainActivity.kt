@@ -73,7 +73,7 @@ class StoreMainActivity : ComponentActivity() {
         if (hasFocus) hideSystemBars()
     }
 
-    /** Esconde barra de status e botões de navegação (imersivo). */
+    /** Hides the status bar and navigation buttons (immersive). */
     private fun hideSystemBars() {
         WindowInsetsControllerCompat(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.systemBars())

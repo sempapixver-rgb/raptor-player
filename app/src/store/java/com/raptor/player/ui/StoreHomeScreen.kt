@@ -51,8 +51,8 @@ import com.raptor.player.ui.theme.RaptorTextDim
 import kotlinx.coroutines.delay
 
 /**
- * Tela da edição de loja: mostra o código MAC, o QR Code em destaque, o botão
- * Ativar TV e o teste do player. Não abre login nem configuração de mídia.
+ * Store-edition screen: shows the MAC code, the QR code in focus, the Activate TV
+ * button and the player test. It opens no sign-in and no media configuration.
  */
 @Composable
 fun StoreHomeScreen(onDemo: () -> Unit) {
@@ -103,14 +103,14 @@ fun StoreHomeScreen(onDemo: () -> Unit) {
             Spacer(Modifier.height(18.dp))
 
             Text(
-                text = "Ative sua TV",
+                text = "Activate your TV",
                 color = RaptorText,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.height(5.dp))
             Text(
-                text = "Veja o código do aparelho, escaneie o QR Code e cadastre a TV no site.",
+                text = "View the device code, scan the QR code and register the TV on the website.",
                 color = RaptorTextDim,
                 fontSize = 12.sp,
                 lineHeight = 17.sp,
@@ -147,7 +147,7 @@ fun StoreHomeScreen(onDemo: () -> Unit) {
                         if (qr != null) {
                             Image(
                                 bitmap = qr.asImageBitmap(),
-                                contentDescription = "QR Code para cadastrar a TV",
+                                contentDescription = "QR code to register the TV",
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -156,7 +156,7 @@ fun StoreHomeScreen(onDemo: () -> Unit) {
                     Spacer(Modifier.height(12.dp))
 
                     Text(
-                        text = "CÓDIGO MAC",
+                        text = "MAC CODE",
                         color = RaptorTextDim,
                         fontSize = 10.sp,
                         letterSpacing = 2.sp,
@@ -183,7 +183,7 @@ fun StoreHomeScreen(onDemo: () -> Unit) {
                     .fillMaxWidth()
                     .height(50.dp)
             ) {
-                Text("Ativar TV", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text("Activate TV", fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(Modifier.height(10.dp))
@@ -196,7 +196,7 @@ fun StoreHomeScreen(onDemo: () -> Unit) {
                     .height(50.dp)
             ) {
                 Text(
-                    "▶  Testar o player (vídeos de exemplo)",
+                    "▶  Test the player (sample videos)",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -205,7 +205,7 @@ fun StoreHomeScreen(onDemo: () -> Unit) {
             Spacer(Modifier.height(16.dp))
 
             Text(
-                text = "Não pedimos login nem dados de acesso.",
+                text = "No sign-in or access details are requested.",
                 color = RaptorTextDim,
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center
@@ -238,14 +238,14 @@ fun StoreHomeScreen(onDemo: () -> Unit) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Ativar TV",
+                            text = "Activate TV",
                             color = RaptorText,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = "Escaneie o QR Code ou use o código abaixo no site.",
+                            text = "Scan the QR code or use the code below on the website.",
                             color = RaptorTextDim,
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center
@@ -269,7 +269,7 @@ fun StoreHomeScreen(onDemo: () -> Unit) {
                             if (qr != null) {
                                 Image(
                                     bitmap = qr.asImageBitmap(),
-                                    contentDescription = "QR Code ampliado para ativar a TV",
+                                    contentDescription = "Enlarged QR code to activate the TV",
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
@@ -285,7 +285,7 @@ fun StoreHomeScreen(onDemo: () -> Unit) {
                         )
                         Spacer(Modifier.height(12.dp))
                         TextButton(onClick = { showQr = false }) {
-                            Text("Fechar", color = RaptorGreen, fontSize = 13.sp)
+                            Text("Close", color = RaptorGreen, fontSize = 13.sp)
                         }
                     }
                 }

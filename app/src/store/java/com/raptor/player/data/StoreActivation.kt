@@ -12,18 +12,18 @@ import java.net.URLEncoder
 import java.security.MessageDigest
 
 /**
- * Cadastro do aparelho pelo código MAC. A edição de loja não recebe
- * configuração do site: ela apenas mostra o código e o QR Code.
+ * Device registration by MAC code. The store edition receives no
+ * configuration from the website: it only shows the code and the QR code.
  */
 object StoreActivation {
 
-    /** Endereço do site de cadastro. */
+    /** Registration website address. */
     const val SITE_BASE = "https://raptor-player.netlify.app"
 
     private const val SP = "raptor_session"
     private const val KEY_CODE = "device_code"
 
-    /** Código estável da TV no formato AA:BB:CC:DD:EE:FF. */
+    /** Stable TV code in AA:BB:CC:DD:EE:FF format. */
     fun deviceCode(context: Context): String {
         val sp = context.getSharedPreferences(SP, Context.MODE_PRIVATE)
         sp.getString(KEY_CODE, null)?.let { return it }
@@ -33,11 +33,11 @@ object StoreActivation {
         return code
     }
 
-    /** Link que vai dentro do QR Code. */
+    /** Link encoded in the QR code. */
     fun siteLink(code: String): String =
         "$SITE_BASE/?code=" + URLEncoder.encode(normalize(code), "UTF-8")
 
-    /** Só os caracteres que o site espera (A-Z 0-9). */
+    /** Only the characters expected by the website (A-Z 0-9). */
     fun normalize(code: String): String =
         code.uppercase().replace(Regex("[^A-Z0-9]"), "")
 
@@ -63,7 +63,7 @@ object StoreActivation {
         }
     }.getOrNull()
 
-    // ---------------------------------------------------------------- interno
+    // --------------------------------------------------------------- internal
 
     private fun realMac(): String? {
         val names = listOf("eth0", "wlan0", "en0", "eth1")
@@ -79,7 +79,7 @@ object StoreActivation {
         return null
     }
 
-    /** Código derivado do aparelho quando o MAC real não é exposto. */
+    /** Code derived from the device when the real MAC is not exposed. */
     private fun fallbackCode(context: Context): String {
         val androidId = runCatching {
             Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)

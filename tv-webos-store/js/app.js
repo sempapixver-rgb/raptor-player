@@ -1,18 +1,18 @@
-/* Raptor Player — edição de loja.
-   Somente identificação do aparelho (código MAC + QR) e vídeos públicos de
-   demonstração. Sem login manual e sem dados de acesso. */
+/* Raptor Player — store edition.
+   Device identification only (MAC code + QR) and public sample videos.
+   No manual sign-in and no access details. */
 
 var APP_VERSION = '1.2.1';
 
 var SITE_BASE = 'https://raptor-player.netlify.app';
 
-/* Quatro clipes públicos (CC-BY), em MP4/H.264, hospedados nos lançamentos
-   do desenvolvedor. Servem para testar o player sem conta nem credencial. */
+/* Four public clips (CC-BY), in MP4/H.264, hosted in the developer's
+   releases. They let reviewers test the player with no account or credentials. */
 var DEMO_ITEMS = [
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-1.mp4', title: 'Exemplo 1 · Sintel (720p)' },
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-2.mp4', title: 'Exemplo 2 · Big Buck Bunny (trailer)' },
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-3.mp4', title: 'Exemplo 3 · Sintel (trailer)' },
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-4.mp4', title: 'Exemplo 4 · Águas-vivas (720p)' }
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-1.mp4', title: 'Sample 1 · Sintel (720p)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-2.mp4', title: 'Sample 2 · Big Buck Bunny (trailer)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-3.mp4', title: 'Sample 3 · Sintel (trailer)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-4.mp4', title: 'Sample 4 · Jellyfish (720p)' }
 ];
 
 /* ------------------------------------------------------------ identidade */
@@ -32,7 +32,7 @@ var Device = {
   set: function (key, value) {
     try {
       window.localStorage.setItem('raptor.' + key, JSON.stringify(value));
-    } catch (e) { /* ignora */ }
+    } catch (e) { /* ignore */ }
   },
 
   luna: function (service, method, params) {
@@ -112,12 +112,12 @@ var Device = {
         var info = webOS.deviceInfo();
         if (info && info.modelName) return String(info.modelName);
       }
-    } catch (e) { /* ignora */ }
+    } catch (e) { /* ignore */ }
     return 'webOS';
   },
 
-  /* Código estável em formato MAC: usa o MAC real quando disponível; caso
-     contrário deriva um código fixo do aparelho. */
+  /* Stable code in MAC format: uses the real MAC when available; otherwise
+     derives a fixed code from the device. */
   code: function () {
     var cached = Device.get('deviceCode', null);
     if (cached) return Promise.resolve(cached);
@@ -149,11 +149,11 @@ var Device = {
   },
 
   termsAccepted: function () {
-    return Device.get('terms', 0) >= 2;
+    return Device.get('terms', 0) >= 3;
   },
 
   acceptTerms: function () {
-    Device.set('terms', 2);
+    Device.set('terms', 3);
   }
 };
 
@@ -222,7 +222,7 @@ var App = {
 
       var active = document.activeElement;
 
-      // Termos: as setas rolam o texto; no fim o foco desce ao botão.
+      // Terms: arrows scroll the text; at the end focus moves to the button.
       if (active && active.id === 'termsScroll' && (code === 38 || code === 40)) {
         event.preventDefault();
         if (code === 40) {
@@ -235,7 +235,7 @@ var App = {
         return;
       }
 
-      // Player com controles escondidos: a primeira tecla só mostra a barra.
+      // Player with hidden controls: the first key only reveals the bar.
       if (self.isPlayerOpen() && $('playerOverlay').classList.contains('hidden') &&
           $('playerError').classList.contains('hidden') &&
           (code === 13 || code === 37 || code === 38 || code === 39 || code === 40)) {
@@ -245,7 +245,7 @@ var App = {
         return;
       }
 
-      // Barra de tempo: esquerda/direita avançam ou voltam 30 s.
+      // Time bar: left/right seek back or forward 30 s.
       if (self.isPlayerOpen() && active && active.id === 'progress') {
         if (code === 37) { event.preventDefault(); Player.seek(-30); Player.scheduleHide(); return; }
         if (code === 39) { event.preventDefault(); Player.seek(30); Player.scheduleHide(); return; }
@@ -297,15 +297,15 @@ var App = {
         webOS.platformBack();
         return;
       }
-    } catch (e) { /* ignora */ }
-    toast('Use o botão Voltar da TV para sair.');
+    } catch (e) { /* ignore */ }
+    toast('Use the TV back button to exit.');
   },
 
   isPlayerOpen: function () {
     return !$('screen-player').classList.contains('hidden');
   },
 
-  /* ----------------------------------------------------------- ativação */
+  /* -------------------------------------------------------- registration */
 
   showLogin: function () {
     var self = this;
@@ -314,10 +314,10 @@ var App = {
     Device.code().then(function (code) {
       self.code = code;
       self.renderActivation(code);
-      self.setStatus('Código pronto para ativação.', '');
+      self.setStatus('Code ready for registration.', '');
       var active = document.activeElement;
       if (!active || active === document.body) {
-        try { $('btnActivate').focus(); } catch (e) { /* ignora */ }
+        try { $('btnActivate').focus(); } catch (e) { /* ignore */ }
       }
     });
   },
@@ -338,11 +338,11 @@ var App = {
         correctLevel: QRCode.CorrectLevel.M
       });
     } catch (e) {
-      holder.textContent = 'QR indisponível';
+      holder.textContent = 'QR unavailable';
     }
   },
 
-  /* Abre o QR Code em destaque, com o código do aparelho. */
+  /* Opens the QR code in focus, with the device code. */
   showActivateQr: function () {
     var modal = $('activateModal');
     if (!modal || !this.code) return;
@@ -358,17 +358,17 @@ var App = {
         correctLevel: QRCode.CorrectLevel.M
       });
     } catch (e) {
-      holder.textContent = 'QR indisponível';
+      holder.textContent = 'QR unavailable';
     }
     $('activateCode').textContent = this.code;
     show(modal);
-    try { $('btnActivateClose').focus(); } catch (e) { /* ignora */ }
+    try { $('btnActivateClose').focus(); } catch (e) { /* ignore */ }
   },
 
   closeActivateQr: function () {
     var modal = $('activateModal');
     if (modal) hide(modal);
-    try { $('btnActivate').focus(); } catch (e) { /* ignora */ }
+    try { $('btnActivate').focus(); } catch (e) { /* ignore */ }
   },
 
   setStatus: function (text, state) {
@@ -377,7 +377,7 @@ var App = {
     $('actStatusText').textContent = text;
   },
 
-  /* -------------------------------------------------------- demonstração */
+  /* ------------------------------------------------------------- samples */
 
   startDemo: function () {
     this.demoMode = true;
@@ -418,7 +418,7 @@ var App = {
     setTimeout(function () {
       var button = $(id);
       if (button && !button.disabled) {
-        try { button.focus(); } catch (e) { /* ignora */ }
+        try { button.focus(); } catch (e) { /* ignore */ }
       }
     }, 220);
   },
@@ -455,7 +455,7 @@ var Player = {
   playPendingTimer: null,
   autoRetries: 0,
 
-  /* Liga os eventos do <video> uma única vez. */
+  /* Wires the <video> events once. */
   bindVideo: function () {
     var self = this;
     this.video = $('video');
@@ -465,8 +465,8 @@ var Player = {
       self.onError();
     }, false);
 
-    /* Alguns modelos só começam a tocar se pedirmos play() de novo quando
-       os primeiros dados chegam. */
+    /* Some models only start playing if play() is called again when
+       the first data arrives. */
     this.video.addEventListener('loadeddata', function () { self.onReady(); }, false);
     this.video.addEventListener('canplay', function () { self.onReady(); }, false);
     this.video.addEventListener('playing', function () {
@@ -497,7 +497,7 @@ var Player = {
 
     this.currentTitle = title || '';
     $('playerTitle').textContent = this.currentTitle;
-    $('playerBadge').textContent = 'VÍDEO';
+    $('playerBadge').textContent = 'VIDEO';
 
     this.currentUrl = url;
     this.isLive = !!isLive;
@@ -519,7 +519,7 @@ var Player = {
       video.pause();
       video.removeAttribute('src');
       video.load();
-    } catch (e) { /* ignora */ }
+    } catch (e) { /* ignore */ }
 
     this.showOverlay();
     this.showLoading();
@@ -530,7 +530,7 @@ var Player = {
 
     setTimeout(function () {
       var button = $('btnPlay');
-      if (button) { try { button.focus(); } catch (e) { /* ignora */ } }
+      if (button) { try { button.focus(); } catch (e) { /* ignore */ } }
     }, 60);
   },
 
@@ -546,7 +546,7 @@ var Player = {
   tryPlay: function () {
     var self = this;
     if (!this.video || !this.currentUrl) return;
-    /* Nunca deixe duas chamadas play() disputarem o mesmo vídeo. */
+    /* Never let two play() calls compete for the same video. */
     if (this.playPending) return;
     if (!this.video.paused) { this.onStarted(); return; }
     this.playPending = true;
@@ -608,7 +608,7 @@ var Player = {
     if (this.wantPlay && this.video && this.video.paused) this.tryPlay();
   },
 
-  /* Tela preta nunca mais: se o vídeo não trouxer imagem, reconecta sozinho. */
+  /* No more black screen: if the video shows no image, reconnect automatically. */
   armWatchdog: function () {
     var self = this;
     this.clearWatchdog();
@@ -629,7 +629,7 @@ var Player = {
         return;
       }
 
-      self.showError('O vídeo demorou para responder. Toque em "Tentar de novo".');
+      self.showError('The video took too long to respond. Select "Try again".');
     }, 20000);
   },
 
@@ -650,7 +650,7 @@ var Player = {
       video.pause();
       video.removeAttribute('src');
       video.load();
-    } catch (e) { /* ignora */ }
+    } catch (e) { /* ignore */ }
 
     this.showLoading('Conectando de novo…');
     video.src = this.currentUrl;
@@ -682,14 +682,14 @@ var Player = {
   onError: function () {
     this.settlePlay();
     if (this.tryingHls || !this.currentUrl) {
-      this.showError('Verifique se o vídeo ainda está disponível.');
+      this.showError('Check that the video is still available.');
       return;
     }
     if (window.Hls && Hls.isSupported()) {
       this.tryingHls = true;
       this.startHls(this.currentUrl);
     } else {
-      this.showError('Este formato não é suportado nesta TV.');
+      this.showError('This format is not supported on this TV.');
     }
   },
 
@@ -702,7 +702,7 @@ var Player = {
 
     hls.on(Hls.Events.ERROR, function (event, data) {
       if (data && data.fatal) {
-        self.showError('Não foi possível abrir este vídeo.');
+        self.showError('We could not open this video.');
       }
     });
 
@@ -716,7 +716,7 @@ var Player = {
 
   destroyHls: function () {
     if (this.hls) {
-      try { this.hls.destroy(); } catch (e) { /* ignora */ }
+      try { this.hls.destroy(); } catch (e) { /* ignore */ }
       this.hls = null;
     }
   },
@@ -730,7 +730,7 @@ var Player = {
     show($('playerError'));
     setTimeout(function () {
       var button = $('btnRetryPlay');
-      if (button) { try { button.focus(); } catch (e) { /* ignora */ } }
+      if (button) { try { button.focus(); } catch (e) { /* ignore */ } }
     }, 10);
   },
 
@@ -771,7 +771,7 @@ var Player = {
     this.showOverlay();
   },
 
-  /* Clique na barra: pula direto para a posição tocada. */
+  /* Bar click: jump straight to the tapped position. */
   seekToRatio: function (ratio) {
     if (!this.video || this.isLive) return;
     var total = this.video.duration;
@@ -834,7 +834,7 @@ var Player = {
         this.video.pause();
         this.video.removeAttribute('src');
         this.video.load();
-      } catch (e) { /* ignora */ }
+      } catch (e) { /* ignore */ }
     }
     hide($('playerOverlay'));
     hide($('playerError'));
@@ -842,7 +842,7 @@ var Player = {
   }
 };
 
-/* ======================================================== inicialização */
+/* ====================================================== initialization */
 
 document.addEventListener('DOMContentLoaded', function () {
   Player.bindVideo();

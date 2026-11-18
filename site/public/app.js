@@ -28,7 +28,7 @@
     }
   });
 
-  // Preenche o código quando a pessoa abre a página pelo QR Code da TV.
+  // Fills in the code when the page is opened from the TV's QR code.
   var params = new URLSearchParams(window.location.search);
   var fromUrl = params.get("code");
   if (fromUrl) {
@@ -56,13 +56,13 @@
 
     var code = normalizeCode(codeInput.value);
     if (code.length < 8) {
-      showResult("err", "Confira o código da TV. Ele tem 12 caracteres, como AA:BB:CC:DD:EE:FF.");
+      showResult("err", "Check the TV code. It has 12 characters, like AA:BB:CC:DD:EE:FF.");
       codeInput.focus();
       return;
     }
 
     if (terms && !terms.checked) {
-      showResult("err", "Aceite os termos de uso para cadastrar o aparelho.");
+      showResult("err", "Accept the Terms of Use to register the device.");
       terms.focus();
       return;
     }
@@ -73,7 +73,7 @@
     };
 
     submit.disabled = true;
-    submit.textContent = "Ativando...";
+    submit.textContent = "Activating...";
 
     try {
       var response = await fetch("/api/activate", {
@@ -86,16 +86,16 @@
       if (response.ok && data.ok) {
         showResult(
           "ok",
-          "Aparelho cadastrado! O código da TV foi registrado com sucesso."
+          "Device registered! The TV code was saved successfully."
         );
       } else {
-        showResult("err", data.message || "Não foi possível cadastrar. Tente novamente.");
+        showResult("err", data.message || "We could not register the device. Please try again.");
       }
     } catch (err) {
-      showResult("err", "Falha de conexão. Tente novamente.");
+      showResult("err", "Connection failed. Please try again.");
     } finally {
       submit.disabled = false;
-      submit.textContent = "Ativar TV";
+      submit.textContent = "Activate TV";
     }
   });
 })();

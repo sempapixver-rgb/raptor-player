@@ -74,7 +74,7 @@ export default async (req) => {
     return json(400, {
       ok: false,
       error: "invalid_code",
-      message: "Codigo da TV invalido. Confira o codigo que aparece na tela.",
+      message: "Invalid TV code. Check the code shown on the screen.",
     });
   }
 
@@ -105,10 +105,10 @@ export default async (req) => {
       return json(500, {
         ok: false,
         error: "storage_unavailable",
-        message: "Não foi possível salvar agora. Tente novamente.",
+        message: "We could not save that now. Please try again.",
       });
     }
-    return json(200, { ok: true, code, message: "Aparelho cadastrado." });
+    return json(200, { ok: true, code, message: "Device registered." });
   }
 
   const mode = String(data.mode || "").toUpperCase() === "M3U" ? "M3U" : "XTREAM";

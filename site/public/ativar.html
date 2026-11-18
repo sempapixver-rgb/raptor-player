@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0B0F0C" />
-  <title>Ativar TV — Raptor Player</title>
-  <meta name="description" content="Ative o Raptor Player na sua TV usando o código exibido na tela." />
+  <title>Activate TV — Raptor Player</title>
+  <meta name="description" content="Register Raptor Player on your TV using the code shown on the screen." />
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
@@ -18,68 +18,66 @@
   </header>
 
   <main class="wrap">
-    <a class="back" href="/">← Voltar ao site</a>
+    <a class="back" href="/">← Back to website</a>
     <section class="hero">
-      <h1>Ativar sua TV</h1>
+      <h1>Activate your TV</h1>
       <p class="sub">
-        Abra o Raptor Player na TV, veja o código exibido na tela e preencha aqui.
-        A ativação chega no aparelho sozinha, sem digitar nada no controle.
+        Open Raptor Player on your TV, read the code shown on the screen and enter
+        it here. The device is recognized automatically — nothing to type on the remote.
       </p>
     </section>
 
     <form id="form" class="card" novalidate>
       <label class="field">
-        <span>Código da TV (MAC)</span>
+        <span>TV code (MAC)</span>
         <input id="code" name="code" type="text" inputmode="text" autocomplete="off"
                spellcheck="false" placeholder="AA:BB:CC:DD:EE:FF" required />
-        <small>Aparece na tela de acesso do app, junto do QR Code.</small>
-        <small id="deviceNote" class="device-note hidden">MAC da TV reconhecido pelo QR Code.</small>
+        <small>Shown on the app's activation screen, next to the QR code.</small>
+        <small id="deviceNote" class="device-note hidden">TV MAC recognized from the QR code.</small>
       </label>
 
       <label class="field">
-        <span>Nome (opcional)</span>
+        <span>Name (optional)</span>
         <input id="label" type="text" maxlength="60" autocomplete="off"
-               placeholder="Ex.: Minha TV da sala" />
+               placeholder="Example: Living room TV" />
       </label>
 
       <label class="accept">
         <input id="terms" type="checkbox" />
         <span>
-          Li e aceito os <a href="/termos" target="_blank" rel="noopener">termos de uso</a>.
-          Entendo que a responsabilidade pelo uso do aparelho e pelos vídeos é
-          exclusivamente minha, do cliente, e não do Raptor Player.
+          I have read and accept the <a href="/termos" target="_blank" rel="noopener">Terms of Use</a>.
+          I understand that responsibility for the use of the device and for the videos
+          played is entirely mine, as the customer, and not Raptor Player's.
         </span>
       </label>
 
-      <button id="submit" class="primary" type="submit">Ativar TV</button>
+      <button id="submit" class="primary" type="submit">Activate TV</button>
 
       <div id="result" class="result hidden" role="status" aria-live="polite"></div>
     </form>
 
     <section class="steps">
-      <h2>Como funciona</h2>
+      <h2>How it works</h2>
       <ol>
-        <li>Instale o <strong>Raptor Player</strong> na TV e abra o app.</li>
-        <li>Na tela de acesso, leia o <strong>QR Code</strong> com o celular ou anote o código MAC.</li>
-        <li>Preencha este formulário somente com o código da TV.</li>
-        <li>O aparelho fica cadastrado e reconhecido pelo código.</li>
+        <li>Install <strong>Raptor Player</strong> on your TV and open the app.</li>
+        <li>On the activation screen, scan the <strong>QR code</strong> with your phone or write down the MAC code.</li>
+        <li>Fill in this form with the TV code only.</li>
+        <li>The device is registered and recognized by its code.</li>
       </ol>
     </section>
 
     <section class="legal">
       <p>
-        O Raptor Player é apenas um tocador de vídeo. Ele reproduz os vídeos
-        públicos de demonstração incluídos no aplicativo. Ao cadastrar o aparelho,
-        você concorda com os termos de uso exibidos no app.
+        Raptor Player is only a video player. It plays the public sample videos
+        included in the app. By registering the device, you agree to the Terms of
+        Use shown in the app.
       </p>
     </section>
+
+    <footer class="foot">
+      <span><a href="/pt/ativar.html">Português</a> · <a href="/revisor">For reviewers</a> · <a href="/termos">Terms of Use</a></span>
+    </footer>
   </main>
-
-  <footer class="foot">
-    <span>Raptor Player</span>
-    <span><a href="/revisor">Para revisores</a> · <a href="/termos">Termos de uso</a></span>
-  </footer>
-
-  <script src="/app.js"></script>
 </body>
+<script src="/app.js"></script>
 </html>
