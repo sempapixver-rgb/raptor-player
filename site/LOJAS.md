@@ -57,9 +57,9 @@ Privacidade: https://raptor-player.netlify.app/privacidade.html
 - [x] Política de privacidade pública (PT e EN)
 - [x] Versão `store` sem biblioteca, login manual ou termos proibidos
 - [x] Modo demonstração sem conta na tela de acesso
-- [ ] E-mail real da conta Amazon Developer (preencher no console)
-- [ ] Capturas 1920×1080 e feature graphic 1024×500 (em `vega/assets/icons`)
-- [ ] Enviar o APK da versão `store`
+- [x] E-mail real da conta Amazon Developer (`sempapixver@gmail.com`)
+- [x] Capturas 1920×1080 e feature graphic 1024×500 (em inglês)
+- [x] APK da versão `store` enviado — **In Review** (19/11/2026)
 
 ### LG Content Store (webOS)
 
@@ -67,7 +67,7 @@ Privacidade: https://raptor-player.netlify.app/privacidade.html
 - [x] Página de suporte/revisor
 - [x] IPK de loja com ativação por MAC/QR e vídeos de exemplo
 - [x] Teste de reprodução na LG (aparelho 50UK6510PSF), incluindo auto-next do modo demo
-- [ ] Conta LG Seller Lounge e envio do IPK — pendente de autorização
+- [x] Conta LG Seller Lounge e envio do IPK — **QA Request** em 19/11/2026
 
 ### Samsung Store (Tizen)
 
@@ -75,8 +75,18 @@ Privacidade: https://raptor-player.netlify.app/privacidade.html
 - [x] Página de suporte/revisor
 - [x] WGT de loja com ativação por MAC/QR e vídeos de exemplo
 - [ ] Instalar e testar em TV Samsung (usuário ainda não tem o aparelho)
-- [ ] Conta Samsung Developer + certificado de assinatura
-- [ ] Publicação — somente após autorização
+- [x] Conta **TV Seller Office** (`sempapixver@gmail.com`, Individual)
+- [x] App **Raptor Player**, ID `3202611051385` — **v1.2.1 enviada em 18/11/2026**
+  (`Submitted` em 7 model groups, `100% Rollout (scheduled)`), aguardando revisão
+
+> **Atenção (19/11/2026):** o envio Samsung **já foi feito**. Usar sempre o
+> **TV Seller Office** (`https://seller.samsungapps.com/tv/`), nunca o
+> *Galaxy Store Seller Portal* (`https://seller.samsungapps.com/`), que exige
+> cadastro de vendedora e retorna `gateSignUp`/`astoreNotPermittedError`.
+> O WGT local 1.2.2 **ainda não foi enviado** — não enviar sem autorização.
+> O ✗ laranja no menu **App Review** significa apenas *"No reviews for this
+> beta test yet"* (aguardando a Samsung), não é erro do app.
+> Histórico completo: `ENTREGAS/Loja/HISTORICO-ENVIO.md`.
 
 ## Atenção antes de enviar
 
