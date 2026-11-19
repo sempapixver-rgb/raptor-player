@@ -205,7 +205,7 @@ XtreamSource.prototype.seriesInfo = function (seriesId) {
       if (!season || season <= 0) season = seasonFromKey || 1;
       var number = parseInt(ep.episode_num, 10) || 0;
       var epInfo = ep.info || {};
-      var title = epInfo.name || ep.title || ('Episódio ' + number);
+      var title = episodeTitle(epInfo.name || ep.title, info.name, season, number);
       var bucket = bySeason[season];
       if (!bucket) { bucket = bySeason[season] = []; }
       bucket.push({
@@ -700,8 +700,12 @@ function buildSeries(entries) {
 }
 
 function episodeTitle(full, serie, season, number) {
-  var trimmed = full;
-  if (trimmed.lastIndexOf(serie, 0) === 0) trimmed = trimmed.substring(serie.length);
+  var trimmed = String(full == null ? '' : full);
+  if (serie && trimmed.lastIndexOf(serie, 0) === 0) trimmed = trimmed.substring(serie.length);
+  trimmed = trimmed.replace(/^[\s\-._:|]+/, '');
+  // Remove o marcador de episódio que o servidor repete no nome
+  // ("S01E02 - ", "1x02 - ", "T1 E2 - ").
+  trimmed = trimmed.replace(/^(?:S\d{1,3}\s*E\d{1,3}|\d{1,2}x\d{1,3}|T\d{1,2}\s*E\d{1,3})\s*[-._:|]*\s*/i, '');
   trimmed = trimmed.replace(/^[\s\-._]+|[\s\-._]+$/g, '');
   return trimmed || ('T' + season + ' E' + number);
 }

@@ -1,0 +1,358 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+/* Begin PBXBuildFile section */
+		C8BA55172E0A71F8F99B3F84 /* Activation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6135F193A6D77B27037D409A /* Activation.swift */; };
+		2AD676016E9D912C165458F9 /* Demo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47E4CCA96B4A818046CA3922 /* Demo.swift */; };
+		3759430108D8A4FF3E97D6B3 /* EpgClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFDCBC91CC8273B2DEF723CF /* EpgClient.swift */; };
+		2ECB8104B3145FE01C99B6C6 /* M3uParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 089B23155440BBA407FD3B6D /* M3uParser.swift */; };
+		2221F2EA3DF69E784E648CB3 /* M3uSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CD1627E5CC522E2F1CF63D /* M3uSeries.swift */; };
+		4C66EF0F5DB542E63D89706C /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 043C5AC672AFA8EF8FF8CA03 /* Models.swift */; };
+		3A5EB6342174BDF365FB2AC0 /* PlaylistSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 755EA0543A3D99BECFAEAD94 /* PlaylistSource.swift */; };
+		8C4DFB31FF0FF2E2B73E52F7 /* Prefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFA24852F8CC633DCF2C6E88 /* Prefs.swift */; };
+		1492063237856020B03593C0 /* RaptorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21262962AB8C6004AA817DE8 /* RaptorStore.swift */; };
+		B1531FFA56721B3D18D7CF7E /* SmartLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B15FCBED0AF582312A21791 /* SmartLink.swift */; };
+		F8250407F5DC9113858F9C26 /* XtreamClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DABFE09E8EE40658A60D7C07 /* XtreamClient.swift */; };
+		A92E6CBE6AE11FE680E6872A /* RaptorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C88B625FC04F8D1AFA22A86 /* RaptorApp.swift */; };
+		12EE0C86D7580B5ACBEFEDC9 /* ChannelsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA715D3ECC987EFB37630528 /* ChannelsScreen.swift */; };
+		7E8EDE6F86400FEC3227C5BE /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = E489FB68D25D3AA4E2970768 /* Components.swift */; };
+		F149E5E4ED0DC8EDAC53FCE0 /* HomeScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5B98BA812897F054FC782BB /* HomeScreen.swift */; };
+		FCA988B7C5D8C747211D80D9 /* LoginScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78AE1D163FD55A8D80F92912 /* LoginScreen.swift */; };
+		65843A1CAA142B5DAE60C6F4 /* MoviesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35675175F2C05D4A6E732E6B /* MoviesScreen.swift */; };
+		F93B6436DF7A5058353041C9 /* PlayerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB6AA90CFF5E3B4381F999E4 /* PlayerScreen.swift */; };
+		45920CEC54F3B38AA830A708 /* SeriesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C838A5FB6F5A8144A8B2A19 /* SeriesScreen.swift */; };
+		21BF7F2091808D98E54B5F4D /* SettingsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5CCADA0CEE098F2BBE938F8 /* SettingsScreen.swift */; };
+		4573DA98B722BD2C172FD751 /* TermsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F085C6708AC65748A9C0A4E /* TermsScreen.swift */; };
+		E8DA52EC269C87012883AC96 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63EC7E719D659FA0E8E5F705 /* Theme.swift */; };
+		FB90684E69A6C96ED866993E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6C36FFE920F24CEDB7CFDBFC /* Assets.xcassets */; };
+	/* End PBXBuildFile section */
+/* Begin PBXFileReference section */
+		6135F193A6D77B27037D409A /* Activation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Activation.swift"; sourceTree = "<group>"; };
+		47E4CCA96B4A818046CA3922 /* Demo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Demo.swift"; sourceTree = "<group>"; };
+		BFDCBC91CC8273B2DEF723CF /* EpgClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EpgClient.swift"; sourceTree = "<group>"; };
+		089B23155440BBA407FD3B6D /* M3uParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "M3uParser.swift"; sourceTree = "<group>"; };
+		D0CD1627E5CC522E2F1CF63D /* M3uSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "M3uSeries.swift"; sourceTree = "<group>"; };
+		043C5AC672AFA8EF8FF8CA03 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models.swift"; sourceTree = "<group>"; };
+		755EA0543A3D99BECFAEAD94 /* PlaylistSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PlaylistSource.swift"; sourceTree = "<group>"; };
+		AFA24852F8CC633DCF2C6E88 /* Prefs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Prefs.swift"; sourceTree = "<group>"; };
+		21262962AB8C6004AA817DE8 /* RaptorStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RaptorStore.swift"; sourceTree = "<group>"; };
+		8B15FCBED0AF582312A21791 /* SmartLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SmartLink.swift"; sourceTree = "<group>"; };
+		DABFE09E8EE40658A60D7C07 /* XtreamClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "XtreamClient.swift"; sourceTree = "<group>"; };
+		5C88B625FC04F8D1AFA22A86 /* RaptorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RaptorApp.swift"; sourceTree = "<group>"; };
+		DA715D3ECC987EFB37630528 /* ChannelsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChannelsScreen.swift"; sourceTree = "<group>"; };
+		E489FB68D25D3AA4E2970768 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components.swift"; sourceTree = "<group>"; };
+		A5B98BA812897F054FC782BB /* HomeScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HomeScreen.swift"; sourceTree = "<group>"; };
+		78AE1D163FD55A8D80F92912 /* LoginScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "LoginScreen.swift"; sourceTree = "<group>"; };
+		35675175F2C05D4A6E732E6B /* MoviesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MoviesScreen.swift"; sourceTree = "<group>"; };
+		AB6AA90CFF5E3B4381F999E4 /* PlayerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PlayerScreen.swift"; sourceTree = "<group>"; };
+		3C838A5FB6F5A8144A8B2A19 /* SeriesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SeriesScreen.swift"; sourceTree = "<group>"; };
+		B5CCADA0CEE098F2BBE938F8 /* SettingsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SettingsScreen.swift"; sourceTree = "<group>"; };
+		5F085C6708AC65748A9C0A4E /* TermsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TermsScreen.swift"; sourceTree = "<group>"; };
+		63EC7E719D659FA0E8E5F705 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Theme.swift"; sourceTree = "<group>"; };
+		6C36FFE920F24CEDB7CFDBFC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		68E77A9D7BC78A97D4F4E27B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C5978165DEA2681A4E2FE6BF /* Raptor.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Raptor.entitlements; sourceTree = "<group>"; };
+		DF16D4CCF842288370DA35BC /* Raptor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Raptor.app; sourceTree = BUILT_PRODUCTS_DIR; };
+	/* End PBXFileReference section */
+/* Begin PBXFrameworksBuildPhase section */
+		CF5BDB0BEAFE176F9629192A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+	/* End PBXFrameworksBuildPhase section */
+/* Begin PBXGroup section */
+		DF891E785808226D241F246E = {
+			isa = PBXGroup;
+			children = (
+				CF8D0BD4B75E8C2C174692A5 /* Raptor */,
+				00C45FD35CB0F9C5F764F070 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		00C45FD35CB0F9C5F764F070 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DF16D4CCF842288370DA35BC /* Raptor.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CF8D0BD4B75E8C2C174692A5 /* Raptor */ = {
+			isa = PBXGroup;
+			children = (
+				5C88B625FC04F8D1AFA22A86 /* RaptorApp.swift */,
+				363DF3A91097C34A12B15BC7 /* Data */,
+				7EAAC73AE6E543DBEE287571 /* UI */,
+				6C36FFE920F24CEDB7CFDBFC /* Assets.xcassets */,
+				68E77A9D7BC78A97D4F4E27B /* Info.plist */,
+				C5978165DEA2681A4E2FE6BF /* Raptor.entitlements */,
+			);
+			path = Raptor;
+			sourceTree = "<group>";
+		};
+		363DF3A91097C34A12B15BC7 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				6135F193A6D77B27037D409A /* Activation.swift */,
+				47E4CCA96B4A818046CA3922 /* Demo.swift */,
+				BFDCBC91CC8273B2DEF723CF /* EpgClient.swift */,
+				089B23155440BBA407FD3B6D /* M3uParser.swift */,
+				D0CD1627E5CC522E2F1CF63D /* M3uSeries.swift */,
+				043C5AC672AFA8EF8FF8CA03 /* Models.swift */,
+				755EA0543A3D99BECFAEAD94 /* PlaylistSource.swift */,
+				AFA24852F8CC633DCF2C6E88 /* Prefs.swift */,
+				21262962AB8C6004AA817DE8 /* RaptorStore.swift */,
+				8B15FCBED0AF582312A21791 /* SmartLink.swift */,
+				DABFE09E8EE40658A60D7C07 /* XtreamClient.swift */,
+			);
+			path = "Data";
+			sourceTree = "<group>";
+		};
+		7EAAC73AE6E543DBEE287571 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				DA715D3ECC987EFB37630528 /* ChannelsScreen.swift */,
+				E489FB68D25D3AA4E2970768 /* Components.swift */,
+				A5B98BA812897F054FC782BB /* HomeScreen.swift */,
+				78AE1D163FD55A8D80F92912 /* LoginScreen.swift */,
+				35675175F2C05D4A6E732E6B /* MoviesScreen.swift */,
+				AB6AA90CFF5E3B4381F999E4 /* PlayerScreen.swift */,
+				3C838A5FB6F5A8144A8B2A19 /* SeriesScreen.swift */,
+				B5CCADA0CEE098F2BBE938F8 /* SettingsScreen.swift */,
+				5F085C6708AC65748A9C0A4E /* TermsScreen.swift */,
+				63EC7E719D659FA0E8E5F705 /* Theme.swift */,
+			);
+			path = "UI";
+			sourceTree = "<group>";
+		};
+/* subgrupos (adicionados ao children do grupo Raptor acima) */
+	/* End PBXGroup section */
+/* Begin PBXNativeTarget section */
+		F55391A652C794A80B52141F /* Raptor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7ADE71700E9404B10E13B577 /* Build configuration list for PBXNativeTarget "Raptor" */;
+			buildPhases = (
+				1CDF2F71A52B082132B04DFF /* Sources */,
+				CF5BDB0BEAFE176F9629192A /* Frameworks */,
+				C02F1309AF4906C92F1EAD44 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Raptor;
+			productName = Raptor;
+			productReference = DF16D4CCF842288370DA35BC /* Raptor.app */;
+			productType = "com.apple.product-type.application";
+		};
+	/* End PBXNativeTarget section */
+/* Begin PBXProject section */
+		98F54143AB4E86B28C3AFEE0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					F55391A652C794A80B52141F = {
+						CreatedOnToolsVersion = 16.0;
+					};
+				};
+			};
+			buildConfigurationList = 12D04D787E90C9B967248BFD /* Build configuration list for PBXProject "Raptor" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			knownRegions = (
+				en,
+				Base,
+				pt-BR,
+			);
+			mainGroup = DF891E785808226D241F246E;
+			productRefGroup = 00C45FD35CB0F9C5F764F070 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F55391A652C794A80B52141F /* Raptor */,
+			);
+		};
+	/* End PBXProject section */
+/* Begin PBXSourcesBuildPhase section */
+		1CDF2F71A52B082132B04DFF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C8BA55172E0A71F8F99B3F84 /* Activation.swift in Sources */,
+				2AD676016E9D912C165458F9 /* Demo.swift in Sources */,
+				3759430108D8A4FF3E97D6B3 /* EpgClient.swift in Sources */,
+				2ECB8104B3145FE01C99B6C6 /* M3uParser.swift in Sources */,
+				2221F2EA3DF69E784E648CB3 /* M3uSeries.swift in Sources */,
+				4C66EF0F5DB542E63D89706C /* Models.swift in Sources */,
+				3A5EB6342174BDF365FB2AC0 /* PlaylistSource.swift in Sources */,
+				8C4DFB31FF0FF2E2B73E52F7 /* Prefs.swift in Sources */,
+				1492063237856020B03593C0 /* RaptorStore.swift in Sources */,
+				B1531FFA56721B3D18D7CF7E /* SmartLink.swift in Sources */,
+				F8250407F5DC9113858F9C26 /* XtreamClient.swift in Sources */,
+				A92E6CBE6AE11FE680E6872A /* RaptorApp.swift in Sources */,
+				12EE0C86D7580B5ACBEFEDC9 /* ChannelsScreen.swift in Sources */,
+				7E8EDE6F86400FEC3227C5BE /* Components.swift in Sources */,
+				F149E5E4ED0DC8EDAC53FCE0 /* HomeScreen.swift in Sources */,
+				FCA988B7C5D8C747211D80D9 /* LoginScreen.swift in Sources */,
+				65843A1CAA142B5DAE60C6F4 /* MoviesScreen.swift in Sources */,
+				F93B6436DF7A5058353041C9 /* PlayerScreen.swift in Sources */,
+				45920CEC54F3B38AA830A708 /* SeriesScreen.swift in Sources */,
+				21BF7F2091808D98E54B5F4D /* SettingsScreen.swift in Sources */,
+				4573DA98B722BD2C172FD751 /* TermsScreen.swift in Sources */,
+				E8DA52EC269C87012883AC96 /* Theme.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+	/* End PBXSourcesBuildPhase section */
+/* Begin PBXResourcesBuildPhase section */
+		C02F1309AF4906C92F1EAD44 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FB90684E69A6C96ED866993E /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+	/* End PBXResourcesBuildPhase section */
+/* Begin XCBuildConfiguration section */
+		877A6BA951A2EA0025A2ABE8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = iphoneos;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_OPTIMIZATION_LEVEL = -Onone;
+			};
+			name = Debug;
+		};
+		959134B361DD7E21ADEA3164 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = iphoneos;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
+				DEBUG_INFORMATION_FORMAT = dwarf-with-dsym;
+				ENABLE_TESTABILITY = NO;
+				ONLY_ACTIVE_ARCH = NO;
+				SWIFT_OPTIMIZATION_LEVEL = -O;
+			};
+			name = Release;
+		};
+		1E0DDAF384B911BF23BC77ED /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Raptor/Raptor.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Raptor/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.raptor.player.iphone;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1EFC270D4D6011185E1BD4D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Raptor/Raptor.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Raptor/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.raptor.player.iphone;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+	/* End XCBuildConfiguration section */
+/* Begin XCConfigurationList section */
+		12D04D787E90C9B967248BFD /* Build configuration list for PBXProject "Raptor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				877A6BA951A2EA0025A2ABE8 /* Debug */,
+				959134B361DD7E21ADEA3164 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7ADE71700E9404B10E13B577 /* Build configuration list for PBXNativeTarget "Raptor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1E0DDAF384B911BF23BC77ED /* Debug */,
+				A1EFC270D4D6011185E1BD4D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+	/* End XCConfigurationList section */
+	};
+	rootObject = 98F54143AB4E86B28C3AFEE0 /* Project object */;
+}

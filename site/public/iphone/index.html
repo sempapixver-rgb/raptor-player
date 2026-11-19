@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Raptor">
+  <meta name="theme-color" content="#0B0F0C">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="Raptor Player — tocador de vídeo. Você informa sua lista Xtream Codes ou M3U.">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <title>Raptor Player</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ========================================================= TERMOS -->
+  <section id="screen-terms" class="screen">
+    <div class="scroll-pad terms-wrap">
+      <div class="brand big"><span class="logo">RAPTOR</span><span class="tag">VIDEO PLAYER</span></div>
+      <h1>Termo de uso e aviso de responsabilidade</h1>
+      <p class="dim small">Versão 2 — atualizado em novembro de 2026</p>
+
+      <div class="card terms-box">
+        <h2>1. O que é o Raptor Player</h2>
+        <p>O Raptor Player é apenas um tocador de vídeo (media player). Não fornecemos, hospedamos, distribuímos, vendemos, transmitimos nem indicamos canais, filmes, séries ou qualquer outro conteúdo.</p>
+        <h2>2. Origem do conteúdo</h2>
+        <p>Todo o conteúdo exibido vem de vídeos, links ou servidores informados exclusivamente pelo usuário. Não temos vínculo, parceria ou responsabilidade sobre esses provedores ou sobre o material que eles oferecem.</p>
+        <h2>3. Responsabilidade do usuário</h2>
+        <p>O usuário declara que possui as autorizações, assinaturas e licenças necessárias para reproduzir o conteúdo que cadastra, sendo o único responsável por ele e pelo uso que faz do aplicativo.</p>
+        <h2>4. Isenção de responsabilidade</h2>
+        <p>Não nos responsabilizamos por conteúdo ilegal, violação de direitos autorais, indisponibilidade, qualidade, cobranças, bloqueios ou qualquer dano decorrente do uso de vídeos e links de terceiros.</p>
+        <h2>5. Privacidade</h2>
+        <p>Seus acessos e credenciais ficam salvos neste aparelho. Quando você usa a ativação pelo site, esses dados também ficam guardados no servidor de ativação apenas para configurar o aplicativo. Não vendemos, não compartilhamos e não temos acesso ao que você assiste.</p>
+        <h2>6. Ativação pelo site</h2>
+        <p>A ativação é feita pelo código exibido no aparelho. O código identifica apenas o aparelho para entregar a configuração que você mesmo informou. Você pode substituir a configuração a qualquer momento ativando novamente o mesmo código.</p>
+        <h2>7. Aceite</h2>
+        <p>Ao tocar em “Aceitar e continuar”, você confirma que leu e concorda com estes termos e assume total responsabilidade pelo uso do aplicativo e pelo conteúdo que nele reproduzir.</p>
+        <p class="notice">Este aplicativo não fornece conteúdo. É apenas um player de vídeo.</p>
+      </div>
+
+      <div class="row gap">
+        <button id="terms-decline" class="btn ghost flex">Não aceito</button>
+        <button id="terms-accept" class="btn primary flex">Aceitar e continuar</button>
+      </div>
+      <p class="dim small center">Se não concordar com os termos, não use o aplicativo.</p>
+    </div>
+  </section>
+
+  <!-- ========================================================== LOGIN -->
+  <section id="screen-login" class="screen hidden">
+    <div class="scroll-pad">
+      <div class="brand big"><span class="logo">RAPTOR</span><span class="tag">VIDEO PLAYER</span></div>
+
+      <div class="card activation">
+        <div class="row top">
+          <div id="qr-box" class="qr-box"></div>
+          <div class="grow">
+            <p class="label">ATIVAR PELO SITE</p>
+            <p id="device-code" class="code">—</p>
+            <p class="dim tiny">Escaneie o QR ou use este código no site. O app entra sozinho.</p>
+            <p id="activation-status" class="dim tiny">Aguardando ativação no site…</p>
+            <button id="activation-check" class="link">Verificar agora</button>
+          </div>
+        </div>
+        <p class="dim tiny center">raptor-player.netlify.app</p>
+        <div class="divider"></div>
+        <button id="manual-toggle" class="link">URL DOS VÍDEOS</button>
+        <div id="manual-box" class="hidden">
+          <div class="row gap">
+            <input id="manual-url" class="input grow" type="url" placeholder="Cole a URL dos vídeos" autocomplete="off">
+            <button id="manual-paste" class="btn mini">Colar</button>
+          </div>
+          <button id="manual-use" class="btn outline mini top-gap">Usar URL</button>
+        </div>
+      </div>
+
+      <button id="demo-btn" class="btn outline wide">▶&nbsp; Testar o player (vídeos de exemplo)</button>
+
+      <div id="saved-lists" class="hidden">
+        <p class="label">LISTAS SALVAS</p>
+        <div id="saved-list-items" class="list"></div>
+      </div>
+
+      <div class="card">
+        <p class="label">COLE SEU LINK OU SERVIDOR</p>
+        <div class="row gap">
+          <input id="smart-link" class="input grow" type="url" placeholder="http://servidor:8080/get.php?username=..." autocomplete="off" autocapitalize="off" spellcheck="false">
+          <button id="smart-paste" class="btn mini">Colar</button>
+        </div>
+        <p id="smart-hint" class="green small hidden"></p>
+      </div>
+
+      <div class="segmented" id="login-mode">
+        <button class="active" data-mode="XTREAM">Xtream Codes</button>
+        <button data-mode="M3U">Lista M3U</button>
+      </div>
+
+      <div id="xtream-fields">
+        <label class="field"><span>Servidor (URL ou IP:porta)</span>
+          <input id="host" class="input" type="url" placeholder="http://meuservidor.com:8080" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+        <label class="field"><span>Usuário</span>
+          <input id="user" class="input" type="text" autocomplete="username" autocapitalize="off" spellcheck="false"></label>
+        <label class="field"><span>Senha</span>
+          <input id="pass" class="input" type="password" autocomplete="current-password"></label>
+      </div>
+
+      <div id="m3u-fields" class="hidden">
+        <label class="field"><span>URL da lista M3U</span>
+          <input id="m3u-url" class="input" type="url" placeholder="http://site.com/lista.m3u" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+        <p class="dim tiny">Também aceita um arquivo .m3u importado da Files.</p>
+        <input id="file-input" class="hidden" type="file" accept=".m3u,.m3u8,text/plain,application/octet-stream">
+        <button id="import-btn" class="link">Importar arquivo .m3u</button>
+      </div>
+
+      <p id="login-error" class="error center hidden"></p>
+      <button id="login-submit" class="btn primary wide tall">Entrar</button>
+      <p class="dim small center">Ative pelo site ou entre com a sua lista.</p>
+      <p class="dim tiny center">Player de vídeo: você é responsável pelo conteúdo da sua lista.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ HOME -->
+  <section id="screen-main" class="screen hidden">
+    <header class="topbar">
+      <div class="grow">
+        <div class="row baseline">
+          <span class="brand small"><span class="logo">RAPTOR</span></span>
+          <span id="tab-title" class="title">Canais ao vivo</span>
+        </div>
+        <p id="account-line" class="dim tiny ellipsis"></p>
+      </div>
+      <span id="clock" class="dim small"></span>
+      <button id="refresh-btn" class="icon-btn" title="Atualizar catálogo">⟳</button>
+    </header>
+    <nav class="tabs" id="main-tabs">
+      <button data-tab="channels" class="active">Canais</button>
+      <button data-tab="movies">Filmes</button>
+      <button data-tab="series">Séries</button>
+      <button data-tab="settings">Ajustes</button>
+    </nav>
+    <main id="tab-content" class="tab-content"></main>
+  </section>
+
+  <!-- ==================================================== DETALHE SÉRIE -->
+  <section id="screen-series" class="screen hidden">
+    <header class="topbar">
+      <button id="series-back" class="icon-btn">←</button>
+      <div class="grow"><span id="series-title" class="title"></span>
+        <p id="series-meta" class="dim tiny"></p></div>
+    </header>
+    <div id="series-content" class="scroll-pad"></div>
+  </section>
+
+  <!-- ========================================================== PLAYER -->
+  <section id="player" class="player hidden">
+    <video id="video" playsinline webkit-playsinline preload="metadata"></video>
+    <div id="player-tap" class="player-tap"></div>
+
+    <div id="player-error" class="player-error hidden">
+      <p class="big-icon">⚠</p>
+      <p id="player-error-text"></p>
+      <button id="player-retry" class="btn outline">Tentar novamente</button>
+    </div>
+
+    <div id="player-ui" class="player-ui">
+      <div class="player-top">
+        <button id="player-close" class="icon-btn light">✕</button>
+        <span id="player-title" class="ellipsis grow"></span>
+        <span id="player-queue" class="queue hidden"></span>
+        <button id="speed-btn" class="player-chip">1.0x</button>
+      </div>
+      <div class="player-center">
+        <button id="prev-btn" class="player-nav">⏮</button>
+        <button id="play-btn" class="play-btn">▶</button>
+        <button id="next-btn" class="player-nav">⏭</button>
+      </div>
+      <div class="player-bottom">
+        <div id="live-badge" class="live hidden">AO VIVO</div>
+        <div id="seek-wrap">
+          <input id="seek" type="range" min="0" max="100" value="0" step="0.1">
+          <div class="row times"><span id="pos">00:00</span><span id="dur">00:00</span></div>
+        </div>
+        <div class="row gap center skip-row">
+          <button class="player-chip" data-skip="-30">−30s</button>
+          <button class="player-chip" data-skip="-300">−5min</button>
+          <button class="player-chip" data-skip="30">+30s</button>
+          <button class="player-chip" data-skip="300">+5min</button>
+        </div>
+      </div>
+    </div>
+    <div id="buffering" class="buffering hidden">Carregando…</div>
+  </section>
+
+  <div id="overlay" class="overlay hidden"><div class="box"><div class="spinner"></div><p id="overlay-text">Abrindo…</p><p class="dim tiny" id="overlay-sub">Conectando ao servidor</p></div></div>
+  <div id="toast" class="toast hidden"></div>
+</div>
+
+<script src="js/sha256.js"></script>
+<script src="js/util.js"></script>
+<script src="js/net.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ios.js"></script>
+<script src="js/source.js"></script>
+<script src="js/epg.js"></script>
+<script src="vendor/hls.light.min.js"></script>
+<script src="vendor/qrcode.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
