@@ -16,8 +16,8 @@ android {
 
         vectorDrawables { useSupportLibrary = true }
 
-        // O app é em português: descarta as traduções das bibliotecas (dezenas
-        // de idiomas) que só ocupavam espaço no APK.
+        // O app Ã© em portuguÃªs: descarta as traduÃ§Ãµes das bibliotecas (dezenas
+        // de idiomas) que sÃ³ ocupavam espaÃ§o no APK.
         resourceConfigurations += listOf("pt", "pt-rBR", "en")
     }
 
@@ -36,16 +36,16 @@ android {
         }
     }
 
-    // Cópias do mesmo app:
+    // CÃ³pias do mesmo app:
     //  - mobile: celular / TV Box (minSdk 23)
     //  - firetv: Fire TV / Fire Stick antigos (Fire OS 5 = API 22), minSdk 21
-    //  - store: edição de loja (somente ativação do aparelho e vídeos de exemplo)
+    //  - store: ediÃ§Ã£o de loja (somente ativaÃ§Ã£o do aparelho e vÃ­deos de exemplo)
     flavorDimensions += "store"
 
     productFlavors {
         create("mobile") {
             dimension = "store"
-            // Mesmo ID de sempre: atualiza o app já instalado.
+            // Mesmo ID de sempre: atualiza o app jÃ¡ instalado.
             buildConfigField("boolean", "IS_STORE", "false")
         }
         create("firetv") {
@@ -59,17 +59,17 @@ android {
             dimension = "store"
             applicationId = "com.raptor.player.store"
             minSdk = 21
-            versionCode = 1
-            versionName = "1.0"
+            versionCode = 22
+            versionName = "1.3.4"
             versionNameSuffix = "-store"
             buildConfigField("boolean", "IS_STORE", "true")
         }
     }
 
     sourceSets {
-        // O tema é o único código comum às duas edições. Todo o resto da
-        // versão completa fica em src/full e nunca é compilado no flavor store,
-        // para que nenhuma string de configuração entre no APK de loja.
+        // O tema Ã© o Ãºnico cÃ³digo comum Ã s duas ediÃ§Ãµes. Todo o resto da
+        // versÃ£o completa fica em src/full e nunca Ã© compilado no flavor store,
+        // para que nenhuma string de configuraÃ§Ã£o entre no APK de loja.
         getByName("main") {
             java.setSrcDirs(listOf("src/common/java"))
         }
@@ -138,13 +138,13 @@ dependencies {
     add("mobileImplementation", "androidx.media3:media3-ui:1.3.1")
     add("firetvImplementation", "androidx.media3:media3-ui:1.3.1")
 
-    // HLS fica só nas versões completas. A edição de loja toca apenas os
-    // vídeos MP4 de demonstração e não precisa do analisador #EXTM3U.
+    // HLS fica sÃ³ nas versÃµes completas. A ediÃ§Ã£o de loja toca apenas os
+    // vÃ­deos MP4 de demonstraÃ§Ã£o e nÃ£o precisa do analisador #EXTM3U.
     add("mobileImplementation", "androidx.media3:media3-exoplayer-hls:1.3.1")
     add("firetvImplementation", "androidx.media3:media3-exoplayer-hls:1.3.1")
 
-    // Com os fontes completos fora do dex da loja, estas bibliotecas também
-    // ficam só nas versões completas.
+    // Com os fontes completos fora do dex da loja, estas bibliotecas tambÃ©m
+    // ficam sÃ³ nas versÃµes completas.
     add("mobileImplementation", "com.squareup.okhttp3:okhttp:4.12.0")
     add("firetvImplementation", "com.squareup.okhttp3:okhttp:4.12.0")
     add("mobileImplementation", "io.coil-kt:coil-compose:2.6.0")

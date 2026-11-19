@@ -1,18 +1,18 @@
-/* Raptor Player — store edition.
+/* Raptor Player â€” store edition.
    Device identification only (MAC code + QR) and public sample videos.
    No manual sign-in and no access details. */
 
-var APP_VERSION = '1.2.1';
+var APP_VERSION = '1.2.2';
 
 var SITE_BASE = 'https://raptor-player.netlify.app';
 
 /* Four public clips (CC-BY), in MP4/H.264, hosted in the developer's
    releases. They let reviewers test the player with no account or credentials. */
 var DEMO_ITEMS = [
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-1.mp4', title: 'Sample 1 · Sintel (720p)' },
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-2.mp4', title: 'Sample 2 · Big Buck Bunny (trailer)' },
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-3.mp4', title: 'Sample 3 · Sintel (trailer)' },
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-4.mp4', title: 'Sample 4 · Jellyfish (720p)' }
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-1.mp4', title: 'Sample 1 Â· Sintel (720p)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-2.mp4', title: 'Sample 2 Â· Big Buck Bunny (trailer)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-3.mp4', title: 'Sample 3 Â· Sintel (trailer)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-4.mp4', title: 'Sample 4 Â· Jellyfish (720p)' }
 ];
 
 /* ------------------------------------------------------------ identidade */
@@ -623,14 +623,14 @@ var Player = {
         return;
       }
 
-      if (self.autoRetries < 2) {
+      if (self.autoRetries < 3) {
         self.autoRetries += 1;
         self.reconnect();
         return;
       }
 
       self.showError('The video took too long to respond. Select "Try again".');
-    }, 20000);
+    }, 15000);
   },
 
   reconnect: function () {
@@ -652,8 +652,16 @@ var Player = {
       video.load();
     } catch (e) { /* ignore */ }
 
-    this.showLoading('Conectando de novo…');
-    video.src = this.currentUrl;
+    // The provider sometimes keeps the previous connection stuck and never
+    // delivers data. A fresh parameter forces a clean connection (VOD only:
+    // on a live channel it could break the HLS playlist).
+    var url = this.currentUrl;
+    if (!this.isLive) {
+      url += (url.indexOf('?') < 0 ? '?' : '&') + 'r=' + Date.now();
+    }
+
+    this.showLoading('Conectando de novoâ€¦');
+    video.src = url;
     this.tryPlay();
     this.armWatchdog();
   },
@@ -666,7 +674,7 @@ var Player = {
   },
 
   showLoading: function (text) {
-    $('playerLoadingText').textContent = text || 'Carregando…';
+    $('playerLoadingText').textContent = text || 'Carregandoâ€¦';
     show($('playerLoading'));
   },
 
@@ -758,7 +766,7 @@ var Player = {
   updatePlayButton: function () {
     var button = $('btnPlay');
     if (!button || !this.video) return;
-    button.textContent = this.video.paused ? '▶' : '❚❚';
+    button.textContent = this.video.paused ? 'â–¶' : 'âšâš';
   },
 
   seek: function (delta) {

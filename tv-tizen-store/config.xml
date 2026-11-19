@@ -2,7 +2,7 @@
 <widget xmlns="http://www.w3.org/ns/widgets"
         xmlns:tizen="http://tizen.org/ns/widgets"
         id="http://raptor.player/tv.store"
-        version="1.2.1"
+        version="1.2.2"
         viewmodes="maximized">
   <tizen:application id="raptorPlayerStore" package="raptor" required_version="4.0"/>
   <content src="index.html"/>
