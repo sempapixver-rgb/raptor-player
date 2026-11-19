@@ -59,7 +59,8 @@ Privacidade: https://raptor-player.netlify.app/privacidade.html
 - [x] Modo demonstração sem conta na tela de acesso
 - [x] E-mail real da conta Amazon Developer (`sempapixver@gmail.com`)
 - [x] Capturas 1920×1080 e feature graphic 1024×500 (em inglês)
-- [x] APK da versão `store` enviado — **In Review** (19/11/2026)
+- [x] APK da versão `store` enviado — **aprovado, Live** (19/11/2026)
+- [x] Publicado em **EUA, Irlanda, Reino Unido e Brasil** (BR adicionado em 19/11)
 
 ### LG Content Store (webOS)
 
