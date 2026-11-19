@@ -1,170 +1,194 @@
-# FICHA DA LOJA — RAPTOR PLAYER
+# STORE LISTING — RAPTOR PLAYER
 
-Arquivos desta pasta (tamanhos já conferidos):
+All artwork in this folder is in English. Older Portuguese files were moved to `ANTIGOS-PT/`.
 
-| Arquivo | Tamanho | Onde usar |
+| File | Size | Where to use |
 |---|---|---|
-| `icon_512x512.png` | 512×512 | Amazon (ícone da loja) e VegaOS |
-| `feature_graphic_1024x500.png` | 1024×500 | Amazon (imagem promocional) |
-| `screenshot_1_biblioteca_1920x1080.png` | 1920×1080 | Amazon / LG |
-| `screenshot_2_player_1920x1080.png` | 1920×1080 | Amazon / LG |
-| `screenshot_3_pastas_1920x1080.png` | 1920×1080 | Amazon / LG |
-| `screenshot_4_ajustes_1920x1080.png` | 1920×1080 | Amazon / LG |
+| `icon_114x114.png` | 114×114 | Amazon (small app icon) |
+| `icon_512x512.png` | 512×512 | Amazon (store icon) and VegaOS |
+| `icon_1280x720.png` | 1280×720 | Amazon (Fire TV banner) |
+| `feature_graphic_en_1024x500.png` | 1024×500 | Amazon (promotional image) |
+| `screenshot_1_library_en_1920x1080.png` | 1920×1080 | Amazon / LG |
+| `screenshot_2_player_en_1920x1080.png` | 1920×1080 | Amazon / LG |
+| `screenshot_3_folders_en_1920x1080.png` | 1920×1080 | Amazon / LG |
+| `screenshot_4_settings_en_1920x1080.png` | 1920×1080 | Amazon / LG |
 
-O ícone e o banner também já estão dentro do APK (`ic_launcher`, `tv_banner`).
+The icon and the TV banner are also bundled inside the APK (`ic_launcher`, `tv_banner`).
 
 ---
 
 ## 1. AMAZON FIRE TV (Amazon Appstore)
 
-**Nome do app (até 50 caracteres)**
+**App title**
 ```
-Raptor Player — Video Player
-```
-
-**Categoria**
-```
-Vídeo / Video Players & Editors
+Raptor Player - Video Player
 ```
 
-**Descrição curta (até 1.200 caracteres)**
+**App SKU**
 ```
-Raptor Player é um player de vídeo para TV. Reproduza os vídeos que você já tem, em uma interface leve e rápida, feita para o controle remoto.
-
-• Abre seus próprios arquivos e listas de vídeo (M3U, MP4, MKV, HLS)
-• Organiza por pastas, com busca e retomada de onde parou
-• Botões Anterior e Próximo, velocidade, tela cheia e legendas
-• Envio para a TV por DLNA (sem cabos)
-• Funciona em Fire TV, Fire TV Stick e TV Box Android
-
-Sem catálogo próprio: o Raptor Player não fornece, vende ou hospeda conteúdo. Ele apenas reproduz o que o usuário já possui.
+raptor-player-store
 ```
 
-**Descrição longa (até 4.000 caracteres)**
+**Category**
+```
+photo-and-video
+```
+
+**Language support**
+```
+English, Portuguese
+```
+
+**Short description**
+```
+Raptor Player is a video player for TV. Test the player with sample videos and identify your device by the code shown on screen. Simple interface, made for the remote control.
+```
+
+**Long description (en-US)**
 ```
 RAPTOR PLAYER — VIDEO PLAYER
 
-Um tocador de vídeo simples e rápido para a sua TV.
+A light video player for your TV, with navigation made for the remote control.
 
-O Raptor Player foi feito para quem quer assistir aos próprios vídeos na tela grande, com o controle remoto na mão. Interface escura, letras grandes e navegação só com as setas: nada de mouse, nada de digitar.
+FEATURES
+• Dark interface with large text and D-pad navigation
+• "▶  Test the player (sample videos)" button: four public clips to check the player
+• Fast-forward and rewind, navigable progress bar and automatic next video
+• Full screen and playback controls
 
-PRINCIPAIS RECURSOS
-• Reprodução de arquivos e listas do próprio usuário (M3U, MP4, MKV, HLS)
-• Organização por pastas: cada pasta carrega só o que você escolheu ver
-• Busca por nome, sem esperar a lista inteira carregar
-• Retoma o vídeo de onde você parou
-• Anterior e Próximo no próprio player
-• Velocidade de reprodução, proporção de tela e faixas de áudio/legenda
-• Envio para a TV por DLNA
-• Tudo é salvo apenas no aparelho
+HOW TO START
+Open the app, accept the terms and use the test button to try the player.
+To identify your device, scan the QR code shown on the screen or enter the MAC code at
+raptor-player.netlify.app. Registration is simple, and you confirm that you are
+responsible for the use of the device and of the videos.
 
-FEITO PARA O CONTROLE
-Setas para navegar, OK para confirmar, Voltar para sair, Play/Pause, avançar e retroceder. Funciona em Fire TV Stick antigos e nos modelos 4K.
+ABOUT THE VIDEOS
+Raptor Player includes sample videos for demonstration. The use of any other videos
+is the responsibility of the person playing them.
 
-SOBRE CONTEÚDO
-O Raptor Player é apenas um player. Não oferecemos canais, assinaturas, catálogo, biblioteca ou qualquer conteúdo. O app não vem com listas, links ou credenciais: quem adiciona o próprio material é o usuário, e a responsabilidade por ele é do usuário.
-
-COMO TESTAR (para o revisor)
-Na tela inicial, toque em "Testar o player (vídeos de exemplo)". O app abre o player com quatro vídeos públicos de demonstração, sem precisar de conta, lista ou configuração.
-
-PRIVACIDADE
-Não coletamos dados pessoais. Não há login obrigatório, anúncios ou rastreamento. A política completa está em:
-https://raptor-player.netlify.app/privacidade.html
+PRIVACY
+We do not collect personal data. There is no mandatory sign-in, no ads and no tracking.
+Policy: https://raptor-player.netlify.app/privacy.html
 ```
 
-**Palavras-chave (5)**
+**Product features**
 ```
-player de vídeo, video player, reprodutor de mídia, media player, DLNA
-```
-
-**Política de privacidade**
-```
-https://raptor-player.netlify.app/privacidade.html
+Dark interface with large text and D-pad navigation
+"▶  Test the player (sample videos)" button with four public clips
+Fast-forward and rewind, navigable progress bar and automatic next video
+Full screen and playback controls
 ```
 
-**E-mail de contato do desenvolvedor**
+**Keywords (8)**
 ```
-PREENCHER: e-mail que você usa na conta de desenvolvedor Amazon
-```
-
-**Classificação de conteúdo**
-```
-Livre para todos os públicos (o app não traz conteúdo próprio)
+TV, control, videos, media, video, remote, sample, player
 ```
 
-**Observação para o revisor (campo "notas de teste")**
+**Privacy policy URL**
 ```
-O app abre na tela de termos. Aceite e, na tela seguinte, use o botão
-"Testar o player (vídeos de exemplo)" — ele toca 4 clipes abertos
-(CC-BY, MP4/H.264) hospedados na página de releases do próprio
-desenvolvedor, sem login, lista ou credenciais. Os botões
-Anterior/Próximo, Play/Pause, Voltar e as setas do controle funcionam
-nessa demonstração. Nenhum conteúdo de terceiros está embutido no APK.
+https://raptor-player.netlify.app/privacy.html
+```
+
+**Developer contact e-mail**
+```
+PREENCHER: e-mail that you use on your Amazon developer account
+```
+
+**Content rating**
+```
+Suitable for all age groups (the app does not ship any content of its own)
+```
+
+**Reviewer notes (test notes field)**
+```
+The app opens on the terms screen. Accept them and, on the next screen, use the
+"Test the player (sample videos)" button: it plays four open clips (CC-BY, MP4/H.264)
+hosted on the developer's own releases page, with no sign-in, playlist or credentials.
+The Previous/Next, Play/Pause, Back and arrow-key controls all work in this demo.
+No third-party content is embedded in the APK.
+```
+
+**Submitted build (already live in the console)**
+```
+Raptor-Store.apk  —  Fire OS / Vega OS (Fire Tablets, Fire TVs, Automotive)
+Status: In Review
 ```
 
 ---
 
 ## 2. LG CONTENT STORE (webOS)
 
-**Nome**
+**Title**
 ```
 Raptor Player
 ```
 
-**Subtítulo**
+**Subtitle**
 ```
 VIDEO PLAYER
 ```
 
-**Descrição curta**
+**Short description**
 ```
-Player de vídeo para a sua TV LG. Reproduza seus próprios vídeos com uma interface leve, controle remoto e envio por DLNA.
-```
-
-**Descrição longa**
-```
-Raptor Player é um tocador de vídeo para TV LG. Reproduza os arquivos e listas que você já tem, com navegação simples pelo controle remoto.
-
-• Organização por pastas e busca por nome
-• Retoma de onde parou
-• Anterior e Próximo no player
-• Velocidade, proporção de tela e faixas de áudio/legenda
-• Envio para a TV por DLNA
-• Nada de anúncios e nada de cadastro obrigatório
-
-O Raptor Player não fornece conteúdo: ele apenas reproduz o que o usuário já possui.
+Video player for your LG TV. Play your own videos with a simple, remote-friendly interface and DLNA casting.
 ```
 
-**Ícones (já gerados dentro do IPK)**
+**Long description**
+```
+Raptor Player is a video player for LG TV. Play the files and lists you already have, with simple remote-control navigation.
+
+• Folder organization and search by name
+• Resume where you left off
+• Previous and Next in the player
+• Playback speed, aspect ratio and audio/subtitle tracks
+• Send to your TV over DLNA
+• No ads and no mandatory sign-up
+
+Raptor Player does not provide any content: it only plays what the user already has.
+```
+
+**Service languages**
+```
+English, Portuguese
+```
+
+**Icons (already bundled inside the IPK)**
 - `icon.png` 80×80
 - `largeIcon.png` 130×130
 - `splash.png` 1920×1080
 
----
-
-## 3. CHECKLIST DE ENVIO
-
-- [x] Nome exibido: Raptor Player
-- [x] Pacote: `com.raptor.player` (celular/TV Box) e `com.raptor.player.firetv` (Fire TV)
-- [x] Ícone 512×512 em RAPTOR
-- [x] Imagem promocional 1024×500 em RAPTOR
-- [x] 4 capturas 1920×1080 (mínimo exigido: 3)
-- [x] Banner de TV 1280×720 dentro do APK
-- [x] Ícone de TV (leanback) e navegação por D-pad
-- [x] Não exige tela sensível ao toque
-- [x] Permissões de rede/Wi-Fi justificadas (DLNA)
-- [x] Política de privacidade pública
-- [x] Modo demonstração para o revisor testar sem lista
-- [ ] E-mail de contato do desenvolvedor (preencher na ficha)
-- [ ] Criar o app no console da Amazon e anexar os arquivos acima
-- [ ] (LG) criar o app no LG Seller Lounge e anexar o IPK 1.1.0
+**Submitted build**
+```
+com.raptor.player.store_1.2.2_all.ipk  —  version 1.2.2
+Status: QA Request (resubmitted 2026-11-19)
+```
 
 ---
 
-## 4. PALAVRAS QUE NÃO DEVEM APARECER NA FICHA
+## 3. SUBMISSION CHECKLIST
 
-canais · filmes · séries · IPTV · lista de IPTV · assinatura · streaming pago ·
-catálogo · conteúdo premium · filmes lançamento · esportes ao vivo · pirataria
+- [x] Display name: Raptor Player
+- [x] Package: `com.raptor.player.store` (store), `com.raptor.player` (mobile/TV box), `com.raptor.player.firetv` (Fire TV)
+- [x] 512×512 icon in RAPTOR branding
+- [x] 1024×500 promotional image in RAPTOR branding
+- [x] 4 screenshots 1920×1080 (minimum required: 3)
+- [x] 1280×720 TV banner inside the APK
+- [x] Leanback TV icon and D-pad navigation
+- [x] No touchscreen required
+- [x] Network/Wi-Fi permissions justified (DLNA)
+- [x] Public privacy policy
+- [x] Demo mode for reviewers, with no playlist required
+- [x] Amazon submission sent — In Review
+- [x] LG resubmission sent — QA Request
+- [ ] Developer contact e-mail (fill in the Amazon console)
+- [ ] Samsung Seller Office submission (needs owner login + signing certificate)
 
-Use sempre: "vídeos", "seus vídeos", "player de vídeo", "tocador de vídeo",
-"sua biblioteca", "seus arquivos", "suas listas".
+---
+
+## 4. WORDS THAT MUST NOT APPEAR IN THE STORE LISTING
+
+channels · movies · series · IPTV · IPTV playlist · subscription · paid streaming ·
+catalog · premium content · new releases · live sports · piracy
+
+Always use: "videos", "your videos", "video player", "media player",
+"your library", "your files", "your lists".
