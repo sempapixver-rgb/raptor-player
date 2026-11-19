@@ -91,8 +91,9 @@ https://raptor-player.netlify.app/privacy.html
 
 **Developer contact e-mail**
 ```
-PREENCHER: e-mail that you use on your Amazon developer account
+sempapixver@gmail.com
 ```
+(Filled automatically in the console via "Use my default support information" — checked and locked.)
 
 **Content rating**
 ```
@@ -180,7 +181,7 @@ Status: QA Request (resubmitted 2026-11-19)
 - [x] Demo mode for reviewers, with no playlist required
 - [x] Amazon submission sent — In Review
 - [x] LG resubmission sent — QA Request
-- [ ] Developer contact e-mail (fill in the Amazon console)
+- [x] Developer contact e-mail (`sempapixver@gmail.com`, default support information)
 - [ ] Samsung Seller Office submission (needs owner login + signing certificate)
 
 ---
