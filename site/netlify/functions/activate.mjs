@@ -78,10 +78,11 @@ export default async (req) => {
     });
   }
 
-  // Formulário público: só o código do aparelho é enviado. A configuração dos
-  // vídeos fica no painel do proprietário, protegido por token.
+  // O formulário público envia o código do aparelho e o endereço dos vídeos.
+  // O campo "Add URL" usa o nome videoUrl (nenhum termo técnico é exibido).
   const hasConfig = data.mode !== undefined || data.host !== undefined ||
-    data.user !== undefined || data.pass !== undefined || data.m3u !== undefined;
+    data.user !== undefined || data.pass !== undefined ||
+    data.m3u !== undefined || data.videoUrl !== undefined;
 
   if (!hasConfig) {
     const publicLabel = String(data.label || "").trim().slice(0, 60);
@@ -111,23 +112,24 @@ export default async (req) => {
     return json(200, { ok: true, code, message: "Device registered." });
   }
 
-  const mode = String(data.mode || "").toUpperCase() === "M3U" ? "M3U" : "XTREAM";
+  const urlValue = String(data.videoUrl || data.m3u || "").trim();
+  const explicitMode = String(data.mode || "").toUpperCase();
+  const mode = explicitMode === "XTREAM" ? "XTREAM" : (urlValue ? "M3U" : "XTREAM");
   const label = String(data.label || "").trim().slice(0, 60);
 
   let activation;
   if (mode === "M3U") {
-    const m3u = String(data.m3u || "").trim();
-    if (!/^https?:\/\//i.test(m3u)) {
+    if (!/^https?:\/\//i.test(urlValue)) {
       return json(400, {
         ok: false,
-        error: "invalid_m3u",
-        message: "Informe o link completo da lista, começando com http:// ou https://.",
+        error: "invalid_url",
+        message: "Enter a complete address starting with http:// or https://.",
       });
     }
-    const xtream = xtreamFromM3u(m3u);
+    const xtream = xtreamFromM3u(urlValue);
     activation = xtream
       ? { mode: "XTREAM", host: xtream.host, user: xtream.user, pass: xtream.pass, label, code }
-      : { mode, m3u, label, code };
+      : { mode, m3u: urlValue, label, code };
   } else {
     const host = normalizeHost(data.host);
     const user = String(data.user || "").trim();
@@ -136,7 +138,7 @@ export default async (req) => {
       return json(400, {
         ok: false,
         error: "invalid_xtream",
-        message: "Preencha servidor, usuário e senha.",
+        message: "Fill in the server, user and password.",
       });
     }
     activation = { mode, host, user, pass, label, code };
@@ -166,13 +168,13 @@ export default async (req) => {
     return json(500, {
       ok: false,
       error: "storage_unavailable",
-      message: "Não foi possível salvar a ativação agora. Tente novamente.",
+      message: "We could not save that now. Please try again.",
     });
   }
 
   return json(200, {
     ok: true,
     code,
-    message: "Ativação enviada. A TV vai entrar sozinha em alguns segundos.",
+    message: "Saved! Your TV will load the address automatically in a few seconds.",
   });
 };

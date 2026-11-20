@@ -1,17 +1,17 @@
-﻿/* Raptor Player â€” webOS. Controlador principal. */
+/* Raptor Player — webOS. Controlador principal. */
 
 var APP_VERSION = '1.2.2';
 
-/* Itens por pÃ¡gina: evita milhares de elementos na memÃ³ria da TV. */
+/* Itens por página: evita milhares de elementos na memória da TV. */
 var PAGE_SIZE = 60;
 
-/* VÃ­deos pÃºblicos de demonstraÃ§Ã£o (CC-BY, Blender Foundation), em MP4/H.264.
+/* Vídeos públicos de demonstração (CC-BY, Blender Foundation), em MP4/H.264.
    Servem para testar o player sem lista, login ou credencial. */
 var DEMO_ITEMS = [
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-1.mp4', title: 'Exemplo 1 Â· Sintel (720p)' },
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-2.mp4', title: 'Exemplo 2 Â· Big Buck Bunny (trailer)' },
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-3.mp4', title: 'Exemplo 3 Â· Sintel (trailer)' },
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-4.mp4', title: 'Exemplo 4 Â· Ãguas-vivas (720p)' }
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-1.mp4', title: 'Exemplo 1 · Sintel (720p)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-2.mp4', title: 'Exemplo 2 · Big Buck Bunny (trailer)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-3.mp4', title: 'Exemplo 3 · Sintel (trailer)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-4.mp4', title: 'Exemplo 4 · Águas-vivas (720p)' }
 ];
 
 var App = {
@@ -133,7 +133,7 @@ var App = {
 
       var active = document.activeElement;
 
-      // Termos de uso: as setas rolam o texto; no fim, o foco desce para o botÃ£o.
+      // Termos de uso: as setas rolam o texto; no fim, o foco desce para o botão.
       if (active && active.id === 'termsScroll' && (code === 38 || code === 40)) {
         event.preventDefault();
         if (code === 40) {
@@ -146,7 +146,7 @@ var App = {
         return;
       }
 
-      // Player com a barra escondida: a primeira tecla sÃ³ mostra os controles.
+      // Player com a barra escondida: a primeira tecla só mostra os controles.
       if (self.isPlayerOpen() && $('playerOverlay').classList.contains('hidden') &&
           $('playerError').classList.contains('hidden') &&
           (code === 13 || code === 37 || code === 38 || code === 39 || code === 40)) {
@@ -156,15 +156,13 @@ var App = {
         return;
       }
 
-      // Barra de tempo do player: esquerda/direita avancam ou voltam 30 s.
+      // A barra de tempo só mostra o progresso. OK pausa/continua.
       if (self.isPlayerOpen() && active && active.id === 'progress') {
-        if (code === 37) { event.preventDefault(); Player.seek(-30); Player.scheduleHide(); return; }
-        if (code === 39) { event.preventDefault(); Player.seek(30); Player.scheduleHide(); return; }
         if (code === 13) { event.preventDefault(); Player.toggle(); Player.scheduleHide(); return; }
       }
       if (code === 37 || code === 38 || code === 39 || code === 40) {
         var digitando = document.activeElement && document.activeElement.id === 'searchInput';
-        // Com o campo de busca em foco, as setas editam o texto; sÃ³ "baixo"
+        // Com o campo de busca em foco, as setas editam o texto; só "baixo"
         // sai do campo e vai para o primeiro resultado.
         if (digitando && code === 40) {
           event.preventDefault();
@@ -192,8 +190,7 @@ var App = {
 
       if (code === 415) { event.preventDefault(); Player.play(); }
       else if (code === 19) { event.preventDefault(); Player.pause(); }
-      else if (code === 417) { event.preventDefault(); Player.seek(30); }
-      else if (code === 412) { event.preventDefault(); Player.seek(-30); }
+      else if (code === 417 || code === 412) { event.preventDefault(); }
       else if (code === 413) { event.preventDefault(); self.closePlayer(); }
     }, false);
   },
@@ -225,7 +222,7 @@ var App = {
     });
 
     // Nada de interceptar OK/Enter: o teclado virtual da LG usa essa tecla
-    // para fechar sozinho. A lista jÃ¡ filtra enquanto o usuÃ¡rio digita e a
+    // para fechar sozinho. A lista já filtra enquanto o usuário digita e a
     // seta para baixo leva ao primeiro resultado.
 
     if (clearBtn) {
@@ -246,7 +243,7 @@ var App = {
     }
   },
 
-  /** Filtra uma lista pelo nome digitado (usa o Ã­ndice jÃ¡ normalizado). */
+  /** Filtra uma lista pelo nome digitado (usa o índice já normalizado). */
   filterFrom: function (list) {
     var q = fold(this.searchQuery);
     if (!q) return list || [];
@@ -267,8 +264,8 @@ var App = {
 
   /**
    * Busca em TODAS as pastas da aba atual: carrega a lista completa uma vez
-   * (sÃ³ com os campos necessÃ¡rios) e guarda como Ã­ndice. SÃ³ a aba atual fica
-   * na memÃ³ria, para nÃ£o pesar na TV.
+   * (só com os campos necessários) e guarda como índice. Só a aba atual fica
+   * na memória, para não pesar na TV.
    */
   loadSearchIndex: function (kind) {
     var self = this;
@@ -291,7 +288,7 @@ var App = {
       for (var i = 0; i < all.length; i++) {
         var entry = all[i];
         if (!entry) continue;
-        // ProjeÃ§Ã£o enxuta: sinopse e outros campos longos ficam de fora.
+        // Projeção enxuta: sinopse e outros campos longos ficam de fora.
         index.push({
           id: entry.id,
           name: entry.name,
@@ -341,13 +338,13 @@ var App = {
     if (!q) {
       this.currentList = this.baseList;
     } else {
-      // Enquanto o Ã­ndice nÃ£o chega, filtra a pasta aberta; depois passa a
+      // Enquanto o índice não chega, filtra a pasta aberta; depois passa a
       // procurar em todas as pastas da aba.
       this.currentList = this.filterFrom(index || this.baseList);
       if (!index && q.length >= 2) this.loadSearchIndex(this.section);
     }
 
-    // O item selecionado pode ter saÃ­do do filtro: limpa a prÃ©via.
+    // O item selecionado pode ter saído do filtro: limpa a prévia.
     if (this.selected && this.indexOfSelected() < 0) {
       this.selected = null;
       this.stopPreview();
@@ -356,8 +353,8 @@ var App = {
 
     this.updateSearchUi();
 
-    // Digitando: mantÃ©m o foco no campo (teclado aberto) e nÃ£o seleciona
-    // sozinho. O primeiro resultado sÃ³ ganha foco com OK ou seta para baixo.
+    // Digitando: mantém o foco no campo (teclado aberto) e não seleciona
+    // sozinho. O primeiro resultado só ganha foco com OK ou seta para baixo.
     var digitando = this.typing || document.activeElement === input;
     this.renderItems(this.currentList, false, digitando);
 
@@ -381,10 +378,10 @@ var App = {
     if (active) {
       var total = this.currentList.length;
       var onde;
-      if (this.searchLoading) onde = ' Â· buscando em todas as pastasâ€¦';
-      else if (this.searchIndex[this.section]) onde = ' Â· todas as pastas';
-      else onde = ' Â· nesta pasta';
-      sub.textContent = 'Busca: "' + this.searchQuery + '" Â· ' + total +
+      if (this.searchLoading) onde = ' · buscando em todas as pastas…';
+      else if (this.searchIndex[this.section]) onde = ' · todas as pastas';
+      else onde = ' · nesta pasta';
+      sub.textContent = 'Busca: "' + this.searchQuery + '" · ' + total +
         (total === 1 ? ' resultado' : ' resultados') + onde;
     } else {
       sub.textContent = this.session ? sessionName(this.session) : '';
@@ -447,7 +444,7 @@ var App = {
         this.clearSearch(false);
         return;
       }
-      // Sai da aba e volta para o menu principal (cada aba Ã© fechada).
+      // Sai da aba e volta para o menu principal (cada aba é fechada).
       this.openMenu();
       return;
     }
@@ -461,7 +458,7 @@ var App = {
         return;
       }
     } catch (e) { /* ignora */ }
-    toast('Use o botÃ£o Voltar da TV para sair.');
+    toast('Use o botão Voltar da TV para sair.');
   },
 
   isPlayerOpen: function () {
@@ -556,7 +553,7 @@ var App = {
         correctLevel: QRCode.CorrectLevel.M
       });
     } catch (e) {
-      holder.textContent = 'QR indisponÃ­vel';
+      holder.textContent = 'QR indisponível';
     }
   },
 
@@ -589,7 +586,7 @@ var App = {
     }
   },
 
-  /** Atalho na tela de ativaÃ§Ã£o: a pessoa cola a URL dos vÃ­deos. */
+  /** Atalho na tela de ativação: a pessoa cola a URL dos vídeos. */
   useVideoUrl: function () {
     var self = this;
     var input = $('inVideoUrl');
@@ -598,18 +595,18 @@ var App = {
     if (box) box.textContent = '';
 
     if (!raw) {
-      if (box) box.textContent = 'Cole a URL dos vÃ­deos.';
+      if (box) box.textContent = 'Cole a URL dos vídeos.';
       return;
     }
 
     var url = normalizeRemoteUrl(raw);
     if (!/^https?:\/\//i.test(url)) {
-      if (box) box.textContent = 'A URL deve comeÃ§ar com http:// ou https://.';
+      if (box) box.textContent = 'A URL deve começar com http:// ou https://.';
       return;
     }
 
     this.stopPolling();
-    if (box) box.textContent = 'Conectandoâ€¦';
+    if (box) box.textContent = 'Conectando…';
 
     var session = { mode: 'M3U', m3uUrl: url, baseUrl: '', username: '', password: '', label: '' };
     createSource(session).check().then(function (message) {
@@ -634,25 +631,25 @@ var App = {
     if (!this.code || this.pollBusy) return;
 
     this.pollBusy = true;
-    if (manual) this.setStatus('Verificandoâ€¦', '');
+    if (manual) this.setStatus('Verificando…', '');
 
     Activation.fetch(this.code).then(function (session) {
       self.pollBusy = false;
       if (session) {
         self.stopPolling();
-        self.setStatus('Ativado! Abrindoâ€¦', 'ok');
+        self.setStatus('Ativado! Abrindo…', 'ok');
         Store.setSession(session);
         Store.saveList(session);
         toast('TV ativada. Bem-vindo!');
         setTimeout(function () { self.enterHome(session); }, 900);
       } else {
-        self.setStatus('Aguardando ativaÃ§Ã£oâ€¦', '');
-        if (manual) toast('Ainda nÃ£o hÃ¡ ativaÃ§Ã£o para este cÃ³digo.');
+        self.setStatus('Aguardando ativação…', '');
+        if (manual) toast('Ainda não há ativação para este código.');
       }
     }, function () {
       self.pollBusy = false;
       if (manual) {
-        self.setStatus('Site indisponÃ­vel. Tentando de novoâ€¦', 'err');
+        self.setStatus('Site indisponível. Tentando de novo…', 'err');
       }
     });
   },
@@ -701,13 +698,13 @@ var App = {
       var user = $('inUser').value.trim();
       var pass = $('inPass').value;
       if (!host || !user || !pass) {
-        error.textContent = 'Preencha servidor, usuÃ¡rio e senha.';
+        error.textContent = 'Preencha servidor, usuário e senha.';
         return;
       }
       session = { mode: 'XTREAM', baseUrl: host, username: user, password: pass, m3uUrl: '', label: '' };
     }
 
-    error.textContent = 'Conectandoâ€¦';
+    error.textContent = 'Conectando…';
 
     var source = createSource(session);
     source.check().then(function (message) {
@@ -725,7 +722,7 @@ var App = {
 
   /* =============================================================== menu */
 
-  /** Menu principal: Canais, Filmes, SÃ©ries e Ajustes. */
+  /** Menu principal: Canais, Filmes, Séries e Ajustes. */
   buildMenu: function () {
     var self = this;
     var holder = $('menuCards');
@@ -733,9 +730,9 @@ var App = {
     clear(holder);
 
     var entries = [
-      { kind: MediaKind.LIVE, label: 'Canais', sub: 'Ao vivo e programaÃ§Ã£o' },
-      { kind: MediaKind.VOD, label: 'Filmes', sub: 'CatÃ¡logo completo' },
-      { kind: MediaKind.SERIES, label: 'SÃ©ries', sub: 'Temporadas e episÃ³dios' },
+      { kind: MediaKind.LIVE, label: 'Canais', sub: 'Ao vivo e programação' },
+      { kind: MediaKind.VOD, label: 'Filmes', sub: 'Catálogo completo' },
+      { kind: MediaKind.SERIES, label: 'Séries', sub: 'Temporadas e episódios' },
       { action: 'settings', label: 'Ajustes', sub: 'Conta, lista e player' }
     ];
 
@@ -772,7 +769,7 @@ var App = {
     }, 40);
   },
 
-  /** Entra na aba escolhida: a home passa a mostrar sÃ³ aquele conteÃºdo. */
+  /** Entra na aba escolhida: a home passa a mostrar só aquele conteúdo. */
   enterSection: function (kind) {
     this.typing = false;
     try {
@@ -798,25 +795,25 @@ var App = {
     this.epgToken++;
     this.stopPreview();
 
-    // Cada aba Ã© um ambiente fechado: o app abre no menu principal.
+    // Cada aba é um ambiente fechado: o app abre no menu principal.
     this.preload();
     this.openMenu();
   },
 
-  /** Recarrega categorias e itens (botÃ£o âŸ³ Atualizar do topo). */
+  /** Recarrega categorias e itens (botão ⟳ Atualizar do topo). */
   reloadContent: function () {
     this.catCache = {};
     this.itemCache = {};
     this.cacheOrder = [];
     this.page = 0;
     this.currentList = [];
-    toast('ConteÃºdo recarregado.');
+    toast('Conteúdo recarregado.');
     this.setSection(this.section);
   },
 
   /**
    * Adianta as pastas das outras abas (respostas pequenas do servidor).
-   * Assim Canais, Filmes e SÃ©ries abrem sem "Carregandoâ€¦".
+   * Assim Canais, Filmes e Séries abrem sem "Carregando…".
    */
   preload: function () {
     var self = this;
@@ -838,7 +835,7 @@ var App = {
       var first = $('items').querySelector('.card-item, .channel-row');
       if (first) { try { first.focus(); } catch (e) { /* ignora */ } }
     }, 40);
-    // Ao voltar do player, religa a prÃ©via do canal escolhido.
+    // Ao voltar do player, religa a prévia do canal escolhido.
     var self = this;
     setTimeout(function () {
       if (self.section === MediaKind.LIVE && self.selected) {
@@ -870,8 +867,8 @@ var App = {
     this.epgToken++;
     this.stopPreview();
 
-    // Cada aba Ã© uma pasta independente: limpa na hora a lista e as
-    // categorias da aba anterior, senÃ£o o conteÃºdo antigo fica na tela
+    // Cada aba é uma pasta independente: limpa na hora a lista e as
+    // categorias da aba anterior, senão o conteúdo antigo fica na tela
     // (ou uma resposta atrasada o traz de volta).
     var holder = $('items');
     if (holder) clear(holder);
@@ -880,11 +877,11 @@ var App = {
     hide($('emptyState'));
     show($('loading'));
 
-    // Em SÃ©ries a tela de detalhe jÃ¡ mostra tudo: a prÃ©via lateral sobra.
+    // Em Séries a tela de detalhe já mostra tudo: a prévia lateral sobra.
     toggle($('previewPane'), kind !== MediaKind.SERIES);
 
     $('tabTitle').textContent = kind === MediaKind.LIVE ? 'Canais'
-      : kind === MediaKind.VOD ? 'Filmes' : 'SÃ©ries';
+      : kind === MediaKind.VOD ? 'Filmes' : 'Séries';
     $('tabSub').textContent = this.session ? sessionName(this.session) : '';
     $('panelLabel').textContent = 'CATEGORIAS';
 
@@ -918,7 +915,7 @@ var App = {
       this.selectCat(use);
       return;
     }
-    // Nunca pedir "todos os filmes/sÃ©ries": sÃ£o mais de 8 MB e derrubam a TV.
+    // Nunca pedir "todos os filmes/séries": são mais de 8 MB e derrubam a TV.
     if (!list || !list.length) {
       this.currentList = [];
       this.renderItems([]);
@@ -944,8 +941,8 @@ var App = {
       this.filter === 'recents',
       function () { self.selectFilter('recents'); }));
 
-    // "Tudo" sÃ³ nos canais. Em filmes/sÃ©ries a lista completa passa de
-    // 8 MB e nÃ£o cabe na memÃ³ria da TV: o usuÃ¡rio escolhe a pasta.
+    // "Tudo" só nos canais. Em filmes/séries a lista completa passa de
+    // 8 MB e não cabe na memória da TV: o usuário escolhe a pasta.
     for (var i = 0; i < list.length; i++) {
       (function (cat) {
         var item = self.panelItem(cat.name, null, false,
@@ -987,7 +984,7 @@ var App = {
     this.loadItems(catId);
   },
 
-  /** Marca no painel o item que estÃ¡ ativo. */
+  /** Marca no painel o item que está ativo. */
   markPanel: function () {
     var buttons = $('cats').getElementsByTagName('button');
     for (var i = 0; i < buttons.length; i++) {
@@ -1016,8 +1013,8 @@ var App = {
     show($('loading'));
     hide($('emptyState'));
 
-    // Troca de pasta Ã© como abrir outra pasta: a lista antiga sai da tela
-    // imediatamente (nada de item da pasta anterior clicÃ¡vel durante o load).
+    // Troca de pasta é como abrir outra pasta: a lista antiga sai da tela
+    // imediatamente (nada de item da pasta anterior clicável durante o load).
     this.baseList = [];
     this.currentList = [];
     this.selected = null;
@@ -1031,7 +1028,7 @@ var App = {
       for (var i = 0; i < saved.length; i++) {
         if (saved[i].kind === kind) list.push(saved[i]);
       }
-      // Favoritos seguem a ordenaÃ§Ã£o escolhida; "recentes" fica por data de uso.
+      // Favoritos seguem a ordenação escolhida; "recentes" fica por data de uso.
       if (this.filter === 'favorites' && Store.sortMode() === 'az') list = sortByName(list);
       this.baseList = list;
       this.currentList = this.filteredList(list);
@@ -1055,8 +1052,8 @@ var App = {
       self.cacheOrder.push(key);
       self.trimCache();
 
-      // Resposta de uma aba/pasta que jÃ¡ nÃ£o estÃ¡ aberta: guarda no cache,
-      // mas nÃ£o mexe na tela (era isso que misturava Canais com Filmes).
+      // Resposta de uma aba/pasta que já não está aberta: guarda no cache,
+      // mas não mexe na tela (era isso que misturava Canais com Filmes).
       if (self.section !== kind || self.sectionToken !== token ||
           (self.activeCat || '') !== cat) return;
 
@@ -1073,7 +1070,7 @@ var App = {
     });
   },
 
-  /** MantÃ©m no mÃ¡ximo 8 pastas em memÃ³ria (TV tem pouca RAM). */
+  /** Mantém no máximo 8 pastas em memória (TV tem pouca RAM). */
   trimCache: function () {
     while (this.cacheOrder.length > 8) {
       var old = this.cacheOrder.shift();
@@ -1108,10 +1105,10 @@ var App = {
         sub = 'Nenhum nome combina com "' + this.searchQuery + '". Limpe a busca ou tente outra palavra.';
       } else if (this.filter === 'favorites') {
         title = 'Nenhum favorito ainda';
-        sub = 'Aperte a estrela â˜† de um item para salvar aqui.';
+        sub = 'Aperte a estrela ☆ de um item para salvar aqui.';
       } else if (this.filter === 'recents') {
         title = 'Nada visto ainda';
-        sub = 'Os itens que vocÃª abrir aparecem nesta lista.';
+        sub = 'Os itens que você abrir aparecem nesta lista.';
       }
       $('emptyState').querySelector('.empty-title').textContent = title;
       $('emptyState').querySelector('.empty-sub').textContent = sub;
@@ -1138,8 +1135,8 @@ var App = {
 
     if (total > 1) holder.appendChild(this.buildPager(total));
 
-    // SÃ³ move o foco quando a home estÃ¡ visÃ­vel e o usuÃ¡rio NÃƒO estÃ¡
-    // digitando na busca (senÃ£o o teclado da TV fecharia a cada letra).
+    // Só move o foco quando a home está visível e o usuário NÃO está
+    // digitando na busca (senão o teclado da TV fecharia a cada letra).
     if (!$('screen-home').classList.contains('hidden') && !this.typing) {
       var first = holder.querySelector('.card-item, .channel-row');
       if (first) {
@@ -1147,14 +1144,14 @@ var App = {
       }
     }
 
-    // Como no Android, o primeiro item jÃ¡ aparece na prÃ©via lateral.
+    // Como no Android, o primeiro item já aparece na prévia lateral.
     if (!skipAutoSelect && this.section !== MediaKind.SERIES && list[start] &&
         !$('screen-home').classList.contains('hidden')) {
       this.selectEntry(list[start], true);
     }
   },
 
-  /** Linha de canal: nÃºmero, logo, nome e estrela. */
+  /** Linha de canal: número, logo, nome e estrela. */
   buildChannelRow: function (entry, index) {
     var self = this;
     var row = make('div', 'channel-row focusable');
@@ -1173,13 +1170,13 @@ var App = {
     row.appendChild(make('span', 'name', entry.name));
 
     var favorite = Store.isFavorite(entry);
-    var star = make('span', 'star focusable', favorite ? 'â˜…' : 'â˜†');
+    var star = make('span', 'star focusable', favorite ? '★' : '☆');
     star.setAttribute('tabindex', '0');
     star.style.color = favorite ? '#FFC107' : '#A8C2B0';
     star.addEventListener('click', function (event) {
       if (event && event.stopPropagation) event.stopPropagation();
       var now = Store.toggleFavorite(entry);
-      star.textContent = now ? 'â˜…' : 'â˜†';
+      star.textContent = now ? '★' : '☆';
       star.style.color = now ? '#FFC107' : '#A8C2B0';
       toast(now ? 'Adicionado aos favoritos.' : 'Removido dos favoritos.');
     });
@@ -1193,21 +1190,21 @@ var App = {
     return row;
   },
 
-  /** Barra "Voltar / PrÃ³ximo" entre as pÃ¡ginas da pasta. */
+  /** Barra "Voltar / Próximo" entre as páginas da pasta. */
   buildPager: function (total) {
     var self = this;
     var row = make('div', 'pager');
 
-    var prev = makeButton('pager-btn', 'â—€ Voltar');
+    var prev = makeButton('pager-btn', '◀ Voltar');
     prev.setAttribute('data-page', 'prev');
     if (this.page === 0) prev.disabled = true;
     prev.addEventListener('click', function () {
       self.goPage(-1);
     });
 
-    var label = make('span', 'pager-info', 'PÃ¡gina ' + (this.page + 1) + ' de ' + total);
+    var label = make('span', 'pager-info', 'Página ' + (this.page + 1) + ' de ' + total);
 
-    var next = makeButton('pager-btn', 'PrÃ³ximo â–¶');
+    var next = makeButton('pager-btn', 'Próximo ▶');
     next.setAttribute('data-page', 'next');
     if (this.page >= total - 1) next.disabled = true;
     next.addEventListener('click', function () {
@@ -1220,7 +1217,7 @@ var App = {
     return row;
   },
 
-  /* ======================================================= prÃ©via lateral */
+  /* ======================================================= prévia lateral */
 
   bindPreview: function () {
     var self = this;
@@ -1233,18 +1230,18 @@ var App = {
     });
     pv.addEventListener('waiting', function () {
       if (self.previewUrl && !self.previewFailed && pv.currentTime === 0) {
-        self.previewStatus('Carregandoâ€¦', false);
+        self.previewStatus('Carregando…', false);
       }
     });
     pv.addEventListener('stalled', function () {
       if (self.previewUrl && !self.previewFailed && pv.currentTime === 0) {
-        self.previewStatus('Carregandoâ€¦', false);
+        self.previewStatus('Carregando…', false);
       }
     });
     pv.addEventListener('error', function () {
       if (self.previewUrl) {
         self.previewFailed = true;
-        self.previewStatus('PrÃ©via indisponÃ­vel neste canal.', true);
+        self.previewStatus('Prévia indisponível neste canal.', true);
       }
     });
 
@@ -1273,7 +1270,7 @@ var App = {
       self.keepPlayerFocus('btnNextPlay');
     });
 
-    // MantÃ©m AGORA / A SEGUIR atualizados sem nova requisiÃ§Ã£o.
+    // Mantém AGORA / A SEGUIR atualizados sem nova requisição.
     setInterval(function () {
       if (self.section === MediaKind.LIVE &&
           !$('screen-home').classList.contains('hidden')) {
@@ -1283,8 +1280,8 @@ var App = {
   },
 
   /**
-   * Garante um item selecionado para os botÃµes da prÃ©via (â˜† e Assistir).
-   * Se nada estiver selecionado, usa o primeiro item da lista visÃ­vel.
+   * Garante um item selecionado para os botões da prévia (☆ e Assistir).
+   * Se nada estiver selecionado, usa o primeiro item da lista visível.
    */
   ensureSelection: function () {
     if (this.selected) return this.selected;
@@ -1305,8 +1302,8 @@ var App = {
     if (!entry || this.section === MediaKind.SERIES) return;
     this.selected = entry;
 
-    // Anterior/PrÃ³ximo percorre a lista inteira: se o item cair em outra
-    // pÃ¡gina, vira a pÃ¡gina sozinho (como no app Android).
+    // Anterior/Próximo percorre a lista inteira: se o item cair em outra
+    // página, vira a página sozinho (como no app Android).
     var index = this.indexOfSelected();
     var page = index < 0 ? this.page : Math.floor(index / PAGE_SIZE);
     if (page !== this.page) {
@@ -1376,9 +1373,9 @@ var App = {
       meta.push('Ao vivo');
     } else {
       if (entry.year) meta.push(String(entry.year));
-      if (entry.rating) meta.push('â˜… ' + Number(entry.rating).toFixed(1));
+      if (entry.rating) meta.push('★ ' + Number(entry.rating).toFixed(1));
     }
-    $('previewMeta').textContent = meta.join('   Â·   ');
+    $('previewMeta').textContent = meta.join('   ·   ');
 
     var plot = entry.plot || '';
     toggle($('previewPlot'), !live && !!plot);
@@ -1398,9 +1395,9 @@ var App = {
         this.previewStatus('', false);
       } else {
         this.showPreviewCover(entry);
-        this.previewStatus('Conectandoâ€¦', false);
+        this.previewStatus('Conectando…', false);
       }
-      // SÃ³ conecta depois que o usuÃ¡rio para de navegar: abrir um stream por
+      // Só conecta depois que o usuário para de navegar: abrir um stream por
       // linha (segurando a seta) derrubava a TV.
       this.scheduleLivePreview(entry, url);
     } else {
@@ -1421,9 +1418,9 @@ var App = {
   },
 
   /**
-   * Abre a prÃ©via do canal sÃ³ quando a navegaÃ§Ã£o para.
-   * Sem isso, cada linha visitada abria um stream novo â€” segurando a seta a
-   * TV chegava a abrir dezenas de conexÃµes e travava.
+   * Abre a prévia do canal só quando a navegação para.
+   * Sem isso, cada linha visitada abria um stream novo — segurando a seta a
+   * TV chegava a abrir dezenas de conexões e travava.
    */
   scheduleLivePreview: function (entry, url) {
     var self = this;
@@ -1441,7 +1438,7 @@ var App = {
     }, 450);
   },
 
-  /** Sinopse tambÃ©m espera a navegaÃ§Ã£o parar (uma requisiÃ§Ã£o por item). */
+  /** Sinopse também espera a navegação parar (uma requisição por item). */
   scheduleSynopsis: function (entry) {
     var self = this;
     if (this.synopsisDebounce) {
@@ -1456,7 +1453,7 @@ var App = {
     }, 300);
   },
 
-  /** Sinopse do filme: a lista do servidor nÃ£o traz o texto, sÃ³ o detalhe. */
+  /** Sinopse do filme: a lista do servidor não traz o texto, só o detalhe. */
   loadSynopsis: function (entry) {
     var self = this;
     var token = ++this.vodToken;
@@ -1474,7 +1471,7 @@ var App = {
       return;
     }
 
-    $('previewPlot').textContent = 'Carregando sinopseâ€¦';
+    $('previewPlot').textContent = 'Carregando sinopse…';
     show($('previewPlot'));
 
     this.source.vodInfo(entry.id).then(function (info) {
@@ -1497,7 +1494,7 @@ var App = {
   showNoSynopsis: function () {
     var el = $('previewPlot');
     if (!el) return;
-    el.textContent = 'Sinopse nÃ£o disponÃ­vel para este tÃ­tulo.';
+    el.textContent = 'Sinopse não disponível para este título.';
     show(el);
   },
 
@@ -1512,16 +1509,16 @@ var App = {
 
     var meta = [];
     if (entry.year) meta.push(String(entry.year));
-    if (entry.rating) meta.push('â˜… ' + Number(entry.rating).toFixed(1));
+    if (entry.rating) meta.push('★ ' + Number(entry.rating).toFixed(1));
     if (info && info.genre) meta.push(String(info.genre).split(',')[0]);
-    if (meta.length) $('previewMeta').textContent = meta.join('   Â·   ');
+    if (meta.length) $('previewMeta').textContent = meta.join('   ·   ');
   },
 
   updateFavStar: function () {
     var star = $('btnFavItem');
     if (!star) return;
     var favorite = this.selected ? Store.isFavorite(this.selected) : false;
-    star.textContent = favorite ? 'â˜…' : 'â˜†';
+    star.textContent = favorite ? '★' : '☆';
     star.style.color = favorite ? '#FFC107' : '#FFFFFF';
   },
 
@@ -1533,7 +1530,7 @@ var App = {
     if (next) next.disabled = index < 0 || index >= this.currentList.length - 1;
   },
 
-  /** Capa com o logo do canal enquanto o vÃ­deo conecta (evita a tela preta). */
+  /** Capa com o logo do canal enquanto o vídeo conecta (evita a tela preta). */
   showPreviewCover: function (entry) {
     var poster = $('previewPoster');
     if (!poster) return;
@@ -1586,7 +1583,7 @@ var App = {
       if (!v) return;
       if (v.readyState < 2) {
         self.previewFailed = true;
-        self.previewStatus('PrÃ©via indisponÃ­vel neste canal.', true);
+        self.previewStatus('Prévia indisponível neste canal.', true);
       }
     }, 9000);
   },
@@ -1625,7 +1622,7 @@ var App = {
 
     var now = $('epgNow');
     now.className = 'epg-now dim';
-    now.textContent = 'Consultando programaÃ§Ã£oâ€¦';
+    now.textContent = 'Consultando programação…';
     clear($('epgList'));
 
     Epg.board().then(function (board) {
@@ -1633,7 +1630,7 @@ var App = {
       var found = Epg.find(board, entry.name);
       if (!found) {
         now.className = 'epg-now dim';
-        now.textContent = 'ProgramaÃ§Ã£o nÃ£o encontrada para este canal.';
+        now.textContent = 'Programação não encontrada para este canal.';
         return null;
       }
       return Epg.schedule(found.code).then(function (day) {
@@ -1645,7 +1642,7 @@ var App = {
     }, function () {
       if (token !== self.epgToken) return;
       now.className = 'epg-now dim';
-      now.textContent = 'ProgramaÃ§Ã£o indisponÃ­vel agora.';
+      now.textContent = 'Programação indisponível agora.';
     });
   },
 
@@ -1658,7 +1655,7 @@ var App = {
 
     if (!programs || !programs.length) {
       now.className = 'epg-now dim';
-      now.textContent = 'ProgramaÃ§Ã£o indisponÃ­vel para este canal.';
+      now.textContent = 'Programação indisponível para este canal.';
       return;
     }
 
@@ -1715,13 +1712,13 @@ var App = {
 
     // Estrela de favorito, como no app Android.
     var favorite = Store.isFavorite(entry);
-    var star = make('span', 'star focusable', favorite ? 'â˜…' : 'â˜†');
+    var star = make('span', 'star focusable', favorite ? '★' : '☆');
     star.setAttribute('tabindex', '0');
     star.style.color = favorite ? '#FFC107' : '#FFFFFF';
     star.addEventListener('click', function (event) {
       if (event && event.stopPropagation) event.stopPropagation();
       var now = Store.toggleFavorite(entry);
-      star.textContent = now ? 'â˜…' : 'â˜†';
+      star.textContent = now ? '★' : '☆';
       star.style.color = now ? '#FFC107' : '#FFFFFF';
       toast(now ? 'Adicionado aos favoritos.' : 'Removido dos favoritos.');
     });
@@ -1755,22 +1752,22 @@ var App = {
     Screens.show('screen-detail');
     $('detailTitle').textContent = entry.name;
     $('detailMeta').textContent = '';
-    $('detailPlot').textContent = 'Carregandoâ€¦';
+    $('detailPlot').textContent = 'Carregando…';
     $('detailPoster').style.backgroundImage = entry.logo ? 'url("' + String(entry.logo).replace(/"/g, '%22') + '")' : '';
     clear($('seasonTabs'));
     clear($('episodes'));
-    $('episodes').textContent = 'Carregandoâ€¦';
+    $('episodes').textContent = 'Carregando…';
 
     this.source.seriesInfo(entry.id).then(function (detail) {
       if (!detail) {
-        $('detailPlot').textContent = 'NÃ£o foi possÃ­vel carregar esta sÃ©rie.';
+        $('detailPlot').textContent = 'Não foi possível carregar esta série.';
         $('episodes').textContent = '';
         return;
       }
       self.detail = detail;
       self.renderDetail(detail);
     }, function () {
-      $('detailPlot').textContent = 'NÃ£o foi possÃ­vel carregar esta sÃ©rie.';
+      $('detailPlot').textContent = 'Não foi possível carregar esta série.';
       $('episodes').textContent = '';
     });
   },
@@ -1805,7 +1802,7 @@ var App = {
     var self = this;
 
     $('detailTitle').textContent = detail.name;
-    $('detailPlot').textContent = detail.plot || 'Sem descriÃ§Ã£o.';
+    $('detailPlot').textContent = detail.plot || 'Sem descrição.';
     if (detail.cover) {
       $('detailPoster').style.backgroundImage = 'url("' + String(detail.cover).replace(/"/g, '%22') + '")';
     }
@@ -1813,11 +1810,11 @@ var App = {
     var meta = [];
     if (detail.genre) meta.push(detail.genre);
     if (detail.releaseDate) meta.push(String(detail.releaseDate).substring(0, 4));
-    if (detail.rating) meta.push('â˜… ' + detail.rating.toFixed(1));
+    if (detail.rating) meta.push('★ ' + detail.rating.toFixed(1));
     var total = 0;
     for (var i = 0; i < detail.seasons.length; i++) total += detail.seasons[i].episodes.length;
-    meta.push(total + (total === 1 ? ' episÃ³dio' : ' episÃ³dios'));
-    $('detailMeta').textContent = meta.join('   Â·   ');
+    meta.push(total + (total === 1 ? ' episódio' : ' episódios'));
+    $('detailMeta').textContent = meta.join('   ·   ');
 
     var tabs = $('seasonTabs');
     clear(tabs);
@@ -1839,7 +1836,7 @@ var App = {
     if (detail.seasons.length) {
       this.renderEpisodes(detail.seasons[0]);
     } else {
-      $('episodes').textContent = 'Nenhum episÃ³dio disponÃ­vel.';
+      $('episodes').textContent = 'Nenhum episódio disponível.';
     }
 
     setTimeout(function () {
@@ -1856,7 +1853,7 @@ var App = {
     clear(holder);
 
     if (!season.episodes.length) {
-      holder.textContent = 'Nenhum episÃ³dio nesta temporada.';
+      holder.textContent = 'Nenhum episódio nesta temporada.';
       return;
     }
 
@@ -1875,14 +1872,14 @@ var App = {
 
   /* ============================================================== player */
 
-  /** Entra no modo demonstraÃ§Ã£o: reproduz os clipes pÃºblicos em sequÃªncia. */
+  /** Entra no modo demonstração: reproduz os clipes públicos em sequência. */
   startDemo: function () {
     this.demoMode = true;
     this.stopPolling();
     this.playDemo(0);
   },
 
-  /** Abre o clipe de Ã­ndice informado. Devolve false quando a fila acabou. */
+  /** Abre o clipe de índice informado. Devolve false quando a fila acabou. */
   playDemo: function (index) {
     if (index < 0 || index >= DEMO_ITEMS.length) return false;
     this.demoIndex = index;
@@ -1898,7 +1895,7 @@ var App = {
   playEntry: function (entry) {
     var url = this.source.playUrl(entry);
     if (!url) {
-      toast('NÃ£o foi possÃ­vel montar o endereÃ§o deste item.');
+      toast('Não foi possível montar o endereço deste item.');
       return;
     }
     this.playing = entry;
@@ -1914,22 +1911,22 @@ var App = {
   playEpisode: function (episode, season, index) {
     var url = this.source.episodeUrl(episode);
     if (!url) {
-      toast('NÃ£o foi possÃ­vel montar o endereÃ§o deste episÃ³dio.');
+      toast('Não foi possível montar o endereço deste episódio.');
       return false;
     }
     this.playing = null;
     this.playingSeason = season || null;
     this.playingEpIndex = typeof index === 'number' ? index : -1;
-    var name = this.detail ? this.detail.name : 'EpisÃ³dio';
+    var name = this.detail ? this.detail.name : 'Episódio';
     Player.open(url, name + ' - T' + episode.season + ' E' + episode.number + ' - ' + episode.title, false);
     this.updatePlayerNav();
     return true;
   },
 
   /**
-   * Chamado quando o vÃ­deo termina.
-   * SÃ©rie: abre o prÃ³ximo episÃ³dio sozinho (e a temporada seguinte, se acabar a atual).
-   * Devolve true quando jÃ¡ comeÃ§ou outro vÃ­deo.
+   * Chamado quando o vídeo termina.
+   * Série: abre o próximo episódio sozinho (e a temporada seguinte, se acabar a atual).
+   * Devolve true quando já começou outro vídeo.
    */
   onPlaybackEnded: function () {
     if (this.demoMode) return this.playDemo(this.demoIndex + 1);
@@ -1963,7 +1960,7 @@ var App = {
     return false;
   },
 
-  /** PrÃ³xima temporada (pelo nÃºmero) dentro da sÃ©rie aberta. */
+  /** Próxima temporada (pelo número) dentro da série aberta. */
   seasonAfter: function (season) {
     var seasons = (this.detail && this.detail.seasons) || [];
     for (var i = 0; i < seasons.length; i++) {
@@ -1974,7 +1971,7 @@ var App = {
     return null;
   },
 
-  /** Marca a aba da temporada e redesenha os episÃ³dios na tela de detalhe. */
+  /** Marca a aba da temporada e redesenha os episódios na tela de detalhe. */
   showSeason: function (season) {
     var tabs = $('seasonTabs');
     var buttons = tabs.getElementsByTagName('button');
@@ -1986,7 +1983,7 @@ var App = {
     this.renderEpisodes(season);
   },
 
-  /** Anterior/PrÃ³ximo com o vÃ­deo rodando: canal, filme ou episÃ³dio. */
+  /** Anterior/Próximo com o vídeo rodando: canal, filme ou episódio. */
   stepPlayback: function (delta) {
     if (this.demoMode) {
       this.playDemo(this.demoIndex + delta);
@@ -2120,7 +2117,7 @@ var App = {
       self.cacheOrder = [];
       self.updateSortCard();
       self.setSection(self.section);
-      toast(next === 'az' ? 'Listas em ordem alfabÃ©tica (Aâ€“Z).' : 'Listas na ordem do servidor.');
+      toast(next === 'az' ? 'Listas em ordem alfabética (A–Z).' : 'Listas na ordem do servidor.');
     });
 
     $('setClearFav').addEventListener('click', function () {
@@ -2132,7 +2129,7 @@ var App = {
     $('setClearHist').addEventListener('click', function () {
       Store.clearRecents();
       self.renderCats(self.catCache[self.section] || []);
-      toast('HistÃ³rico apagado.');
+      toast('Histórico apagado.');
     });
 
     $('setTerms').addEventListener('click', function () {
@@ -2160,7 +2157,7 @@ var App = {
     });
   },
 
-  /** Janela simples de informaÃ§Ã£o (Sobre / Privacidade). */
+  /** Janela simples de informação (Sobre / Privacidade). */
   openInfo: function (title, html) {
     this.infoReturn = document.activeElement;
     $('infoTitle').textContent = title;
@@ -2182,21 +2179,21 @@ var App = {
   },
 
   aboutHtml: function () {
-    var code = this.code || Store.cachedCode() || 'â€”';
-    return '<p><b>Raptor Player</b> â€” VIDEO PLAYER para TV.</p>' +
-      '<p>VersÃ£o: <b>' + APP_VERSION + '</b><br>' +
+    var code = this.code || Store.cachedCode() || '—';
+    return '<p><b>Raptor Player</b> — VIDEO PLAYER para TV.</p>' +
+      '<p>Versão: <b>' + APP_VERSION + '</b><br>' +
       'Aparelho: <b>' + esc(Device.modelName()) + '</b><br>' +
-      'CÃ³digo: <b>' + esc(code) + '</b></p>' +
-      '<p>AtivaÃ§Ã£o e gerenciamento: <b>raptor-player.netlify.app</b></p>';
+      'Código: <b>' + esc(code) + '</b></p>' +
+      '<p>Ativação e gerenciamento: <b>raptor-player.netlify.app</b></p>';
   },
 
   privacyHtml: function () {
-    return '<p>O Raptor Player guarda apenas no prÃ³prio aparelho:</p>' +
-      '<p>â€¢ o cÃ³digo de identificaÃ§Ã£o da TV;<br>' +
-      'â€¢ as listas que vocÃª cadastrou;<br>' +
-      'â€¢ favoritos e itens vistos recentemente;<br>' +
-      'â€¢ o aceite dos termos de uso.</p>' +
-      '<p>Nenhum dado Ã© enviado a terceiros. A ativaÃ§Ã£o consulta apenas o site oficial para verificar se este aparelho foi liberado.</p>';
+    return '<p>O Raptor Player guarda apenas no próprio aparelho:</p>' +
+      '<p>• o código de identificação da TV;<br>' +
+      '• as listas que você cadastrou;<br>' +
+      '• favoritos e itens vistos recentemente;<br>' +
+      '• o aceite dos termos de uso.</p>' +
+      '<p>Nenhum dado é enviado a terceiros. A ativação consulta apenas o site oficial para verificar se este aparelho foi liberado.</p>';
   },
 
   openSettings: function () {
@@ -2205,8 +2202,8 @@ var App = {
     this.epgToken++;
     Screens.show('screen-settings');
 
-    var name = this.session ? sessionName(this.session) : 'â€”';
-    var mode = this.session ? (this.session.mode === 'M3U' ? 'M3U' : 'XTREAM') : 'â€”';
+    var name = this.session ? sessionName(this.session) : '—';
+    var mode = this.session ? (this.session.mode === 'M3U' ? 'M3U' : 'XTREAM') : '—';
 
     $('setSub').textContent = name;
     $('setMode').textContent = mode;
@@ -2219,7 +2216,7 @@ var App = {
         listLines.push('Tipo: <b>M3U</b>');
       } else {
         listLines.push('Servidor: <b>' + esc(normalizeBase(this.session.baseUrl)) + '</b>');
-        listLines.push('UsuÃ¡rio: <b>' + esc(this.session.username || 'â€”') + '</b>');
+        listLines.push('Usuário: <b>' + esc(this.session.username || '—') + '</b>');
       }
     }
     $('activeList').innerHTML = listLines.length ? listLines.join('<br>') : 'Nenhuma lista ativa.';
@@ -2236,20 +2233,20 @@ var App = {
       });
     }
 
-    $('acctInfo').textContent = 'Consultandoâ€¦';
+    $('acctInfo').textContent = 'Consultando…';
     if (!this.source || !this.source.account) {
       $('acctInfo').textContent = 'Lista M3U (sem dados de conta).';
     } else {
       this.source.account().then(function (info) {
         if (!info) {
-          $('acctInfo').textContent = 'NÃ£o foi possÃ­vel consultar a conta.';
+          $('acctInfo').textContent = 'Não foi possível consultar a conta.';
           return;
         }
         var lines = [];
-        if (info.username) lines.push('UsuÃ¡rio: <b>' + esc(info.username) + '</b>');
+        if (info.username) lines.push('Usuário: <b>' + esc(info.username) + '</b>');
         if (info.status) lines.push('Status: <b>' + esc(info.status) + '</b>');
         if (info.expiresAt) lines.push('Vence em: <b>' + esc(formatExpiry(info.expiresAt)) + '</b>');
-        if (info.maxConnections) lines.push('ConexÃµes: <b>' + esc(info.activeConnections || '0') + ' / ' + esc(info.maxConnections) + '</b>');
+        if (info.maxConnections) lines.push('Conexões: <b>' + esc(info.activeConnections || '0') + ' / ' + esc(info.maxConnections) + '</b>');
         $('acctInfo').innerHTML = lines.length ? lines.join('<br>') : 'Sem dados.';
       });
     }
@@ -2261,15 +2258,15 @@ var App = {
   },
 
   deviceHtml: function () {
-    return 'CÃ³digo: <b>' + esc(this.code || Store.cachedCode() || 'â€”') + '</b><br>' +
+    return 'Código: <b>' + esc(this.code || Store.cachedCode() || '—') + '</b><br>' +
       'Modelo: <b>' + esc(Device.modelName()) + '</b><br>' +
-      'VersÃ£o: <b>' + APP_VERSION + '</b>';
+      'Versão: <b>' + APP_VERSION + '</b>';
   },
 
   updateSortCard: function () {
     var az = Store.sortMode() === 'az';
     var state = $('sortState');
-    if (state) state.textContent = az ? 'Aâ€“Z (alfabÃ©tica)' : 'Ordem do servidor';
+    if (state) state.textContent = az ? 'A–Z (alfabética)' : 'Ordem do servidor';
     var card = $('setSort');
     if (card) card.setAttribute('data-mode', az ? 'az' : 'server');
   }
@@ -2303,7 +2300,7 @@ var Player = {
   autoRetries: 0,
   attempt: 0,
 
-  /** Liga os eventos do <video> uma Ãºnica vez. */
+  /** Liga os eventos do <video> uma única vez. */
   bindVideo: function () {
     var self = this;
     this.video = $('video');
@@ -2313,8 +2310,8 @@ var Player = {
       self.onError();
     }, false);
 
-    // Alguns modelos da LG sÃ³ comeÃ§am a tocar se pedirmos play() de novo
-    // quando os primeiros dados chegam. Sem isso o vÃ­deo fica parado.
+    // Alguns modelos da LG só começam a tocar se pedirmos play() de novo
+    // quando os primeiros dados chegam. Sem isso o vídeo fica parado.
     this.video.addEventListener('loadeddata', function () { self.onReady(); }, false);
     this.video.addEventListener('canplay', function () { self.onReady(); }, false);
     this.video.addEventListener('playing', function () {
@@ -2330,7 +2327,7 @@ var Player = {
     this.video.addEventListener('timeupdate', function () { self.onTime(); }, false);
     this.video.addEventListener('loadedmetadata', function () { self.onTime(); }, false);
     this.video.addEventListener('ended', function () {
-      // SÃ©rie emenda o prÃ³ximo episÃ³dio; se nÃ£o houver, sÃ³ mostra os controles.
+      // Série emenda o próximo episódio; se não houver, só mostra os controles.
       if (App.onPlaybackEnded && App.onPlaybackEnded()) return;
       self.showOverlay();
     }, false);
@@ -2347,11 +2344,9 @@ var Player = {
     this.currentTitle = title || '';
     $('playerTitle').textContent = this.currentTitle;
     var badge = $('playerBadge');
-    badge.textContent = isLive ? 'AO VIVO' : 'VÃDEO';
+    badge.textContent = isLive ? 'AO VIVO' : 'VÍDEO';
     badge.className = 'player-badge' + (isLive ? '' : ' vod');
     toggle($('progress'), !isLive);
-    toggle($('skipBackRow'), !isLive);
-    toggle($('skipFwdRow'), !isLive);
 
     this.currentUrl = url;
     this.isLive = isLive;
@@ -2381,6 +2376,7 @@ var Player = {
     video.src = url;
     this.tryPlay();
     this.armWatchdog();
+    this.armProgressWatchdog();
 
     setTimeout(function () {
       var button = $('btnPlay');
@@ -2471,9 +2467,9 @@ var Player = {
   },
 
   /**
-   * Tela preta nunca mais: se o vÃ­deo nÃ£o trouxe imagem, reconecta sozinho
-   * (o mesmo endereÃ§o costuma abrir na hora na tentativa seguinte) e, se
-   * ainda assim nÃ£o vier nada, avisa com o botÃ£o "Tentar de novo".
+   * Tela preta nunca mais: se o vídeo não trouxe imagem, reconecta sozinho
+   * (o mesmo endereço costuma abrir na hora na tentativa seguinte) e, se
+   * ainda assim não vier nada, avisa com o botão "Tentar de novo".
    */
   armWatchdog: function () {
     var self = this;
@@ -2485,7 +2481,7 @@ var Player = {
       if (!video) return;
 
       if (video.readyState >= 2) {
-        // Tem dados: sÃ³ nÃ£o comeÃ§ou (play recusado ou travado).
+        // Tem dados: só não começou (play recusado ou travado).
         if (self.wantPlay && video.paused) self.tryPlay();
         return;
       }
@@ -2500,8 +2496,8 @@ var Player = {
     }, 15000);
   },
 
-  /** Recarrega o mesmo endereÃ§o mantendo o tÃ­tulo e o tipo (ao vivo/vÃ­deo). */
-  reconnect: function () {
+  /** Recarrega o mesmo endereço mantendo o título e o tipo (ao vivo/vídeo). */
+  reconnect: function (forceBust) {
     var video = this.video;
     if (!video || !this.currentUrl) return;
 
@@ -2520,18 +2516,51 @@ var Player = {
       video.load();
     } catch (e) { /* ignora */ }
 
-    // O servidor Ã s vezes deixa a conexÃ£o anterior presa e nunca entrega os
-    // dados. Um parÃ¢metro novo forÃ§a uma conexÃ£o limpa (sÃ³ em filmes/sÃ©ries:
+    // O servidor às vezes deixa a conexão anterior presa e nunca entrega os
+    // dados. Um parâmetro novo força uma conexão limpa (só em filmes/séries:
     // em canal ao vivo ele poderia quebrar a lista HLS).
     var url = this.currentUrl;
-    if (!this.isLive) {
+    if (!this.isLive || forceBust) {
       url += (url.indexOf('?') < 0 ? '?' : '&') + 'r=' + Date.now();
     }
 
-    this.showLoading('Conectando de novoâ€¦');
+    this.showLoading('Conectando de novo…');
     video.src = url;
     this.tryPlay();
     this.armWatchdog();
+    this.armProgressWatchdog();
+  },
+
+  /**
+   * Canais ao vivo: se o relógio do vídeo parar de andar (ex.: depois de ~30 s),
+   * abrimos a URL de novo com um parâmetro novo para forçar conexão limpa.
+   */
+  armProgressWatchdog: function () {
+    var self = this;
+    if (this.progressTimer) {
+      clearInterval(this.progressTimer);
+      this.progressTimer = null;
+    }
+    if (!this.isLive) return;
+    this.lastProgress = -1;
+    this.stallTicks = 0;
+    this.progressTimer = setInterval(function () {
+      if (!App.isPlayerOpen() || !self.isLive || !self.currentUrl || !self.video) return;
+      var video = self.video;
+      if (video.paused || video.readyState < 2) return;
+      var t = video.currentTime;
+      if (self.lastProgress >= 0 && t <= self.lastProgress + 0.5) {
+        self.stallTicks += 1;
+      } else {
+        self.stallTicks = 0;
+      }
+      self.lastProgress = t;
+      if (self.stallTicks >= 2) {
+        self.stallTicks = 0;
+        self.lastProgress = -1;
+        self.reconnect(true);
+      }
+    }, 10000);
   },
 
   clearWatchdog: function () {
@@ -2539,10 +2568,14 @@ var Player = {
       clearTimeout(this.loadTimer);
       this.loadTimer = null;
     }
+    if (this.progressTimer) {
+      clearInterval(this.progressTimer);
+      this.progressTimer = null;
+    }
   },
 
   showLoading: function (text) {
-    $('playerLoadingText').textContent = text || 'Carregandoâ€¦';
+    $('playerLoadingText').textContent = text || 'Carregando…';
     show($('playerLoading'));
   },
 
@@ -2550,7 +2583,7 @@ var Player = {
     hide($('playerLoading'));
   },
 
-  /** Tenta abrir o mesmo endereÃ§o de novo (botÃ£o do aviso de erro). */
+  /** Tenta abrir o mesmo endereço de novo (botão do aviso de erro). */
   retry: function () {
     if (!this.currentUrl) return;
     this.open(this.currentUrl, this.currentTitle, this.isLive);
@@ -2559,14 +2592,14 @@ var Player = {
   onError: function () {
     this.settlePlay();
     if (this.tryingHls || !this.currentUrl) {
-      this.showError('Verifique se o link ainda estÃ¡ disponÃ­vel.');
+      this.showError('Verifique se o link ainda está disponível.');
       return;
     }
     if (window.Hls && Hls.isSupported()) {
       this.tryingHls = true;
       this.startHls(this.currentUrl);
     } else {
-      this.showError('Este formato nÃ£o Ã© suportado nesta TV.');
+      this.showError('Este formato não é suportado nesta TV.');
     }
   },
 
@@ -2579,7 +2612,7 @@ var Player = {
 
     hls.on(Hls.Events.ERROR, function (event, data) {
       if (data && data.fatal) {
-        self.showError('NÃ£o foi possÃ­vel abrir este vÃ­deo.');
+        self.showError('Não foi possível abrir este vídeo.');
       }
     });
 
@@ -2635,7 +2668,7 @@ var Player = {
   updatePlayButton: function () {
     var button = $('btnPlay');
     if (!button || !this.video) return;
-    button.textContent = this.video.paused ? 'â–¶' : 'âšâš';
+    button.textContent = this.video.paused ? '▶' : '❚❚';
   },
 
   seek: function (delta) {
@@ -2719,28 +2752,12 @@ var Player = {
   }
 };
 
-/* ========================================================== inicializaÃ§Ã£o */
+/* ========================================================== inicialização */
 
 document.addEventListener('DOMContentLoaded', function () {
   Player.bindVideo();
   $('btnPlay').addEventListener('click', function () { Player.toggle(); });
   $('btnRetryPlay').addEventListener('click', function () { Player.retry(); });
-  var progressBar = $('progressBar');
-  if (progressBar) {
-    progressBar.addEventListener('click', function (event) {
-      var rect = progressBar.getBoundingClientRect();
-      if (!rect.width) return;
-      Player.seekToRatio((event.clientX - rect.left) / rect.width);
-    });
-  }
-  var skipButtons = document.querySelectorAll('.pbtn.skip[data-seek]');
-  for (var si = 0; si < skipButtons.length; si++) {
-    (function (btn) {
-      btn.addEventListener('click', function () {
-        var delta = parseInt(btn.getAttribute('data-seek'), 10) || 0;
-        Player.seek(delta);
-      });
-    })(skipButtons[si]);
-  }
+  // A barra de tempo é apenas informativa: sem seek por clique ou por botões.
   App.init();
 });

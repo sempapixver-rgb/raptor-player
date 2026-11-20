@@ -86,6 +86,13 @@ import kotlinx.coroutines.launch
 
 private val SPEEDS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
 
+/** Canais ao vivo não têm duração nem ponto de retomada. */
+private fun isLiveStream(url: String): Boolean {
+    val low = url.lowercase()
+    return low.contains("/live/") ||
+        (low.contains(".m3u8") && !low.contains("/movie/") && !low.contains("/series/"))
+}
+
 private data class TrackOption(val label: String, val override: TrackSelectionOverride?)
 
 /** Um item reproduzível: episódio ou filme/canal. */
@@ -179,9 +186,11 @@ fun PlayerScreen(
         player.setMediaItem(ExoMediaItem.fromUri(current.url))
         player.prepare()
         player.playWhenReady = true
-        val saved = prefs.resumeFor(current.url)
-        if (saved > 5_000) {
-            player.seekTo(saved)
+        // Em canal ao vivo, voltar no tempo tira o player da borda ao vivo e
+        // parece travamento. Só filmes/episódios têm ponto de retomada.
+        if (!isLiveStream(current.url)) {
+            val saved = prefs.resumeFor(current.url)
+            if (saved > 5_000) player.seekTo(saved)
         }
     }
 
@@ -193,7 +202,9 @@ fun PlayerScreen(
         window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         onDispose {
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            runCatching { prefs.saveResume(currentUrl, player.currentPosition) }
+            if (!isLiveStream(currentUrl)) {
+                runCatching { prefs.saveResume(currentUrl, player.currentPosition) }
+            }
             player.release()
         }
     }
@@ -223,12 +234,43 @@ fun PlayerScreen(
         }
     }
 
-    // Salva a posição a cada 10 segundos.
+    // Salva a posição a cada 10 segundos (somente em filmes/episódios).
     LaunchedEffect(player) {
         while (true) {
             delay(10_000)
-            if (player.isPlaying) {
+            if (player.isPlaying && !isLiveStream(currentUrl)) {
                 runCatching { prefs.saveResume(currentUrl, player.currentPosition) }
+            }
+        }
+    }
+
+    // Canais ao vivo: se o relógio parar de andar (ex.: depois de ~30 s),
+    // abrimos a URL novamente com um parâmetro novo para forçar uma conexão limpa.
+    LaunchedEffect(player, current.url) {
+        var lastPosition = -1L
+        var stalled = 0
+        while (true) {
+            delay(10_000)
+            val url = currentUrl
+            if (!isLiveStream(url) || !player.isPlaying ||
+                player.playbackState != Player.STATE_READY
+            ) {
+                lastPosition = -1L
+                stalled = 0
+                continue
+            }
+            val pos = player.currentPosition
+            if (lastPosition >= 0 && pos <= lastPosition + 500L) stalled += 1 else stalled = 0
+            lastPosition = pos
+            if (stalled >= 2) {
+                val separator = if (url.contains('?')) '&' else '?'
+                player.setMediaItem(
+                    ExoMediaItem.fromUri("$url${separator}reconnect=${System.currentTimeMillis()}")
+                )
+                player.prepare()
+                player.playWhenReady = true
+                stalled = 0
+                lastPosition = -1L
             }
         }
     }
@@ -323,17 +365,6 @@ fun PlayerScreen(
             controlsVisible = true
             index = target
         }
-    }
-
-    /** Avança/volta no vídeo. Em canal ao vivo (sem duração) não faz nada. */
-    fun seekBy(delta: Long) {
-        val total = player.duration
-        if (total <= 0) {
-            controlsVisible = true
-            return
-        }
-        player.seekTo((player.currentPosition + delta).coerceIn(0L, total))
-        controlsVisible = true
     }
 
     fun cycleResize() {
@@ -452,14 +483,9 @@ fun PlayerScreen(
                         true
                     }
 
-                    // ⏪ / ⏩ do controle do Fire TV: volta/avança 30 segundos.
-                    Key.MediaRewind -> {
-                        seekBy(-30_000L)
-                        true
-                    }
-
-                    Key.MediaFastForward -> {
-                        seekBy(30_000L)
+                    // ⏪ / ⏩ do controle: sem avanço/retorno (reprodução contínua).
+                    Key.MediaRewind, Key.MediaFastForward -> {
+                        controlsVisible = true
                         true
                     }
 
@@ -474,25 +500,10 @@ fun PlayerScreen(
                         true
                     }
 
-                    // Esquerda/direita: mostra os controles ou avança/volta 30s.
-                    Key.DirectionLeft -> {
+                    // Esquerda/direita só mostram os controles (sem avanço/retorno).
+                    Key.DirectionLeft, Key.DirectionRight -> {
                         if (!controlsVisible) {
                             controlsVisible = true
-                            true
-                        } else if (rootSelfFocused) {
-                            seekBy(-30_000L)
-                            true
-                        } else {
-                            false
-                        }
-                    }
-
-                    Key.DirectionRight -> {
-                        if (!controlsVisible) {
-                            controlsVisible = true
-                            true
-                        } else if (rootSelfFocused) {
-                            seekBy(30_000L)
                             true
                         } else {
                             false
@@ -730,29 +741,7 @@ fun PlayerScreen(
                         }
                     }
 
-                    // Pular no vídeo: 30 s, 5 min, 10 min e 30 min (voltar/avançar).
-                    // Só em filme/episódio: canal ao vivo não tem duração.
-                    if (duration > 0) {
-                        Spacer(Modifier.height(8.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            SeekButton("−30 min") { seekBy(-1_800_000L) }
-                            SeekButton("−10 min") { seekBy(-600_000L) }
-                            SeekButton("−5 min") { seekBy(-300_000L) }
-                            SeekButton("−30 s") { seekBy(-30_000L) }
-                        }
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            SeekButton("+30 s") { seekBy(30_000L) }
-                            SeekButton("+5 min") { seekBy(300_000L) }
-                            SeekButton("+10 min") { seekBy(600_000L) }
-                            SeekButton("+30 min") { seekBy(1_800_000L) }
-                        }
-                    }
+                    // Sem botões de avanço/retorno: a reprodução é contínua.
                 }
 
                 // Posição na fila (ex.: "Episódio 3 de 12").
@@ -786,25 +775,15 @@ fun PlayerScreen(
                     if (duration > 0) {
                         Slider(
                             value = position.coerceIn(0, duration).toFloat(),
-                            onValueChange = { player.seekTo(it.toLong()) },
+                            onValueChange = {},
                             valueRange = 0f..duration.toFloat(),
+                            enabled = false,
                             modifier = Modifier
                                 .weight(1f)
-                                // Com a barra em foco, ←/→ volta/avança 30 s e
-                                // OK pausa ou continua o vídeo.
+                                // A barra só mostra o progresso. OK pausa/continua.
                                 .onPreviewKeyEvent { event ->
                                     if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                                     when (event.key) {
-                                        Key.DirectionLeft -> {
-                                            seekBy(-30_000L)
-                                            true
-                                        }
-
-                                        Key.DirectionRight -> {
-                                            seekBy(30_000L)
-                                            true
-                                        }
-
                                         Key.DirectionCenter, Key.Enter -> {
                                             if (player.isPlaying) player.pause() else player.play()
                                             controlsVisible = true
@@ -948,18 +927,6 @@ fun PlayerScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SeekButton(label: String, onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
-        Text(
-            text = label,
-            color = Color.White,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold
-        )
     }
 }
 

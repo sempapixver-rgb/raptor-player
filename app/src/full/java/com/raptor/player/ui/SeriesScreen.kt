@@ -409,15 +409,9 @@ private fun SeriesDetailView(
         flatEpisodes.withIndex().associate { it.value.id to it.index }
     }
 
-    // Ao abrir a série, o primeiro episódio já começa a tocar. Quando o player
-    // fecha, esta lista (temporadas/episódios) continua exatamente aqui.
-    var autoStarted by remember(detail?.id) { mutableStateOf(false) }
-    LaunchedEffect(detail?.id, playQueue.size) {
-        if (!autoStarted && playQueue.isNotEmpty()) {
-            autoStarted = true
-            onPlayEpisode(playQueue, 0)
-        }
-    }
+    // Ao abrir a série, mostramos temporadas/episódios para o usuário escolher.
+    // O episódio só toca quando ele seleciona um (não automático). A emenda
+    // automática entre episódios continua no PlayerScreen via autoAdvance.
 
     Column(Modifier.fillMaxSize()) {
 

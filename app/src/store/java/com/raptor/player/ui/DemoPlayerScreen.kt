@@ -84,14 +84,6 @@ fun DemoPlayerScreen(
 
     BackHandler(onBack = onClose)
 
-    fun seekBy(deltaMs: Long) {
-        val video = videoRef.value ?: return
-        val target = (video.currentPosition.toLong() + deltaMs)
-            .coerceIn(0L, video.duration.coerceAtLeast(0).toLong())
-        video.seekTo(target.toInt())
-        position = target
-    }
-
     LaunchedEffect(index) {
         position = 0L
         duration = 0L
@@ -142,10 +134,6 @@ fun DemoPlayerScreen(
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (event.key) {
-                    Key.DirectionLeft -> { seekBy(-30_000L); true }
-                    Key.DirectionRight -> { seekBy(30_000L); true }
-                    Key.ChannelUp -> { seekBy(600_000L); true }
-                    Key.ChannelDown -> { seekBy(-600_000L); true }
                     Key.DirectionCenter -> {
                         playing = !playing
                         if (playing) videoRef.value?.start() else videoRef.value?.pause()
@@ -190,10 +178,8 @@ fun DemoPlayerScreen(
             Slider(
                 value = position.toFloat().coerceIn(0f, duration.coerceAtLeast(1).toFloat()),
                 valueRange = 0f..duration.coerceAtLeast(1).toFloat(),
-                onValueChange = { value ->
-                    position = value.toLong()
-                    videoRef.value?.seekTo(value.toInt())
-                },
+                onValueChange = {},
+                enabled = false,
                 colors = SliderDefaults.colors(
                     activeTrackColor = RaptorGreen,
                     thumbColor = RaptorGreen
@@ -205,14 +191,10 @@ fun DemoPlayerScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ControlButton("-30s") { seekBy(-30_000L) }
-                ControlButton("-5min") { seekBy(-300_000L) }
                 ControlButton(if (playing) "Pause" else "Play") {
                     playing = !playing
                     if (playing) videoRef.value?.start() else videoRef.value?.pause()
                 }
-                ControlButton("+10min") { seekBy(600_000L) }
-                ControlButton("+30s") { seekBy(30_000L) }
                 Spacer(Modifier.weight(1f))
                 Button(
                     onClick = onClose,

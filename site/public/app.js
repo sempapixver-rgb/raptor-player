@@ -6,6 +6,7 @@
   var submit = document.getElementById("submit");
   var result = document.getElementById("result");
   var terms = document.getElementById("terms");
+  var mediaUrl = document.getElementById("media-url");
 
   function formatCode(value) {
     var clean = String(value || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
@@ -67,9 +68,17 @@
       return;
     }
 
+    var url = mediaUrl ? mediaUrl.value.trim() : "";
+    if (!/^https?:\/\/[^\s]+$/i.test(url)) {
+      showResult("err", "Enter a complete address starting with http:// or https://.");
+      if (mediaUrl) mediaUrl.focus();
+      return;
+    }
+
     var payload = {
       code: code,
-      label: document.getElementById("label").value.trim()
+      label: document.getElementById("label").value.trim(),
+      videoUrl: url
     };
 
     submit.disabled = true;

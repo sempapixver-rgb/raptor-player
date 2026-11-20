@@ -1,4 +1,4 @@
-/* Raptor Player â€” store edition.
+/* Raptor Player — store edition.
    Device identification only (MAC code + QR) and public sample videos.
    No manual sign-in and no access details. */
 
@@ -9,10 +9,10 @@ var SITE_BASE = 'https://raptor-player.netlify.app';
 /* Four public clips (CC-BY), in MP4/H.264, hosted in the developer's
    releases. They let reviewers test the player with no account or credentials. */
 var DEMO_ITEMS = [
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-1.mp4', title: 'Sample 1 Â· Sintel (720p)' },
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-2.mp4', title: 'Sample 2 Â· Big Buck Bunny (trailer)' },
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-3.mp4', title: 'Sample 3 Â· Sintel (trailer)' },
-  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-4.mp4', title: 'Sample 4 Â· Jellyfish (720p)' }
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-1.mp4', title: 'Sample 1 · Sintel (720p)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-2.mp4', title: 'Sample 2 · Big Buck Bunny (trailer)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-3.mp4', title: 'Sample 3 · Sintel (trailer)' },
+  { url: 'https://github.com/sempapixver-rgb/raptor-player/releases/download/demo-media/demo-4.mp4', title: 'Sample 4 · Jellyfish (720p)' }
 ];
 
 /* ------------------------------------------------------------ identidade */
@@ -245,10 +245,8 @@ var App = {
         return;
       }
 
-      // Time bar: left/right seek back or forward 30 s.
+      // Time bar only shows progress. OK pauses/resumes.
       if (self.isPlayerOpen() && active && active.id === 'progress') {
-        if (code === 37) { event.preventDefault(); Player.seek(-30); Player.scheduleHide(); return; }
-        if (code === 39) { event.preventDefault(); Player.seek(30); Player.scheduleHide(); return; }
         if (code === 13) { event.preventDefault(); Player.toggle(); Player.scheduleHide(); return; }
       }
 
@@ -272,8 +270,7 @@ var App = {
 
       if (code === 415) { event.preventDefault(); Player.play(); }
       else if (code === 19) { event.preventDefault(); Player.pause(); }
-      else if (code === 417) { event.preventDefault(); Player.seek(30); }
-      else if (code === 412) { event.preventDefault(); Player.seek(-30); }
+      else if (code === 417 || code === 412) { event.preventDefault(); }
       else if (code === 413) { event.preventDefault(); self.closePlayer(); }
     }, false);
   },
@@ -660,7 +657,7 @@ var Player = {
       url += (url.indexOf('?') < 0 ? '?' : '&') + 'r=' + Date.now();
     }
 
-    this.showLoading('Conectando de novoâ€¦');
+    this.showLoading('Connecting again…');
     video.src = url;
     this.tryPlay();
     this.armWatchdog();
@@ -674,7 +671,7 @@ var Player = {
   },
 
   showLoading: function (text) {
-    $('playerLoadingText').textContent = text || 'Carregandoâ€¦';
+    $('playerLoadingText').textContent = text || 'Loading…';
     show($('playerLoading'));
   },
 
@@ -766,7 +763,7 @@ var Player = {
   updatePlayButton: function () {
     var button = $('btnPlay');
     if (!button || !this.video) return;
-    button.textContent = this.video.paused ? 'â–¶' : 'âšâš';
+    button.textContent = this.video.paused ? '▶' : '❚❚';
   },
 
   seek: function (delta) {
@@ -864,22 +861,6 @@ document.addEventListener('DOMContentLoaded', function () {
     App.stepPlayback(1);
     App.keepPlayerFocus('btnNextPlay');
   });
-  var progressBar = $('progressBar');
-  if (progressBar) {
-    progressBar.addEventListener('click', function (event) {
-      var rect = progressBar.getBoundingClientRect();
-      if (!rect.width) return;
-      Player.seekToRatio((event.clientX - rect.left) / rect.width);
-    });
-  }
-  var skipButtons = document.querySelectorAll('.pbtn.skip[data-seek]');
-  for (var si = 0; si < skipButtons.length; si++) {
-    (function (btn) {
-      btn.addEventListener('click', function () {
-        var delta = parseInt(btn.getAttribute('data-seek'), 10) || 0;
-        Player.seek(delta);
-      });
-    })(skipButtons[si]);
-  }
+  // The time bar is display-only: no seek by click or by buttons.
   App.init();
 });

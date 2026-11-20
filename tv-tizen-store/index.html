@@ -216,19 +216,7 @@
       </div>
 
       <div class="player-center">
-        <div class="skip-row" id="skipBackRow">
-          <button class="pbtn skip focusable" data-seek="-1800">-30 min</button>
-          <button class="pbtn skip focusable" data-seek="-600">-10 min</button>
-          <button class="pbtn skip focusable" data-seek="-300">-5 min</button>
-          <button class="pbtn skip focusable" data-seek="-30">-30 s</button>
-        </div>
         <button class="pbtn big focusable" id="btnPlay">▶</button>
-        <div class="skip-row" id="skipFwdRow">
-          <button class="pbtn skip focusable" data-seek="30">+30 s</button>
-          <button class="pbtn skip focusable" data-seek="300">+5 min</button>
-          <button class="pbtn skip focusable" data-seek="600">+10 min</button>
-          <button class="pbtn skip focusable" data-seek="1800">+30 min</button>
-        </div>
       </div>
 
       <div class="player-nav">
@@ -238,12 +226,11 @@
 
       <div class="player-bottom">
         <div class="progress hidden focusable" id="progress" tabindex="0">
-          <div class="seek-hint">◀ Back &nbsp;|&nbsp; Forward ▶</div>
           <div class="bar" id="progressBar"><div class="fill" id="progressFill"></div></div>
           <div class="times"><span id="timeNow">00:00</span><span id="timeEnd">00:00</span></div>
         </div>
         <div class="player-hint">
-          OK pauses · ←/→ on the bar seeks · Buttons: 30s, 5m, 10m, 30m · Back closes
+          OK pauses/resumes · The time bar shows progress only · Back closes
         </div>
       </div>
     </div>

@@ -158,10 +158,8 @@ var App = {
         return;
       }
 
-      // Barra de tempo do player: esquerda/direita avancam ou voltam 30 s.
+      // A barra de tempo só mostra o progresso. OK pausa/continua.
       if (self.isPlayerOpen() && active && active.id === 'progress') {
-        if (code === 37) { event.preventDefault(); Player.seek(-30); Player.scheduleHide(); return; }
-        if (code === 39) { event.preventDefault(); Player.seek(30); Player.scheduleHide(); return; }
         if (code === 13) { event.preventDefault(); Player.toggle(); Player.scheduleHide(); return; }
       }
       if (code === 37 || code === 38 || code === 39 || code === 40) {
@@ -194,8 +192,7 @@ var App = {
 
       if (code === 415) { event.preventDefault(); Player.play(); }
       else if (code === 19) { event.preventDefault(); Player.pause(); }
-      else if (code === 417) { event.preventDefault(); Player.seek(30); }
-      else if (code === 412) { event.preventDefault(); Player.seek(-30); }
+      else if (code === 417 || code === 412) { event.preventDefault(); }
       else if (code === 413) { event.preventDefault(); self.closePlayer(); }
     }, false);
   },
@@ -2359,8 +2356,6 @@ var Player = {
     badge.textContent = isLive ? 'AO VIVO' : 'VÍDEO';
     badge.className = 'player-badge' + (isLive ? '' : ' vod');
     toggle($('progress'), !isLive);
-    toggle($('skipBackRow'), !isLive);
-    toggle($('skipFwdRow'), !isLive);
 
     this.currentUrl = url;
     this.isLive = isLive;
@@ -2390,6 +2385,7 @@ var Player = {
     video.src = url;
     this.tryPlay();
     this.armWatchdog();
+    this.armProgressWatchdog();
 
     setTimeout(function () {
       var button = $('btnPlay');
@@ -2510,7 +2506,7 @@ var Player = {
   },
 
   /** Recarrega o mesmo endereço mantendo o título e o tipo (ao vivo/vídeo). */
-  reconnect: function () {
+  reconnect: function (forceBust) {
     var video = this.video;
     if (!video || !this.currentUrl) return;
 
@@ -2529,16 +2525,58 @@ var Player = {
       video.load();
     } catch (e) { /* ignora */ }
 
+    var url = this.currentUrl;
+    if (forceBust) {
+      url += (url.indexOf('?') < 0 ? '?' : '&') + 'r=' + Date.now();
+    }
+
     this.showLoading('Conectando de novo…');
-    video.src = this.currentUrl;
+    video.src = url;
     this.tryPlay();
     this.armWatchdog();
+    this.armProgressWatchdog();
+  },
+
+  /**
+   * Canais ao vivo: se o relógio do vídeo parar de andar (ex.: depois de ~30 s),
+   * abrimos a URL de novo com um parâmetro novo para forçar conexão limpa.
+   */
+  armProgressWatchdog: function () {
+    var self = this;
+    if (this.progressTimer) {
+      clearInterval(this.progressTimer);
+      this.progressTimer = null;
+    }
+    if (!this.isLive) return;
+    this.lastProgress = -1;
+    this.stallTicks = 0;
+    this.progressTimer = setInterval(function () {
+      if (!App.isPlayerOpen() || !self.isLive || !self.currentUrl || !self.video) return;
+      var video = self.video;
+      if (video.paused || video.readyState < 2) return;
+      var t = video.currentTime;
+      if (self.lastProgress >= 0 && t <= self.lastProgress + 0.5) {
+        self.stallTicks += 1;
+      } else {
+        self.stallTicks = 0;
+      }
+      self.lastProgress = t;
+      if (self.stallTicks >= 2) {
+        self.stallTicks = 0;
+        self.lastProgress = -1;
+        self.reconnect(true);
+      }
+    }, 10000);
   },
 
   clearWatchdog: function () {
     if (this.loadTimer) {
       clearTimeout(this.loadTimer);
       this.loadTimer = null;
+    }
+    if (this.progressTimer) {
+      clearInterval(this.progressTimer);
+      this.progressTimer = null;
     }
   },
 
@@ -2738,22 +2776,6 @@ document.addEventListener('DOMContentLoaded', function () {
   Player.bindVideo();
   $('btnPlay').addEventListener('click', function () { Player.toggle(); });
   $('btnRetryPlay').addEventListener('click', function () { Player.retry(); });
-  var progressBar = $('progressBar');
-  if (progressBar) {
-    progressBar.addEventListener('click', function (event) {
-      var rect = progressBar.getBoundingClientRect();
-      if (!rect.width) return;
-      Player.seekToRatio((event.clientX - rect.left) / rect.width);
-    });
-  }
-  var skipButtons = document.querySelectorAll('.pbtn.skip[data-seek]');
-  for (var si = 0; si < skipButtons.length; si++) {
-    (function (btn) {
-      btn.addEventListener('click', function () {
-        var delta = parseInt(btn.getAttribute('data-seek'), 10) || 0;
-        Player.seek(delta);
-      });
-    })(skipButtons[si]);
-  }
+  // A barra de tempo é apenas informativa: sem seek por clique ou por botões.
   App.init();
 });
