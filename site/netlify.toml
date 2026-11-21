@@ -29,6 +29,7 @@
   [headers.values]
     Content-Type = "application/vnd.android.package-archive"
     Cache-Control = "public, max-age=3600"
+    Access-Control-Allow-Origin = "*"
 
 [[headers]]
   for = "/*"
