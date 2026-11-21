@@ -990,7 +990,32 @@ var App = {
     if (catId) this.lastCat[this.section] = catId;
     this.page = 0;
     this.markPanel();
-    this.loadItems(catId);
+    this.loadItemsWithFallback(catId);
+  },
+
+  /**
+   * Busca a primeira categoria com conteúdo. Alguns provedores devolvem
+   * categorias vazias (ou de série dentro de filmes); avançamos para a próxima.
+   */
+  loadItemsWithFallback: function (catId, triesLeft) {
+    var self = this;
+    if (typeof triesLeft !== 'number') triesLeft = 5;
+    this.loadItems(catId, function (list) {
+      if ((list && list.length) || triesLeft <= 0) return;
+      var cats = self.catCache[self.section] || [];
+      var idx = -1;
+      for (var i = 0; i < cats.length; i++) {
+        if (cats[i].id === catId) { idx = i; break; }
+      }
+      var order = [];
+      for (var j = idx + 1; j < cats.length; j++) order.push(cats[j].id);
+      for (var k = 0; k < idx; k++) order.push(cats[k].id);
+      if (!order.length) return;
+      self.activeCat = order[0];
+      self.lastCat[self.section] = order[0];
+      self.markPanel();
+      self.loadItemsWithFallback(order[0], triesLeft - 1);
+    });
   },
 
   /** Marca no painel o item que está ativo. */
@@ -1012,7 +1037,7 @@ var App = {
     }
   },
 
-  loadItems: function (catId) {
+  loadItems: function (catId, onEmpty) {
     var self = this;
     var kind = this.section;
     var token = this.sectionToken;
@@ -1056,6 +1081,11 @@ var App = {
 
     this.source.items(kind, catId).then(function (list) {
       list = list || [];
+      if (!list.length) {
+        if (typeof onEmpty === 'function') onEmpty(list);
+        hide($('loading'));
+        return;
+      }
       if (Store.sortMode() === 'az') list = sortByName(list);
       self.itemCache[key] = list;
       self.cacheOrder.push(key);
@@ -2311,6 +2341,8 @@ var Player = {
 
   resumeKey: null,
   resumePending: 0,
+  resumeApplied: false,
+  resumeRetryTimers: [],
   lastSaveAt: 0,
 
   /** Chave estável de retomada (id do item), guardada por item — não pela URL. */
@@ -2331,6 +2363,35 @@ var Player = {
   clearResume: function (key) {
     if (!key) return;
     try { localStorage.removeItem(this.resumeKeyFor(key)); } catch (e) { /* ignora */ }
+  },
+
+  /** Tenta aplicar a retomada de novo enquanto o HLS monta o buffer. */
+  applyResume: function () {
+    var self = this;
+    if (this.isLive || !this.video || !this.resumePending || this.resumeApplied) return;
+    var target = this.resumePending / 1000;
+    var dur = this.video.duration;
+    if (!isFinite(dur) || dur <= 0 || target >= dur - 2) return;
+    try {
+      this.video.currentTime = target;
+      if (Math.abs(this.video.currentTime - target) < 3) {
+        this.resumePending = 0;
+        this.resumeApplied = true;
+        return;
+      }
+    } catch (e) { /* ignora */ }
+    if (!this.resumeRetryTimers) this.resumeRetryTimers = [];
+    var delay = this.resumeRetryTimers.length === 0 ? 1000 : 1500;
+    if (this.resumeRetryTimers.length < 3) {
+      this.resumeRetryTimers.push(setTimeout(function () {
+        self.applyResume();
+      }, delay));
+    }
+  },
+  clearResumeTimers: function () {
+    if (!this.resumeRetryTimers) return;
+    for (var i = 0; i < this.resumeRetryTimers.length; i++) clearTimeout(this.resumeRetryTimers[i]);
+    this.resumeRetryTimers = [];
   },
 
   /** Liga os eventos do <video> uma única vez. */
@@ -2359,17 +2420,11 @@ var Player = {
 
     this.video.addEventListener('timeupdate', function () { self.onTime(); }, false);
     this.video.addEventListener('loadedmetadata', function () {
-      // Retomada de filmes/séries assim que a duração é conhecida.
-      if (!self.isLive && self.resumePending > 5000 && self.video) {
-        var target = self.resumePending;
-        self.resumePending = 0;
-        try {
-          if (isFinite(self.video.duration) && target < self.video.duration - 2000) {
-            self.video.currentTime = target / 1000;
-          }
-        } catch (e) { /* ignora */ }
-      }
+      if (!self.isLive && self.resumePending > 5000) self.applyResume();
       self.onTime();
+    }, false);
+    this.video.addEventListener('playing', function () {
+      if (!self.isLive && self.resumePending > 5000) self.applyResume();
     }, false);
     this.video.addEventListener('ended', function () {
       // Série emenda o próximo episódio; se não houver, só mostra os controles.
@@ -2382,8 +2437,10 @@ var Player = {
   open: function (url, title, isLive, resumeKey) {
     if (!this.video) this.bindVideo();
 
+    this.clearResumeTimers();
     this.resumeKey = isLive ? null : (resumeKey || null);
     this.resumePending = this.resumeKey ? this.getResume(this.resumeKey) : 0;
+    this.resumeApplied = false;
     this.lastSaveAt = 0;
 
     Screens.show('screen-player');
@@ -2782,8 +2839,10 @@ var Player = {
       var pos = this.video.currentTime * 1000;
       if (pos > 5000) this.saveResume(this.resumeKey, pos);
     }
+    this.clearResumeTimers();
     this.resumeKey = null;
     this.resumePending = 0;
+    this.resumeApplied = false;
 
     this.clearWatchdog();
     this.hideLoading();
