@@ -824,6 +824,26 @@ var App = {
         if (self.catCache[kind]) return;
         self.source.categories(kind).then(function (list) {
           self.catCache[kind] = list || [];
+          // Adianta o primeiro lote de itens direto no cache (chave explícita,
+          // sem depender de this.section, que ainda é o menu aqui).
+          var first = (list && list[0] && list[0].id) || '';
+          if (!first || self.itemCache[kind + '|' + first]) return;
+          self.source.items(kind, first).then(function (items) {
+            if (items && items.length) {
+              self.itemCache[kind + '|' + first] = items;
+              self.cacheOrder.push(kind + '|' + first);
+              self.trimCache();
+            } else {
+              // Categoria vazia do provedor: guarda tudo como "Tudo".
+              self.source.items(kind, null).then(function (all) {
+                if (all && all.length) {
+                  self.itemCache[kind + '|'] = all;
+                  self.cacheOrder.push(kind + '|');
+                  self.trimCache();
+                }
+              }, function () { /* ignora */ });
+            }
+          }, function () { /* ignora */ });
         }, function () { /* ignora */ });
       })(kinds[i]);
     }
@@ -1008,11 +1028,22 @@ var App = {
    * categorias vazias (ou categorias de série dentro de filmes); nesse caso
    * avançamos para a próxima para a lista nunca abrir vazia.
    */
-  loadItemsWithFallback: function (catId, triesLeft) {
+  loadItemsWithFallback: function (catId, triesLeft, silent) {
     var self = this;
     if (typeof triesLeft !== 'number') triesLeft = 5;
     this.loadItems(catId, function (list) {
-      if ((list && list.length) || triesLeft <= 0) return;
+      if (list && list.length) return;
+      function useAll() {
+        if (!silent) {
+          self.activeCat = null;
+          self.filter = 'all';
+          self.markPanel();
+        }
+        // Nenhuma categoria tem conteúdo: o provedor listou categorias erradas
+        // (ex.: séries dentro de filmes). Mostra tudo, sem filtro de categoria.
+        self.loadItems(null);
+      }
+      if (triesLeft <= 0) { useAll(); return; }
       var cats = self.catCache[self.section] || [];
       var idx = -1;
       for (var i = 0; i < cats.length; i++) {
@@ -1022,11 +1053,13 @@ var App = {
       var order = [];
       for (var j = idx + 1; j < cats.length; j++) order.push(cats[j].id);
       for (var k = 0; k < idx; k++) order.push(cats[k].id);
-      if (!order.length) return;
-      self.activeCat = order[0];
-      self.lastCat[self.section] = order[0];
-      self.markPanel();
-      self.loadItemsWithFallback(order[0], triesLeft - 1);
+      if (!order.length) { useAll(); return; }
+      if (!silent) {
+        self.activeCat = order[0];
+        self.lastCat[self.section] = order[0];
+        self.markPanel();
+      }
+      self.loadItemsWithFallback(order[0], triesLeft - 1, silent);
     });
   },
 

@@ -833,6 +833,23 @@ var App = {
         if (self.catCache[kind]) return;
         self.source.categories(kind).then(function (list) {
           self.catCache[kind] = list || [];
+          var first = (list && list[0] && list[0].id) || '';
+          if (!first || self.itemCache[kind + '|' + first]) return;
+          self.source.items(kind, first).then(function (items) {
+            if (items && items.length) {
+              self.itemCache[kind + '|' + first] = items;
+              self.cacheOrder.push(kind + '|' + first);
+              self.trimCache();
+            } else {
+              self.source.items(kind, null).then(function (all) {
+                if (all && all.length) {
+                  self.itemCache[kind + '|'] = all;
+                  self.cacheOrder.push(kind + '|');
+                  self.trimCache();
+                }
+              }, function () { /* ignora */ });
+            }
+          }, function () { /* ignora */ });
         }, function () { /* ignora */ });
       })(kinds[i]);
     }
@@ -1001,8 +1018,15 @@ var App = {
     var self = this;
     if (typeof triesLeft !== 'number') triesLeft = 5;
     this.loadItems(catId, function (list) {
-      if ((list && list.length) || triesLeft <= 0) return;
-      var cats = self.catCache[self.section] || [];
+      if (list && list.length) return;
+      if (triesLeft <= 0 || !(self.catCache[self.section] || []).length) {
+        self.activeCat = null;
+        self.filter = 'all';
+        self.markPanel();
+        self.loadItems(null);
+        return;
+      }
+      var cats = self.catCache[self.section];
       var idx = -1;
       for (var i = 0; i < cats.length; i++) {
         if (cats[i].id === catId) { idx = i; break; }
@@ -1010,7 +1034,13 @@ var App = {
       var order = [];
       for (var j = idx + 1; j < cats.length; j++) order.push(cats[j].id);
       for (var k = 0; k < idx; k++) order.push(cats[k].id);
-      if (!order.length) return;
+      if (!order.length) {
+        self.activeCat = null;
+        self.filter = 'all';
+        self.markPanel();
+        self.loadItems(null);
+        return;
+      }
       self.activeCat = order[0];
       self.lastCat[self.section] = order[0];
       self.markPanel();
