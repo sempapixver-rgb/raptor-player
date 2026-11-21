@@ -942,22 +942,18 @@ var App = {
     }
     // Se o preload já achou uma pasta com conteúdo, abre nela direto (sem
     // refazer requisições e sem pedir "todos" — são 8 MB e derrubam a TV).
-    // Vale mesmo quando há pasta salva: se ela está vazia no provedor, nela
-    // a lista abriria vazia de novo.
-    if (use && this.itemCache[kind + '|' + use] && !this.itemCache[kind + '|' + use].length) {
-      use = null;
-    }
-    if (!use) {
-      for (var key in this.itemCache) {
-        if (!Object.prototype.hasOwnProperty.call(this.itemCache, key)) continue;
-        if (key.indexOf(kind + '|') !== 0) continue;
-        var cached = this.itemCache[key];
-        if (cached && cached.length) {
-          var cat = key.substring(kind.length + 1);
-          if (cat) { use = cat; break; }
-        }
+    // A pasta salva pode estar vazia no provedor: nela a lista abriria vazia.
+    var cachedCat = null;
+    for (var key in this.itemCache) {
+      if (!Object.prototype.hasOwnProperty.call(this.itemCache, key)) continue;
+      if (key.indexOf(kind + '|') !== 0) continue;
+      var cached = this.itemCache[key];
+      if (cached && cached.length) {
+        var cat = key.substring(kind.length + 1);
+        if (cat) { cachedCat = cat; break; }
       }
     }
+    if (cachedCat) use = cachedCat;
     this.selectCat(use || list[0].id);
   },
 
@@ -1051,14 +1047,23 @@ var App = {
     this.loadItems(catId, function (list) {
       if (list && list.length) return;
       function useAll() {
+        // Se o preload já guardou "todos", usa o cache (não refaz a busca).
+        var allKey = self.section + '|';
+        var hasAll = self.itemCache[allKey] && self.itemCache[allKey].length;
         if (!silent) {
           self.activeCat = null;
           self.filter = 'all';
           self.markPanel();
         }
-        // Nenhuma categoria tem conteúdo: o provedor listou categorias erradas
-        // (ex.: séries dentro de filmes). Mostra tudo, sem filtro de categoria.
-        self.loadItems(null);
+        if (hasAll) {
+          self.baseList = self.itemCache[allKey];
+          self.currentList = self.filteredList(self.baseList);
+          self.renderItems(self.currentList);
+        } else {
+          // Nenhuma categoria tem conteúdo: o provedor listou categorias erradas
+          // (ex.: séries dentro de filmes). Mostra tudo, sem filtro de categoria.
+          self.loadItems(null);
+        }
       }
       if (triesLeft <= 0) { useAll(); return; }
       var cats = self.catCache[self.section] || [];

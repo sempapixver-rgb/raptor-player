@@ -947,20 +947,17 @@ var App = {
       this.renderItems([]);
       return;
     }
-    if (use && this.itemCache[kind + '|' + use] && !this.itemCache[kind + '|' + use].length) {
-      use = null;
-    }
-    if (!use) {
-      for (var key in this.itemCache) {
-        if (!Object.prototype.hasOwnProperty.call(this.itemCache, key)) continue;
-        if (key.indexOf(kind + '|') !== 0) continue;
-        var cached = this.itemCache[key];
-        if (cached && cached.length) {
-          var cat = key.substring(kind.length + 1);
-          if (cat) { use = cat; break; }
-        }
+    var cachedCat = null;
+    for (var key in this.itemCache) {
+      if (!Object.prototype.hasOwnProperty.call(this.itemCache, key)) continue;
+      if (key.indexOf(kind + '|') !== 0) continue;
+      var cached = this.itemCache[key];
+      if (cached && cached.length) {
+        var cat = key.substring(kind.length + 1);
+        if (cat) { cachedCat = cat; break; }
       }
     }
+    if (cachedCat) use = cachedCat;
     this.selectCat(use || list[0].id);
   },
 
@@ -1034,10 +1031,18 @@ var App = {
     this.loadItems(catId, function (list) {
       if (list && list.length) return;
       if (triesLeft <= 0 || !(self.catCache[self.section] || []).length) {
+        var allKey = self.section + '|';
+        var hasAll = self.itemCache[allKey] && self.itemCache[allKey].length;
         self.activeCat = null;
         self.filter = 'all';
         self.markPanel();
-        self.loadItems(null);
+        if (hasAll) {
+          self.baseList = self.itemCache[allKey];
+          self.currentList = self.filteredList(self.baseList);
+          self.renderItems(self.currentList);
+        } else {
+          self.loadItems(null);
+        }
         return;
       }
       var cats = self.catCache[self.section];
