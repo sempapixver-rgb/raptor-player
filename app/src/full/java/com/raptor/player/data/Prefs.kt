@@ -132,6 +132,19 @@ class Prefs(context: Context) {
         sp.edit().remove("pos:${url.hashCode()}").apply()
     }
 
+    // Chave estável de retomada: usa o título/id do item, não a URL (que muda
+    // a cada abertura no Xtream), para o player voltar de onde parou.
+    fun resumeForStable(key: String): Long = sp.getLong("rpos:${key.hashCode()}", 0L)
+
+    fun saveResumeStable(key: String, position: Long) {
+        if (position <= 5_000L) return
+        sp.edit().putLong("rpos:${key.hashCode()}", position).apply()
+    }
+
+    fun clearResumeStable(key: String) {
+        sp.edit().remove("rpos:${key.hashCode()}").apply()
+    }
+
     // --------------------------------------------------------------- termos
 
     /** Versão do termo já aceita (0 = nunca aceitou). */

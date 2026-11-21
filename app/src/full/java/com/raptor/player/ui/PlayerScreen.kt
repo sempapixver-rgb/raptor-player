@@ -171,30 +171,71 @@ fun PlayerScreen(
             .build()
     }
 
+    // Play/pause do usuário: usa playWhenReady para que o estado sobreviva a
+    // ciclos de vida (ON_PAUSE/ON_RESUME) e ao autoplay.
+    fun togglePlay() {
+        val shouldPlay = !player.playWhenReady
+        player.playWhenReady = shouldPlay
+        if (shouldPlay) player.play() else player.pause()
+    }
+
     // Troca de episódio: salva a posição do anterior, carrega o novo e
     // retoma de onde parou (filmes/séries).
+    val currentUrl by rememberUpdatedState(current.url)
+    val currentTitle by rememberUpdatedState(current.title)
+
     var lastUrl by remember { mutableStateOf<String?>(null) }
+    var lastTitle by remember { mutableStateOf<String?>(null) }
+    val resumeApplied = remember { mutableStateOf(false) }
+    val resumeTarget = remember { mutableLongStateOf(0L) }
+    val appliedRef = rememberUpdatedState(resumeApplied)
+    val targetRef = rememberUpdatedState(resumeTarget)
+
     LaunchedEffect(current.url) {
         val previous = lastUrl
+        val previousTitle = lastTitle
         if (previous != null && previous != current.url) {
-            runCatching { prefs.saveResume(previous, player.currentPosition) }
+            val pos = player.currentPosition
+            if (pos > 5_000L && previousTitle != null && !isLiveStream(previous)) {
+                runCatching { prefs.saveResumeStable(previousTitle, pos) }
+            }
         }
         lastUrl = current.url
+        lastTitle = current.title
         position = 0L
         duration = 0L
         isPlaying = true
+        // A chave de retomada é o TÍTULO (estável), não a URL (que muda no Xtream).
+        resumeTarget.longValue = if (!isLiveStream(current.url)) prefs.resumeForStable(current.title) else 0L
+        resumeApplied.value = false
+        // playWhenReady primeiro: garante que o vídeo comece sozinho assim que
+        // o primeiro frame estiver pronto (canais ao vivo, filmes e séries).
+        player.playWhenReady = true
         player.setMediaItem(ExoMediaItem.fromUri(current.url))
         player.prepare()
-        player.playWhenReady = true
-        // Em canal ao vivo, voltar no tempo tira o player da borda ao vivo e
-        // parece travamento. Só filmes/episódios têm ponto de retomada.
-        if (!isLiveStream(current.url)) {
-            val saved = prefs.resumeFor(current.url)
-            if (saved > 5_000) player.seekTo(saved)
-        }
     }
 
-    val currentUrl by rememberUpdatedState(current.url)
+    // Aplica a posição salva SÓ quando o jogador já tem duração conhecida.
+    // (seekTo antes do prepare ser concluído é ignorado e faz o vídeo começar do zero.)
+    DisposableEffect(player) {
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState != Player.STATE_READY) return
+                // Autoplay: garante que comece sozinho quando o vídeo fica pronto.
+                if (!player.playWhenReady) player.playWhenReady = true
+                if (!appliedRef.value.value && targetRef.value.longValue > 5_000L) {
+                    val dur = player.duration
+                    val target = targetRef.value.longValue
+                    if (dur > 0L && target < dur - 2_000L) {
+                        player.seekTo(target)
+                    }
+                    appliedRef.value.value = true
+                }
+            }
+        }
+        player.addListener(listener)
+        onDispose { player.removeListener(listener) }
+    }
 
     // Mantém a tela ligada enquanto o player está aberto.
     DisposableEffect(player) {
@@ -202,8 +243,11 @@ fun PlayerScreen(
         window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         onDispose {
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            if (!isLiveStream(currentUrl)) {
-                runCatching { prefs.saveResume(currentUrl, player.currentPosition) }
+            // Salva a posição final somente se o player chegou a carregar e
+            // avançou de verdade — salvar 0 apagava a retomada.
+            val pos = player.currentPosition
+            if (!isLiveStream(currentUrl) && pos > 5_000L) {
+                runCatching { prefs.saveResumeStable(currentTitle, pos) }
             }
             player.release()
         }
@@ -213,7 +257,15 @@ fun PlayerScreen(
     DisposableEffect(lifecycleOwner, player) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
+                // Pausa ao sair do app/home, mas RETOMA ao voltar — sem isso o
+                // vídeo abria e ficava parado (autoplay não funcionava).
                 Lifecycle.Event.ON_STOP, Lifecycle.Event.ON_PAUSE -> player.pause()
+                Lifecycle.Event.ON_RESUME -> {
+                    // Só retoma se o usuário não havia pausado manualmente.
+                    if (player.playbackState != Player.STATE_IDLE && player.playWhenReady) {
+                        player.play()
+                    }
+                }
                 else -> Unit
             }
         }
@@ -239,7 +291,8 @@ fun PlayerScreen(
         while (true) {
             delay(10_000)
             if (player.isPlaying && !isLiveStream(currentUrl)) {
-                runCatching { prefs.saveResume(currentUrl, player.currentPosition) }
+                val pos = player.currentPosition
+                if (pos > 5_000L) runCatching { prefs.saveResumeStable(currentTitle, pos) }
             }
         }
     }
@@ -264,11 +317,11 @@ fun PlayerScreen(
             lastPosition = pos
             if (stalled >= 2) {
                 val separator = if (url.contains('?')) '&' else '?'
+                player.playWhenReady = true
                 player.setMediaItem(
                     ExoMediaItem.fromUri("$url${separator}reconnect=${System.currentTimeMillis()}")
                 )
                 player.prepare()
-                player.playWhenReady = true
                 stalled = 0
                 lastPosition = -1L
             }
@@ -468,7 +521,7 @@ fun PlayerScreen(
                 when (event.key) {
                     // Botões de mídia do controle (play/pause e faixas).
                     Key.MediaPlayPause -> {
-                        if (player.isPlaying) player.pause() else player.play()
+                        togglePlay()
                         controlsVisible = true
                         true
                     }
@@ -525,7 +578,7 @@ fun PlayerScreen(
                             controlsVisible = true
                             true
                         } else if (rootSelfFocused) {
-                            if (player.isPlaying) player.pause() else player.play()
+                            togglePlay()
                             true
                         } else {
                             false
@@ -714,7 +767,7 @@ fun PlayerScreen(
                         ) {
                             TextButton(
                                 onClick = {
-                                    if (player.isPlaying) player.pause() else player.play()
+                                    togglePlay()
                                 },
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -785,7 +838,7 @@ fun PlayerScreen(
                                     if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                                     when (event.key) {
                                         Key.DirectionCenter, Key.Enter -> {
-                                            if (player.isPlaying) player.pause() else player.play()
+                                            togglePlay()
                                             controlsVisible = true
                                             true
                                         }

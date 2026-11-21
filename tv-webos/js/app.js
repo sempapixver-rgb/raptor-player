@@ -1887,7 +1887,7 @@ var App = {
     this.playing = null;
     this.playingSeason = null;
     this.playingEpIndex = -1;
-    Player.open(item.url, item.title, false);
+    Player.open(item.url, item.title, false, null);
     this.updatePlayerNav();
     return true;
   },
@@ -1903,7 +1903,7 @@ var App = {
     this.playingEpIndex = -1;
     this.selected = entry;
     this.stopPreview();
-    Player.open(url, entry.name, entry.kind === MediaKind.LIVE);
+    Player.open(url, entry.name, entry.kind === MediaKind.LIVE, entry.id);
     this.updatePlayerNav();
     Store.addRecent(entry);
   },
@@ -1918,7 +1918,7 @@ var App = {
     this.playingSeason = season || null;
     this.playingEpIndex = typeof index === 'number' ? index : -1;
     var name = this.detail ? this.detail.name : 'Episódio';
-    Player.open(url, name + ' - T' + episode.season + ' E' + episode.number + ' - ' + episode.title, false);
+    Player.open(url, name + ' - T' + episode.season + ' E' + episode.number + ' - ' + episode.title, false, episode.id);
     this.updatePlayerNav();
     return true;
   },
@@ -2300,6 +2300,30 @@ var Player = {
   autoRetries: 0,
   attempt: 0,
 
+  resumeKey: null,
+  resumePending: 0,
+  lastSaveAt: 0,
+
+  /** Chave estável de retomada (id do item), guardada por item — não pela URL. */
+  resumeKeyFor: function (key) {
+    return 'raptor.resume.' + String(key || '');
+  },
+  getResume: function (key) {
+    if (!key) return 0;
+    try {
+      var v = parseInt(localStorage.getItem(this.resumeKeyFor(key)), 10);
+      return isFinite(v) && v > 0 ? v : 0;
+    } catch (e) { return 0; }
+  },
+  saveResume: function (key, pos) {
+    if (!key || !pos || pos < 5000) return; // ignora início e posições inválidas
+    try { localStorage.setItem(this.resumeKeyFor(key), String(Math.floor(pos))); } catch (e) { /* ignora */ }
+  },
+  clearResume: function (key) {
+    if (!key) return;
+    try { localStorage.removeItem(this.resumeKeyFor(key)); } catch (e) { /* ignora */ }
+  },
+
   /** Liga os eventos do <video> uma única vez. */
   bindVideo: function () {
     var self = this;
@@ -2325,7 +2349,20 @@ var Player = {
     }, false);
 
     this.video.addEventListener('timeupdate', function () { self.onTime(); }, false);
-    this.video.addEventListener('loadedmetadata', function () { self.onTime(); }, false);
+    this.video.addEventListener('loadedmetadata', function () {
+      // Retomada de filmes/séries: aplica a posição salva assim que a duração
+      // é conhecida. Só uma vez por abertura, e nunca em canal ao vivo.
+      if (!self.isLive && self.resumePending > 5000 && self.video) {
+        var target = self.resumePending;
+        self.resumePending = 0;
+        try {
+          if (isFinite(self.video.duration) && target < self.video.duration - 2000) {
+            self.video.currentTime = target / 1000;
+          }
+        } catch (e) { /* ignora */ }
+      }
+      self.onTime();
+    }, false);
     this.video.addEventListener('ended', function () {
       // Série emenda o próximo episódio; se não houver, só mostra os controles.
       if (App.onPlaybackEnded && App.onPlaybackEnded()) return;
@@ -2334,8 +2371,12 @@ var Player = {
     this.video.addEventListener('click', function () { self.toggleOverlay(); }, false);
   },
 
-  open: function (url, title, isLive) {
+  open: function (url, title, isLive, resumeKey) {
     if (!this.video) this.bindVideo();
+
+    this.resumeKey = isLive ? null : (resumeKey || null);
+    this.resumePending = this.resumeKey ? this.getResume(this.resumeKey) : 0;
+    this.lastSaveAt = 0;
 
     Screens.show('screen-player');
     hide($('playerError'));
@@ -2698,6 +2739,12 @@ var Player = {
     if (!this.video || this.isLive) return;
     var duration = this.video.duration;
     var now = this.video.currentTime || 0;
+    // Salva a posição de filme/série a cada ~10 s para retomar depois.
+    var nowMs = Date.now();
+    if (this.resumeKey && nowMs - this.lastSaveAt > 10000 && now > 5) {
+      this.lastSaveAt = nowMs;
+      this.saveResume(this.resumeKey, now * 1000);
+    }
     $('timeNow').textContent = fmtTime(now);
     $('timeEnd').textContent = isFinite(duration) ? fmtTime(duration) : '--:--';
     var percent = isFinite(duration) && duration > 0 ? (now / duration) * 100 : 0;
@@ -2725,6 +2772,14 @@ var Player = {
   },
 
   close: function () {
+    // Salva a posição final antes de limpar o vídeo (filmes/séries).
+    if (this.resumeKey && this.video && !this.isLive) {
+      var pos = this.video.currentTime * 1000;
+      if (pos > 5000) this.saveResume(this.resumeKey, pos);
+    }
+    this.resumeKey = null;
+    this.resumePending = 0;
+
     this.clearWatchdog();
     this.hideLoading();
     if (this.autoPlayTimer) {
