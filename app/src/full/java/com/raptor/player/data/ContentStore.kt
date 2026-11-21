@@ -340,6 +340,39 @@ object ContentStore {
     }
 
     /**
+     * Primeira pasta com conteúdo. Alguns provedores devolvem categorias erradas
+     * (ex.: 34 pastas de "Séries" dentro de Filmes, todas vazias). Testa as
+     * primeiras pastas e devolve a primeira com itens — é o mesmo fallback da
+     * versão da LG/Tizen. O resultado já fica no cache de itens.
+     */
+    suspend fun firstNonEmptyCategory(
+        source: PlaylistSource,
+        base: String,
+        kind: MediaKind,
+        cats: List<Category>,
+        maxTries: Int = 6
+    ): String? {
+        if (cats.isEmpty()) return null
+        // Já existe pasta cacheada com conteúdo? Reaproveita, sem rede.
+        synchronized(lock) {
+            val prefix = "$base|ITEMS|${kind.name}|"
+            for (entry in itemOrder) {
+                if (!entry.startsWith(prefix)) continue
+                val id = entry.substring(prefix.length)
+                if (id.isNotEmpty() && !itemCache[entry].isNullOrEmpty()) return id
+            }
+        }
+        val start = cats.indexOfFirst { it.id == lastFolder(base, kind) }.let { if (it < 0) 0 else it }
+        for (i in 0 until minOf(maxTries, cats.size)) {
+            val cat = cats[(start + i) % cats.size]
+            if (!cachedItems(base, kind, cat.id).isNullOrEmpty()) return cat.id
+            val list = runCatching { items(source, base, kind, cat.id) }.getOrDefault(emptyList())
+            if (list.isNotEmpty()) return cat.id
+        }
+        return null
+    }
+
+    /**
      * Adianta só as pastas das três abas. É o que a LG faz ao entrar: pequeno,
      * rápido e sem baixar filmes/séries inteiros.
      */

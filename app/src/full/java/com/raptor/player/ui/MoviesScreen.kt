@@ -111,11 +111,20 @@ fun MoviesScreen(
             // Filmes/Séries nunca abrem em "Tudo": volta na última pasta usada
             // ou entra na primeira. A lista completa passa de 8 MB.
             val saved = ContentStore.lastFolder(base, MediaKind.VOD)
-            selectedCategory = when {
+            var escolhida = when {
                 saved != null && categories.any { it.id == saved } -> saved
                 categories.isNotEmpty() -> categories.first().id
                 else -> null
             }
+            // Alguns provedores devolvem categorias vazias (ou de séries dentro
+            // de filmes). Abre a primeira pasta com conteúdo, como na LG.
+            if (escolhida != null && ContentStore.cachedItems(base, MediaKind.VOD, escolhida).isNullOrEmpty()) {
+                val cheia = kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
+                    ContentStore.firstNonEmptyCategory(source, base, MediaKind.VOD, categories)
+                }
+                if (cheia != null) escolhida = cheia
+            }
+            selectedCategory = escolhida
             catsVersion++
         }
     }
