@@ -947,6 +947,20 @@ var App = {
       this.renderItems([]);
       return;
     }
+    if (use && this.itemCache[kind + '|' + use] && !this.itemCache[kind + '|' + use].length) {
+      use = null;
+    }
+    if (!use) {
+      for (var key in this.itemCache) {
+        if (!Object.prototype.hasOwnProperty.call(this.itemCache, key)) continue;
+        if (key.indexOf(kind + '|') !== 0) continue;
+        var cached = this.itemCache[key];
+        if (cached && cached.length) {
+          var cat = key.substring(kind.length + 1);
+          if (cat) { use = cat; break; }
+        }
+      }
+    }
     this.selectCat(use || list[0].id);
   },
 

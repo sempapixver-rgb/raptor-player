@@ -935,11 +935,28 @@ var App = {
       this.selectCat(use);
       return;
     }
-    // Nunca pedir "todos os filmes/séries": são mais de 8 MB e derrubam a TV.
     if (!list || !list.length) {
       this.currentList = [];
       this.renderItems([]);
       return;
+    }
+    // Se o preload já achou uma pasta com conteúdo, abre nela direto (sem
+    // refazer requisições e sem pedir "todos" — são 8 MB e derrubam a TV).
+    // Vale mesmo quando há pasta salva: se ela está vazia no provedor, nela
+    // a lista abriria vazia de novo.
+    if (use && this.itemCache[kind + '|' + use] && !this.itemCache[kind + '|' + use].length) {
+      use = null;
+    }
+    if (!use) {
+      for (var key in this.itemCache) {
+        if (!Object.prototype.hasOwnProperty.call(this.itemCache, key)) continue;
+        if (key.indexOf(kind + '|') !== 0) continue;
+        var cached = this.itemCache[key];
+        if (cached && cached.length) {
+          var cat = key.substring(kind.length + 1);
+          if (cat) { use = cat; break; }
+        }
+      }
     }
     this.selectCat(use || list[0].id);
   },
