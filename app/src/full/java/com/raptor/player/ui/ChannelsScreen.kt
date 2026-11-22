@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -679,11 +680,25 @@ private fun LivePreview(
         }
     }
 
+    var inForeground by remember { mutableStateOf(true) }
+    val foregroundRef = rememberUpdatedState(inForeground)
+
     DisposableEffect(Unit) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_STOP -> player.pause()
-                Lifecycle.Event.ON_START -> if (url != null && enabled) player.play()
+                Lifecycle.Event.ON_STOP, Lifecycle.Event.ON_PAUSE -> {
+                    inForeground = false
+                    player.playWhenReady = false
+                    player.pause()
+                }
+                Lifecycle.Event.ON_START -> inForeground = true
+                Lifecycle.Event.ON_RESUME -> {
+                    inForeground = true
+                    if (url != null && enabled) {
+                        player.playWhenReady = true
+                        player.play()
+                    }
+                }
                 else -> Unit
             }
         }
@@ -703,7 +718,11 @@ private fun LivePreview(
         } else {
             player.setMediaItem(ExoMediaItem.fromUri(url))
             player.prepare()
-            player.play()
+            // Se o app estiver em segundo plano, só prepara: nada de áudio.
+            if (foregroundRef.value) {
+                player.playWhenReady = true
+                player.play()
+            }
         }
     }
 

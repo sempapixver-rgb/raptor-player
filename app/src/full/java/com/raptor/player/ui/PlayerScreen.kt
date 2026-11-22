@@ -70,6 +70,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem as ExoMediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackGroup
 import androidx.media3.common.TrackSelectionOverride
@@ -136,6 +137,15 @@ fun PlayerScreen(
     var showSubs by remember { mutableStateOf(false) }
     var audioLabel by remember { mutableStateOf("Áudio") }
     var subsLabel by remember { mutableStateOf("Legendas") }
+    // Erro de reprodução: aparece quando o vídeo não carrega mesmo após retries.
+    var playbackError by remember { mutableStateOf<String?>(null) }
+    var retryCount by remember { mutableIntStateOf(0) }
+    val retryRef = rememberUpdatedState(retryCount)
+    // Guarda do watchdog: nunca recarrega vídeo com o app em segundo plano.
+    var appInForeground by remember { mutableStateOf(true) }
+    val foregroundRef = rememberUpdatedState(appInForeground)
+    var userPaused by remember { mutableStateOf(false) }
+    val userPausedRef = rememberUpdatedState(userPaused)
 
     // Transmissão DLNA: o vídeo vai direto para a TV, sem espelhar a tela.
     var showCast by remember { mutableStateOf(false) }
@@ -171,12 +181,44 @@ fun PlayerScreen(
             .build()
     }
 
-    // Play/pause do usuário: usa playWhenReady para que o estado sobreviva a
-    // ciclos de vida (ON_PAUSE/ON_RESUME) e ao autoplay.
+    // Recarrega o item atual do zero. Usado pelo botão "Tentar novamente" e
+    // quando o usuário aperta play com o player em IDLE/erro.
+    fun reloadCurrent() {
+        playbackError = null
+        userPaused = false
+        controlsVisible = true
+        player.playWhenReady = true
+        player.setMediaItem(ExoMediaItem.fromUri(current.url))
+        player.prepare()
+        player.play()
+    }
+
+    // Play/pause do usuário: decide pelo estado REAL do player, não por
+    // playWhenReady. Se o vídeo travou carregando, playWhenReady já é true e
+    // o botão antigo PAUSAVA em vez de tocar — parecia que o play não funcionava.
     fun togglePlay() {
-        val shouldPlay = !player.playWhenReady
-        player.playWhenReady = shouldPlay
-        if (shouldPlay) player.play() else player.pause()
+        // isPlaying é true também durante BUFFERING. Só consideramos "tocando"
+        // quando há imagem na tela (STATE_READY); senão o botão ▶ pausava um
+        // vídeo travado carregando e parecia não responder.
+        val reallyPlaying = player.isPlaying && player.playbackState == Player.STATE_READY
+        if (reallyPlaying) {
+            userPaused = true
+            player.playWhenReady = false
+            player.pause()
+        } else {
+            userPaused = false
+            playbackError = null
+            player.playWhenReady = true
+            if (player.playbackState == Player.STATE_IDLE ||
+                player.playbackState == Player.STATE_ENDED ||
+                player.playbackState == Player.STATE_BUFFERING ||
+                player.playerError != null
+            ) {
+                player.setMediaItem(ExoMediaItem.fromUri(current.url))
+                player.prepare()
+            }
+            player.play()
+        }
     }
 
     // Troca de episódio: salva a posição do anterior, carrega o novo e
@@ -205,6 +247,9 @@ fun PlayerScreen(
         position = 0L
         duration = 0L
         isPlaying = true
+        playbackError = null
+        userPaused = false
+        retryCount = 0
         // A chave de retomada é o TÍTULO (estável), não a URL (que muda no Xtream).
         resumeTarget.longValue = if (!isLiveStream(current.url)) prefs.resumeForStable(current.title) else 0L
         resumeApplied.value = false
@@ -219,10 +264,26 @@ fun PlayerScreen(
     // (seekTo antes do prepare ser concluído é ignorado e faz o vídeo começar do zero.)
     DisposableEffect(player) {
         val listener = object : Player.Listener {
+            override fun onPlayerError(error: PlaybackException) {
+                // Filme falhou ao carregar: tenta de novo algumas vezes sem
+                // pedir nada ao usuário (o servidor costuma recusar a 1ª conexão).
+                playbackError = error.message ?: "Não foi possível reproduzir"
+                val tries = retryRef.value
+                if (tries < 3 && !isLiveStream(currentUrl)) {
+                    retryCount = tries + 1
+                    playbackError = null
+                    player.playWhenReady = true
+                    player.setMediaItem(ExoMediaItem.fromUri(currentUrl))
+                    player.prepare()
+                }
+            }
+
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState != Player.STATE_READY) return
+                playbackError = null
                 // Autoplay: garante que comece sozinho quando o vídeo fica pronto.
-                if (!player.playWhenReady) player.playWhenReady = true
+                // Nunca reativa com o app em segundo plano.
+                if (!player.playWhenReady && foregroundRef.value) player.playWhenReady = true
                 if (!appliedRef.value.value && targetRef.value.longValue > 5_000L) {
                     val dur = player.duration
                     val target = targetRef.value.longValue
@@ -235,6 +296,33 @@ fun PlayerScreen(
         }
         player.addListener(listener)
         onDispose { player.removeListener(listener) }
+    }
+
+    // Watchdog: alguns servidores recusam a primeira conexão e o ExoPlayer fica
+    // preso em BUFFERING sem disparar onPlayerError. Se o relógio não andar por
+    // 10 s, recarregamos o item — sem isso o filme abria e ficava preto.
+    LaunchedEffect(player) {
+        while (true) {
+            delay(2_000)
+            if (!foregroundRef.value) continue
+            if (player.playbackState != Player.STATE_BUFFERING || isLiveStream(currentUrl)) continue
+            val before = player.currentPosition
+            delay(10_000)
+            if (player.playbackState != Player.STATE_BUFFERING ||
+                player.currentPosition > before + 500L
+            ) continue
+            val tries = retryRef.value
+            if (tries >= 3) {
+                playbackError = "O vídeo não carregou. Verifique sua conexão."
+                continue
+            }
+            retryCount = tries + 1
+            playbackError = null
+            player.playWhenReady = true
+            player.setMediaItem(ExoMediaItem.fromUri(currentUrl))
+            player.prepare()
+            player.play()
+        }
     }
 
     // Mantém a tela ligada enquanto o player está aberto.
@@ -257,12 +345,19 @@ fun PlayerScreen(
     DisposableEffect(lifecycleOwner, player) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                // Pausa ao sair do app/home, mas RETOMA ao voltar — sem isso o
-                // vídeo abria e ficava parado (autoplay não funcionava).
-                Lifecycle.Event.ON_STOP, Lifecycle.Event.ON_PAUSE -> player.pause()
+                // Ao sair do app/homescreen, derruba playWhenReady: só pause()
+                // deixava o ExoPlayer com intenção de tocar e o áudio continuava
+                // em segundo plano (canais e filmes).
+                Lifecycle.Event.ON_STOP, Lifecycle.Event.ON_PAUSE -> {
+                    appInForeground = false
+                    player.playWhenReady = false
+                    player.pause()
+                }
+                Lifecycle.Event.ON_START -> appInForeground = true
                 Lifecycle.Event.ON_RESUME -> {
-                    // Só retoma se o usuário não havia pausado manualmente.
-                    if (player.playbackState != Player.STATE_IDLE && player.playWhenReady) {
+                    appInForeground = true
+                    if (!userPausedRef.value && player.playbackState != Player.STATE_IDLE) {
+                        player.playWhenReady = true
                         player.play()
                     }
                 }
@@ -862,6 +957,43 @@ fun PlayerScreen(
                         color = Color.White,
                         fontSize = 12.sp
                     )
+                }
+            }
+        }
+
+        // Falha de reprodução: sem isso o vídeo ficava preto e o botão ▶
+        // parecia não funcionar. Agora há retry e uma saída explícita.
+        if (playbackError != null && !showCast) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Não foi possível reproduzir",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = playbackError ?: "",
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(18.dp))
+                Row(horizontalArrangement = Arrangement.Center) {
+                    TextButton(onClick = { retryCount = 0; reloadCurrent() }) {
+                        Text("Tentar novamente", color = MaterialTheme.colorScheme.primary)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    TextButton(onClick = onClose) {
+                        Text("Voltar", color = Color.White)
+                    }
                 }
             }
         }

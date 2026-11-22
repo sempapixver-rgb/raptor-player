@@ -225,9 +225,6 @@ private struct ActivationCard: View {
     @State private var status = "Aguardando ativação no site…"
     @State private var checking = false
     @State private var missed = false
-    @State private var manualURL = ""
-    @State private var showManual = false
-
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
@@ -270,34 +267,6 @@ private struct ActivationCard: View {
                 .font(.caption2)
                 .foregroundStyle(RaptorColor.dim)
 
-            Divider().background(RaptorColor.outline)
-
-            Button("URL DOS VÍDEOS") { showManual.toggle() }
-                .font(.caption.weight(.bold))
-                .foregroundStyle(RaptorColor.green)
-
-            if showManual {
-                HStack {
-                    TextField("Cole a URL dos vídeos", text: $manualURL)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .foregroundStyle(RaptorColor.text)
-                        .padding(10)
-                        .background(RaptorColor.black.opacity(0.7))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    Button("Colar") {
-                        if let pasted = UIPasteboard.general.string { manualURL = pasted }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(RaptorColor.green)
-                }
-                Button("Usar URL") {
-                    guard !manualURL.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                    onActivated(Session(mode: .link, linkUrl: manualURL))
-                }
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(RaptorColor.green)
-            }
         }
         .padding(14)
         .background(RaptorColor.surface.opacity(0.94))

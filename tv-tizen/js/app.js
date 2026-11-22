@@ -492,9 +492,6 @@ var App = {
       self.checkNow();
     });
 
-    var btnUrl = $('btnVideoUrl');
-    if (btnUrl) btnUrl.addEventListener('click', function () { self.useVideoUrl(); });
-
     var btnDemo = $('btnDemo');
     if (btnDemo) btnDemo.addEventListener('click', function () { self.startDemo(); });
 
@@ -593,42 +590,6 @@ var App = {
       clearTimeout(this.pollTimer);
       this.pollTimer = null;
     }
-  },
-
-  /** Atalho na tela de ativação: a pessoa cola a URL dos vídeos. */
-  useVideoUrl: function () {
-    var self = this;
-    var input = $('inVideoUrl');
-    var raw = input ? input.value.trim() : '';
-    var box = $('urlError');
-    if (box) box.textContent = '';
-
-    if (!raw) {
-      if (box) box.textContent = 'Cole a URL dos vídeos.';
-      return;
-    }
-
-    var url = normalizeRemoteUrl(raw);
-    if (!/^https?:\/\//i.test(url)) {
-      if (box) box.textContent = 'A URL deve começar com http:// ou https://.';
-      return;
-    }
-
-    this.stopPolling();
-    if (box) box.textContent = 'Conectando…';
-
-    var session = { mode: 'M3U', m3uUrl: url, baseUrl: '', username: '', password: '', label: '' };
-    createSource(session).check().then(function (message) {
-      if (message) {
-        if (box) box.textContent = message;
-        return;
-      }
-      Store.setSession(session);
-      Store.saveList(session);
-      self.enterHome(session);
-    }, function (err) {
-      if (box) box.textContent = 'Falha: ' + (err.message || 'erro de rede');
-    });
   },
 
   checkNow: function () {

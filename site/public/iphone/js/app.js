@@ -106,13 +106,6 @@ function bind() {
     } else toast('Toque e segure no campo para colar.');
   };
   $('smart-link').addEventListener('input', smartDetect);
-  $('manual-paste').onclick = $('smart-paste').onclick;
-  $('manual-toggle').onclick = function () { toggle($('manual-box'), $('manual-box').classList.contains('hidden')); };
-  $('manual-use').onclick = function () {
-    var url = $('manual-url').value.trim();
-    if (!url) { toast('Cole a URL dos vídeos.'); return; }
-    login({ mode: 'M3U', m3uUrl: url, baseUrl: '', username: '', password: '', label: 'URL dos vídeos' });
-  };
   $('activation-check').onclick = function () { checkActivation(true); };
   $('import-btn').onclick = function () { $('file-input').click(); };
   $('file-input').onchange = function (e) {
