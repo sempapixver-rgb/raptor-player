@@ -111,6 +111,8 @@ fun PlayerScreen(
     queue: List<PlayItem> = emptyList(),
     startIndex: Int = 0,
     autoAdvance: Boolean = false,
+    // Séries e filmes podem arrastar a barra; canais ao vivo, nunca.
+    allowSeek: Boolean = true,
     showCastButton: Boolean = true
 ) {
     val context = LocalContext.current
@@ -242,7 +244,7 @@ fun PlayerScreen(
     /** Move o vídeo para um ponto escolhido (barra de tempo ou "Pular abertura"). */
     fun seekTo(ms: Long) {
         // Canais ao vivo não têm ponto fixo: seek neles pode travar a transmissão.
-        if (isLiveStream(current.url)) return
+        if (!allowSeek || isLiveStream(current.url)) return
         val target = ms.coerceIn(0L, if (duration > 0L) duration else Long.MAX_VALUE)
         // A retomada automática não pode voltar a acertar depois de um seek manual.
         resumeApplied.value = true
@@ -658,7 +660,7 @@ fun PlayerScreen(
 
                     // ⏪ / ⏩ do controle: volta/avanza 10 s em vídeos com duração.
                     Key.MediaRewind, Key.MediaFastForward -> {
-                        if (duration > 0 && !isLiveStream(currentUrl)) {
+                        if (allowSeek && duration > 0 && !isLiveStream(currentUrl)) {
                             val step = if (event.key == Key.MediaFastForward) 10_000L else -10_000L
                             seekTo(player.currentPosition + step)
                         }
@@ -961,7 +963,7 @@ fun PlayerScreen(
                         fontSize = 12.sp
                     )
                     Spacer(Modifier.width(10.dp))
-                    if (duration > 0 && !isLiveStream(current.url)) {
+                    if (allowSeek && duration > 0 && !isLiveStream(current.url)) {
                         Slider(
                             value = (if (scrubbing) scrubPosition else position)
                                 .coerceIn(0, duration).toFloat(),

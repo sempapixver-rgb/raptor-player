@@ -51,7 +51,9 @@ import java.util.Locale
 private data class PlayRequest(
     val queue: List<PlayItem>,
     val index: Int,
-    val autoAdvance: Boolean = false
+    val autoAdvance: Boolean = false,
+    // Canais ao vivo não podem ser arrastados: seek congela a transmissão.
+    val allowSeek: Boolean = true
 )
 
 @Composable
@@ -104,7 +106,11 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
      * Abre um canal/filme. [queue] é a página visível: com ela os botões
      * Anterior/Próximo funcionam também em Canais e Filmes.
      */
-    fun play(entry: MediaEntry, queue: List<MediaEntry> = emptyList()) {
+    fun play(
+        entry: MediaEntry,
+        queue: List<MediaEntry> = emptyList(),
+        allowSeek: Boolean = true
+    ) {
         if (resolving) return
         scope.launch {
             resolving = true
@@ -129,7 +135,12 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                 if (items.isEmpty()) items.add(PlayItem(url, entry.name))
                 prefs.addRecent(entry)
                 recents = prefs.recents()
-                playing = PlayRequest(items, start.coerceIn(0, items.lastIndex), autoAdvance = false)
+                playing = PlayRequest(
+                    items,
+                    start.coerceIn(0, items.lastIndex),
+                    autoAdvance = false,
+                    allowSeek = allowSeek
+                )
             } catch (e: Exception) {
                 toast = e.message ?: "Não foi possível abrir o item"
             } finally {
@@ -149,7 +160,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
             toast = "Episódio sem link de reprodução"
             return
         }
-        playing = PlayRequest(queue, index, autoAdvance = true)
+        playing = PlayRequest(queue, index, autoAdvance = true, allowSeek = true)
     }
 
     val current = playing
@@ -198,7 +209,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         cacheKey = session.key(),
                         refreshKey = refreshTick,
                         previewEnabled = current == null,
-                        onPlay = { entry, queue -> play(entry, queue) },
+                        onPlay = { entry, queue -> play(entry, queue, allowSeek = false) },
                         onToggleFavorite = { toggleFavorite(it) }
                     )
 
@@ -208,7 +219,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         recents = recents,
                         cacheKey = session.key(),
                         refreshKey = refreshTick,
-                        onPlay = { entry, queue -> play(entry, queue) },
+                        onPlay = { entry, queue -> play(entry, queue, allowSeek = true) },
                         onToggleFavorite = { toggleFavorite(it) }
                     )
 
@@ -287,6 +298,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         queue = current.queue,
                         startIndex = current.index,
                         autoAdvance = current.autoAdvance,
+                        allowSeek = current.allowSeek,
                         onClose = { playing = null }
                     )
                 }
