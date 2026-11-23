@@ -3,7 +3,6 @@ package com.raptor.player.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -293,34 +292,17 @@ fun MoviesScreen(
                 )
 
                 else -> {
-                    // Paginação igual à LG: só 60 pôsteres existem por vez.
-                    // Antes a pasta inteira era desenhada e baixava centenas de
-                    // imagens de uma vez — era o "peso" ao abrir Filmes.
-                    var page by remember(visible) { mutableIntStateOf(0) }
-                    val pageCount = ((visible.size + PAGE_SIZE - 1) / PAGE_SIZE).coerceAtLeast(1)
-                    val safePage = page.coerceIn(0, pageCount - 1)
-                    val pageItems = remember(visible, safePage) {
-                        val from = safePage * PAGE_SIZE
-                        val to = (from + PAGE_SIZE).coerceAtMost(visible.size)
-                        if (from >= to) emptyList() else visible.subList(from, to)
-                    }
-
-                    Column(Modifier.fillMaxSize()) {
-                        BoxWithConstraints(Modifier.weight(1f)) {
-                            val columns = (maxWidth.value / 128f).toInt().coerceIn(2, 10)
-                            PosterGrid(
-                                items = pageItems,
-                                favoriteIds = favoriteIds,
-                                onClick = { entry -> onPlay(entry, pageItems) },
-                                onStar = onToggleFavorite,
-                                columns = columns
-                            )
-                        }
-                        PagerBar(
-                            page = safePage,
-                            pageCount = pageCount,
-                            onPrev = { page = safePage - 1 },
-                            onNext = { page = safePage + 1 }
+                    // Sem paginação: a pasta inteira rola seguida, em qualquer
+                    // categoria de filmes. A grade é lazy — só os pôsteres
+                    // visíveis são criados e baixados, então não pesa.
+                    BoxWithConstraints(Modifier.fillMaxSize()) {
+                        val columns = (maxWidth.value / 128f).toInt().coerceIn(2, 10)
+                        PosterGrid(
+                            items = visible,
+                            favoriteIds = favoriteIds,
+                            onClick = { entry -> onPlay(entry, visible) },
+                            onStar = onToggleFavorite,
+                            columns = columns
                         )
                     }
                 }
