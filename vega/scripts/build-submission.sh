@@ -32,7 +32,8 @@ echo
 
 # Fire TV Stick 4K Select e armv7. x86_64 serve apenas para o emulador Vega.
 TARGET=armv7
-PACKAGE=build/$TARGET-release/raptor_$TARGET.vpkg
+STAGE=build/$TARGET-release
+PACKAGE=$STAGE/raptor_$TARGET.vpkg
 
 rm -f "$PACKAGE"
 
@@ -41,13 +42,29 @@ npx react-native build-vega \
     --build-number "$VEGA_BUILD_NUMBER" \
     --build-version "$APP_VERSION"
 
-# O build pode terminar com codigo 0 sem gerar o pacote.
-if [ ! -f "$PACKAGE" ]; then
+# O SDK 2.x grava o pacote em build/private/kepler/<app>/... com o nome
+# derivado do package.json (@raptor/player-vega -> player-vega). Localizar o
+# artefato real em vez de assumir o caminho antigo usado pelo SDK 0.24.
+GENERATED=$(find build -type f -name "*_$TARGET.vpkg" -print -quit)
+if [ -z "$GENERATED" ]; then
     echo "O build terminou mas nao gerou o pacote .vpkg." >&2
     exit 1
 fi
 
-ACTUAL=$(sed -n 's/.*"build_number": \([0-9]*\).*/\1/p' "build/$TARGET-release/vpkg-info.json")
+INFO_SRC=$(dirname "$GENERATED")/vpkg-info.json
+if [ ! -f "$INFO_SRC" ]; then
+    INFO_SRC=$(find build -type f -name 'vpkg-info.json' -print -quit)
+fi
+if [ -z "$INFO_SRC" ] || [ ! -f "$INFO_SRC" ]; then
+    echo "O build gerou o .vpkg mas nao o vpkg-info.json." >&2
+    exit 1
+fi
+
+mkdir -p "$STAGE"
+cp "$GENERATED" "$PACKAGE"
+cp "$INFO_SRC" "$STAGE/vpkg-info.json"
+
+ACTUAL=$(sed -n 's/.*"build_number": \([0-9]*\).*/\1/p' "$STAGE/vpkg-info.json")
 if [ "$ACTUAL" != "$VEGA_BUILD_NUMBER" ]; then
     echo "build_number do pacote e '$ACTUAL', esperado '$VEGA_BUILD_NUMBER'." >&2
     exit 1
@@ -61,5 +78,6 @@ if tar -tf "$PACKAGE" | grep '^lib/' | grep -v "^lib/$TARGET/" | grep -q .; then
 fi
 
 echo
-echo "Pacote: $PACKAGE"
-cat "build/$TARGET-release/vpkg-info.json"
+echo "Pacote gerado em: $GENERATED"
+echo "Pacote para envio: $PACKAGE"
+cat "$STAGE/vpkg-info.json"
