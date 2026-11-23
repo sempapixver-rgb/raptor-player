@@ -87,6 +87,9 @@ import kotlinx.coroutines.launch
 
 private val SPEEDS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
 
+/** Episódios de série: ponto em que a abertura termina. */
+private const val SKIP_OPENING_MS = 40_000L
+
 /** Canais ao vivo não têm duração nem ponto de retomada. */
 private fun isLiveStream(url: String): Boolean {
     val low = url.lowercase()
@@ -130,6 +133,9 @@ fun PlayerScreen(
     var isPlaying by remember { mutableStateOf(true) }
     var position by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(0L) }
+    // Arrastar a barra de tempo: mantém o dedo/enquanto o vídeo acompanha.
+    var scrubbing by remember { mutableStateOf(false) }
+    var scrubPosition by remember { mutableLongStateOf(0L) }
     var audioTracks by remember { mutableStateOf<List<TrackOption>>(emptyList()) }
     var textTracks by remember { mutableStateOf<List<TrackOption>>(emptyList()) }
     var showSpeed by remember { mutableStateOf(false) }
@@ -233,6 +239,21 @@ fun PlayerScreen(
     val appliedRef = rememberUpdatedState(resumeApplied)
     val targetRef = rememberUpdatedState(resumeTarget)
 
+    /** Move o vídeo para um ponto escolhido (barra de tempo ou "Pular abertura"). */
+    fun seekTo(ms: Long) {
+        val target = ms.coerceIn(0L, if (duration > 0L) duration else Long.MAX_VALUE)
+        // A retomada automática não pode voltar a acertar depois de um seek manual.
+        resumeApplied.value = true
+        player.seekTo(target)
+        position = target
+        scrubPosition = target
+        controlsVisible = true
+    }
+
+    // Só episódios de série usam fila com avanço automático. Canais ao vivo
+    // e filmes não ganham botão de abertura nem seek manual na barra.
+    val isSeries = autoAdvance && items.size > 1
+
     LaunchedEffect(current.url) {
         val previous = lastUrl
         val previousTitle = lastTitle
@@ -246,6 +267,8 @@ fun PlayerScreen(
         lastTitle = current.title
         position = 0L
         duration = 0L
+        scrubbing = false
+        scrubPosition = 0L
         isPlaying = true
         playbackError = null
         userPaused = false
@@ -631,8 +654,12 @@ fun PlayerScreen(
                         true
                     }
 
-                    // ⏪ / ⏩ do controle: sem avanço/retorno (reprodução contínua).
+                    // ⏪ / ⏩ do controle: volta/avanza 10 s em vídeos com duração.
                     Key.MediaRewind, Key.MediaFastForward -> {
+                        if (duration > 0) {
+                            val step = if (event.key == Key.MediaFastForward) 10_000L else -10_000L
+                            seekTo(player.currentPosition + step)
+                        }
                         controlsVisible = true
                         true
                     }
@@ -889,7 +916,19 @@ fun PlayerScreen(
                         }
                     }
 
-                    // Sem botões de avanço/retorno: a reprodução é contínua.
+                    // Séries: atalho para pular os 40 s iniciais da abertura.
+                    if (isSeries && duration > SKIP_OPENING_MS + 2_000L &&
+                        position < SKIP_OPENING_MS
+                    ) {
+                        TextButton(onClick = { seekTo(SKIP_OPENING_MS) }) {
+                            Text(
+                                text = "⏭ Pular abertura (40s)",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
 
                 // Posição na fila (ex.: "Episódio 3 de 12").
@@ -915,23 +954,41 @@ fun PlayerScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = formatTime(position),
+                        text = formatTime(if (scrubbing) scrubPosition else position),
                         color = Color.White,
                         fontSize = 12.sp
                     )
                     Spacer(Modifier.width(10.dp))
                     if (duration > 0) {
                         Slider(
-                            value = position.coerceIn(0, duration).toFloat(),
-                            onValueChange = {},
+                            value = (if (scrubbing) scrubPosition else position)
+                                .coerceIn(0, duration).toFloat(),
+                            onValueChange = { value ->
+                                scrubbing = true
+                                scrubPosition = value.toLong().coerceIn(0, duration)
+                            },
+                            onValueChangeFinished = {
+                                val target = scrubPosition
+                                scrubbing = false
+                                seekTo(target)
+                            },
                             valueRange = 0f..duration.toFloat(),
-                            enabled = false,
                             modifier = Modifier
                                 .weight(1f)
-                                // A barra só mostra o progresso. OK pausa/continua.
+                                // Arraste com o dedo/mouse ou ← → no D-pad; OK pausa/continua.
                                 .onPreviewKeyEvent { event ->
                                     if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                                     when (event.key) {
+                                        Key.DirectionLeft -> {
+                                            seekTo(player.currentPosition - 10_000L)
+                                            true
+                                        }
+
+                                        Key.DirectionRight -> {
+                                            seekTo(player.currentPosition + 10_000L)
+                                            true
+                                        }
+
                                         Key.DirectionCenter, Key.Enter -> {
                                             togglePlay()
                                             controlsVisible = true
