@@ -75,8 +75,10 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackGroup
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.raptor.player.data.Dlna
@@ -186,8 +188,20 @@ fun PlayerScreen(
     }
 
     // Buffer menor que o padrão: abre mais rápido e usa menos memória.
+    // Causa real do "Source error" (vista no logcat): o servidor responde com
+    // redirecionamento 302, às vezes trocando http<->https. O ExoPlayer NÃO
+    // segue isso por padrão; o navegador da LG segue sozinho — por isso lá
+    // funciona. Aqui liberamos o redirecionamento e damos mais tempo de
+    // conexão, que no celular (Wi-Fi/4G) costuma ser mais lento que no Fire TV.
     val player = remember {
+        val httpFactory = DefaultHttpDataSource.Factory()
+            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(30_000)
+            .setReadTimeoutMs(30_000)
         ExoPlayer.Builder(context)
+            .setMediaSourceFactory(
+                DefaultMediaSourceFactory(context).setDataSourceFactory(httpFactory)
+            )
             .setLoadControl(
                 DefaultLoadControl.Builder()
                     .setBufferDurationsMs(20_000, 45_000, 1_500, 3_000)
