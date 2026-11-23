@@ -95,6 +95,16 @@ private data class TrackOption(val label: String, val override: TrackSelectionOv
 /** Um item reproduzível: episódio ou filme/canal. */
 data class PlayItem(val url: String, val title: String)
 
+/**
+ * Correção que já existe na LG: o servidor às vezes deixa a conexão anterior
+ * presa e nunca entrega os dados. Um parâmetro novo força uma conexão limpa.
+ * Repetir a URL exata (como o Android fazia) dava "Source error" no filme.
+ */
+private fun freshUrl(url: String): String {
+    val separator = if (url.contains('?')) '&' else '?'
+    return "$url${separator}r=${System.currentTimeMillis()}"
+}
+
 @OptIn(UnstableApi::class)
 @Composable
 fun PlayerScreen(
@@ -193,7 +203,7 @@ fun PlayerScreen(
         userPaused = false
         controlsVisible = true
         player.playWhenReady = true
-        player.setMediaItem(ExoMediaItem.fromUri(current.url))
+        player.setMediaItem(ExoMediaItem.fromUri(freshUrl(current.url)))
         player.prepare()
         player.play()
     }
@@ -219,7 +229,7 @@ fun PlayerScreen(
                 player.playbackState == Player.STATE_BUFFERING ||
                 player.playerError != null
             ) {
-                player.setMediaItem(ExoMediaItem.fromUri(current.url))
+                player.setMediaItem(ExoMediaItem.fromUri(freshUrl(current.url)))
                 player.prepare()
             }
             player.play()
@@ -298,7 +308,8 @@ fun PlayerScreen(
                     retryCount = tries + 1
                     playbackError = null
                     player.playWhenReady = true
-                    player.setMediaItem(ExoMediaItem.fromUri(currentUrl))
+                    // URL nova: repetir a mesma faz o servidor devolver o erro.
+                    player.setMediaItem(ExoMediaItem.fromUri(freshUrl(currentUrl)))
                     player.prepare()
                     player.play()
                 }
@@ -348,9 +359,26 @@ fun PlayerScreen(
             retryCount = tries + 1
             playbackError = null
             player.playWhenReady = true
-            player.setMediaItem(ExoMediaItem.fromUri(currentUrl))
+            player.setMediaItem(ExoMediaItem.fromUri(freshUrl(currentUrl)))
             player.prepare()
             player.play()
+        }
+    }
+
+    // Mesma correção da LG: em alguns aparelhos o primeiro play() é recusado
+    // e o vídeo fica parado. Insiste algumas vezes se o vídeo ficou pronto
+    // mas não começou — nunca se o usuário pausou ou o app saiu de plano.
+    LaunchedEffect(current.url) {
+        var tries = 0
+        while (tries < 8) {
+            delay(700L + tries * 500L)
+            if (currentUrl != current.url) return@LaunchedEffect
+            if (!foregroundRef.value || userPausedRef.value || playbackError != null) continue
+            if (player.playbackState == Player.STATE_READY && !player.isPlaying) {
+                player.playWhenReady = true
+                player.play()
+            }
+            tries += 1
         }
     }
 
@@ -421,13 +449,13 @@ fun PlayerScreen(
         }
     }
 
-    // Canais ao vivo: se o relógio parar, primeiro tentamos uma recuperação
-    // leve (seek de 1 s dentro da janela). Trocar o MediaItem limpava a imagem
-    // e causava a "tela preta e depois volta"; só recarregamos se isso falhar.
+    // Canais ao vivo: se o relógio parar, abrimos de novo com URL nova —
+    // mesma correção da LG. O servidor prende a conexão antiga e a imagem
+    // some; com o parâmetro novo a reconexão volta na primeira tentativa.
+    // Nenhum seek em canal ao vivo, por pedido do usuário.
     LaunchedEffect(player, current.url) {
         var lastPosition = -1L
         var stalled = 0
-        var softTries = 0
         while (true) {
             delay(10_000)
             val url = currentUrl
@@ -436,25 +464,16 @@ fun PlayerScreen(
             ) {
                 lastPosition = -1L
                 stalled = 0
-                softTries = 0
                 continue
             }
             val pos = player.currentPosition
             if (lastPosition >= 0 && pos <= lastPosition + 500L) stalled += 1 else stalled = 0
             lastPosition = pos
-            if (stalled >= 3) {
-                if (softTries < 3) {
-                    player.seekTo(maxOf(0L, pos - 1_000L))
-                    softTries += 1
-                } else {
-                    val separator = if (url.contains('?')) '&' else '?'
-                    player.playWhenReady = true
-                    player.setMediaItem(
-                        ExoMediaItem.fromUri("$url${separator}reconnect=${System.currentTimeMillis()}")
-                    )
-                    player.prepare()
-                    softTries = 0
-                }
+            if (stalled >= 2) {
+                player.playWhenReady = true
+                player.setMediaItem(ExoMediaItem.fromUri(freshUrl(url)))
+                player.prepare()
+                player.play()
                 stalled = 0
                 lastPosition = -1L
             }
