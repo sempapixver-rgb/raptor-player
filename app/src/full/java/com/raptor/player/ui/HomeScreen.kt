@@ -38,11 +38,8 @@ import com.raptor.player.data.displayName
 import com.raptor.player.data.key
 import com.raptor.player.ui.theme.RaptorGreen
 import com.raptor.player.ui.theme.RaptorTextDim
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+
 
 /**
  * Casca do app: topo + uma aba por vez + menu inferior.
@@ -91,16 +88,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
         preloadLabel = null
     }
 
-    var clock by remember { mutableStateOf("") }
-    LaunchedEffect(Unit) {
-        val format = SimpleDateFormat("HH:mm", Locale.getDefault())
-        while (true) {
-            clock = format.format(Date())
-            // Acorda no início do próximo minuto: antes isso acontecia a cada
-            // segundo e recompunha a tela inteira 60x por minuto à toa.
-            delay(60_000L - (System.currentTimeMillis() % 60_000L) + 50L)
-        }
-    }
+
 
     /**
      * Abre um canal/filme. [queue] é a página visível: com ela os botões
@@ -190,13 +178,9 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
             )
         } else {
         Column(Modifier.fillMaxSize()) {
-            TopBar(
-                title = open.label,
-                subtitle = session.displayName(),
-                clock = clock,
-                onRefresh = { refreshTick++ }
-            )
-
+            // Topo limpo: sem "RAPTOR", nome da conta, relógio ou botão
+            // Atualizar — tudo isso roubava altura da lista. A atualização
+            // do catálogo continua disponível em Ajustes.
             TopTabs(tab = open, onTab = { tab = it })
 
             Box(Modifier.weight(1f).fillMaxWidth()) {

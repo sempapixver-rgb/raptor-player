@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -490,7 +489,7 @@ private fun SeriesDetailView(
                 // -------------------------------------------- capa + sinopse
                 BoxWithConstraints(
                     Modifier
-                        .width(250.dp)
+                        .width(220.dp)
                         .fillMaxHeight()
                         .background(RaptorSurfaceHigh.copy(alpha = 0.3f))
                         .padding(12.dp)
@@ -632,96 +631,99 @@ private fun SeriesDetailView(
                 )
 
                 // -------------------------------------- temporadas + episódios
-                Column(Modifier.weight(1f).fillMaxHeight().padding(12.dp)) {
+                // Tudo numa rolagem só, igual aos filmes: as temporadas rolam
+                // junto e saem da tela, deixando a lista de episódios ocupar
+                // o espaço todo. Sem barra de divisão entre temporadas e eps.
+                val episodes = season?.episodes.orEmpty()
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxHeight().padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    contentPadding = PaddingValues(bottom = 10.dp)
+                ) {
+                    item(key = "seasons") {
+                        Column {
+                            Text(
+                                "TEMPORADAS",
+                                color = RaptorGreen,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(Modifier.height(4.dp))
 
-                    Text(
-                        "TEMPORADAS",
-                        color = RaptorGreen,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(6.dp))
-
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(end = 8.dp)
-                    ) {
-                        items(count = seasons.size, key = { seasons[it].number }) { index ->
-                            val item = seasons[index]
-                            val selected = index == safeIndex
-                            var chipFocused by remember { mutableStateOf(false) }
-                            Box(
-                                Modifier
-                                    .clip(RoundedCornerShape(9.dp))
-                                    .background(
-                                        when {
-                                            selected -> RaptorGreen.copy(alpha = 0.2f)
-                                            chipFocused -> RaptorGreen.copy(alpha = 0.12f)
-                                            else -> RaptorSurfaceHigh
-                                        }
-                                    )
-                                    .border(
-                                        width = if (selected || chipFocused) 1.dp else 0.dp,
-                                        color = if (selected || chipFocused) RaptorGreen else Color.Transparent,
-                                        shape = RoundedCornerShape(9.dp)
-                                    )
-                                    .onFocusChanged { chipFocused = it.isFocused }
-                                    .clickable { seasonIndex = index }
-                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                contentPadding = PaddingValues(end = 8.dp)
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = "T${item.number}",
-                                        color = if (selected) RaptorGreen else RaptorText,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = "${item.episodes.size} ep.",
-                                        color = RaptorTextDim,
-                                        fontSize = 9.sp
-                                    )
+                                items(count = seasons.size, key = { seasons[it].number }) { index ->
+                                    val item = seasons[index]
+                                    val selected = index == safeIndex
+                                    var chipFocused by remember { mutableStateOf(false) }
+                                    Box(
+                                        Modifier
+                                            .clip(RoundedCornerShape(9.dp))
+                                            .background(
+                                                when {
+                                                    selected -> RaptorGreen.copy(alpha = 0.2f)
+                                                    chipFocused -> RaptorGreen.copy(alpha = 0.12f)
+                                                    else -> RaptorSurfaceHigh
+                                                }
+                                            )
+                                            .border(
+                                                width = if (selected || chipFocused) 1.dp else 0.dp,
+                                                color = if (selected || chipFocused) RaptorGreen else Color.Transparent,
+                                                shape = RoundedCornerShape(9.dp)
+                                            )
+                                            .onFocusChanged { chipFocused = it.isFocused }
+                                            .clickable { seasonIndex = index }
+                                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text(
+                                                text = "T${item.number}",
+                                                color = if (selected) RaptorGreen else RaptorText,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
+                                                text = "${item.episodes.size} ep.",
+                                                color = RaptorTextDim,
+                                                fontSize = 9.sp
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
 
-                    Spacer(Modifier.height(10.dp))
-                    HorizontalDivider(color = RaptorOutline.copy(alpha = 0.4f))
-                    Spacer(Modifier.height(8.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "EPISÓDIOS · TEMPORADA ${season?.number ?: 1}",
-                            color = RaptorGreen,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Text(
-                            text = "${season?.episodes?.size ?: 0} episódios",
-                            color = RaptorTextDim,
-                            fontSize = 10.sp
-                        )
-                    }
-
-                    Spacer(Modifier.height(6.dp))
-
-                    val episodes = season?.episodes.orEmpty()
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        contentPadding = PaddingValues(bottom = 10.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(count = episodes.size, key = { episodes[it].id }) { index ->
-                            EpisodeRow(
-                                episode = episodes[index],
-                                onPlay = {
-                                    val ep = episodes[index]
-                                    onPlayEpisode(playQueue, indexById[ep.id] ?: 0)
-                                }
+                    item(key = "ep-header") {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(top = 6.dp)
+                        ) {
+                            Text(
+                                text = "EPISÓDIOS · TEMPORADA ${season?.number ?: 1}",
+                                color = RaptorGreen,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = "${episodes.size} episódios",
+                                color = RaptorTextDim,
+                                fontSize = 10.sp
                             )
                         }
+                    }
+
+                    items(count = episodes.size, key = { episodes[it].id }) { index ->
+                        EpisodeRow(
+                            episode = episodes[index],
+                            onPlay = {
+                                val ep = episodes[index]
+                                onPlayEpisode(playQueue, indexById[ep.id] ?: 0)
+                            }
+                        )
                     }
                 }
             }
@@ -771,7 +773,7 @@ private fun EpisodeRow(episode: Episode, onPlay: () -> Unit) {
             Text(
                 text = episode.title,
                 color = RaptorText,
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
