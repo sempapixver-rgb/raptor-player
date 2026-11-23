@@ -300,7 +300,10 @@ fun MoviesScreen(
                         PosterGrid(
                             items = visible,
                             favoriteIds = favoriteIds,
-                            onClick = { entry -> onPlay(entry, visible) },
+                            // Fila vazia: abre só o filme escolhido. Passar a pasta
+                            // inteira fazia o app consultar o link de centenas de
+                            // filmes antes de tocar e mostrava "2 de 918" no player.
+                            onClick = { entry -> onPlay(entry, emptyList()) },
                             onStar = onToggleFavorite,
                             columns = columns
                         )

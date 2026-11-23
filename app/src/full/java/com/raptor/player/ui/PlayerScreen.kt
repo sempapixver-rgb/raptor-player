@@ -223,6 +223,9 @@ fun PlayerScreen(
         } else {
             userPaused = false
             playbackError = null
+            // O usuário pediu para tocar de novo: dá uma nova chance de retry
+            // (as 3 tentativas automáticas podiam já ter se esgotado).
+            retryCount = 0
             player.playWhenReady = true
             if (player.playbackState == Player.STATE_IDLE ||
                 player.playbackState == Player.STATE_ENDED ||
