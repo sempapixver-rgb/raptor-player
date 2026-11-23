@@ -26,6 +26,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -96,6 +99,12 @@ private data class TrackOption(val label: String, val override: TrackSelectionOv
 
 /** Um item reproduzível: episódio ou filme/canal. */
 data class PlayItem(val url: String, val title: String)
+
+/** Episódio na lista dentro do player (índice na fila + rótulo curto). */
+private data class EpisodePick(val index: Int, val label: String, val title: String)
+
+/** Temporada com seus episódios, para escolher sem sair do player. */
+private data class SeasonGroup(val season: String, val entries: List<EpisodePick>)
 
 /**
  * Correção que já existe na LG: o servidor às vezes deixa a conexão anterior
@@ -281,6 +290,38 @@ fun PlayerScreen(
     // Só episódios de série usam fila com avanço automático. Canais ao vivo
     // e filmes não ganham botão de abertura nem seek manual na barra.
     val isSeries = autoAdvance && items.size > 1
+
+    // Lista de episódios para escolher dentro do player. Os títulos vêm da
+    // tela de séries no formato "Série · T1E2 · Nome do episódio".
+    val episodeGroups = remember(items) {
+        val rex = Regex("""T(\d+)E(\d+)""", RegexOption.IGNORE_CASE)
+        val groups = LinkedHashMap<String, MutableList<EpisodePick>>()
+        items.forEachIndexed { i, item ->
+            val match = rex.find(item.title)
+            val season = match?.groupValues?.get(1)?.let { "T$it" } ?: "T1"
+            val label = match?.groupValues?.get(2)?.let { "E$it" } ?: "${i + 1}"
+            groups.getOrPut(season) { mutableListOf() }
+                .add(EpisodePick(i, label, item.title))
+        }
+        groups.map { (season, entries) -> SeasonGroup(season, entries) }
+    }
+    val currentGroupIndex = remember(current.title, episodeGroups) {
+        val key = Regex("""T(\d+)E""", RegexOption.IGNORE_CASE)
+            .find(current.title)?.groupValues?.get(1)?.let { "T$it" }
+        episodeGroups.indexOfFirst { it.season == key }.coerceAtLeast(0)
+    }
+    var pickedGroup by remember { mutableIntStateOf(0) }
+    LaunchedEffect(current.url, currentGroupIndex) { pickedGroup = currentGroupIndex }
+    val shownGroup = episodeGroups.getOrNull(pickedGroup)
+
+    /** Escolhe um episódio da lista sem fechar o player. */
+    fun pickEpisode(target: Int) {
+        val t = target.coerceIn(0, items.lastIndex)
+        if (t != index) {
+            controlsVisible = true
+            index = t
+        }
+    }
 
     LaunchedEffect(current.url) {
         val previous = lastUrl
@@ -901,7 +942,10 @@ fun PlayerScreen(
                     }
                 }
 
-                Spacer(Modifier.weight(1f))
+                // Com a lista de episódios aberta, o espaço do meio é dela;
+                // em filme/canal os controles continuam centralizados.
+                if (isSeries && shownGroup != null) Spacer(Modifier.height(8.dp))
+                else Spacer(Modifier.weight(1f))
 
                 // Centro
                 Column(
@@ -995,7 +1039,92 @@ fun PlayerScreen(
                     )
                 }
 
-                Spacer(Modifier.weight(1f))
+                // Episódios da série/temporada, embaixo da barra de tempo e
+                // dos controles, para o cliente escolher sem sair do player.
+                if (isSeries && shownGroup != null) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
+                        // Temporadas daquela série.
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            episodeGroups.forEachIndexed { gi, group ->
+                                val selected = gi == pickedGroup
+                                Box(
+                                    Modifier
+                                        .clip(RoundedCornerShape(7.dp))
+                                        .background(
+                                            Color.White.copy(alpha = if (selected) 0.22f else 0.08f)
+                                        )
+                                        .clickable { pickedGroup = gi }
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = group.season,
+                                        color = Color.White.copy(alpha = if (selected) 1f else 0.7f),
+                                        fontSize = 11.sp,
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        val episodeListState = rememberLazyListState()
+                        LaunchedEffect(shownGroup.season, index) {
+                            val pos = shownGroup.entries.indexOfFirst { it.index == index }
+                            if (pos >= 0) episodeListState.scrollToItem(pos)
+                        }
+                        LazyColumn(
+                            state = episodeListState,
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            items(shownGroup.entries, key = { it.index }) { pick ->
+                                val active = pick.index == index
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(7.dp))
+                                        .background(
+                                            if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+                                            else Color.White.copy(alpha = 0.08f)
+                                        )
+                                        .clickable { pickEpisode(pick.index) }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = pick.label,
+                                        color = if (active) MaterialTheme.colorScheme.primary else Color.White,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = pick.title.substringAfter(" · ", pick.title),
+                                        color = Color.White.copy(alpha = if (active) 1f else 0.8f),
+                                        fontSize = 11.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (active) {
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            "▶",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
 
                 // Base
                 Row(
