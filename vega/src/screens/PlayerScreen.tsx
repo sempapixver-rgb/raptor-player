@@ -268,7 +268,9 @@ export function PlayerScreen({source, entry, list, onClose, onSelect}: Props) {
         {!isLive ? (
           <View style={styles.progressWrap}>
             <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, {width: percent + '%'}]} />
+              <View
+                style={[styles.progressFill, {width: (percent + '%') as any}]}
+              />
             </View>
             <View style={styles.times}>
               <Text style={styles.timeText}>{formatTime(time)}</Text>
