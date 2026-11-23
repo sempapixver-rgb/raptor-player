@@ -11,6 +11,9 @@ neutro, sem menção a IPTV, listas pagas ou conteúdo embutido.
 
 **Título:** Raptor Player
 
+**Pacote:** `com.raptor.player.store` — obrigatoriamente igual ao APK Fire OS,
+pois os dois binários usam o mesmo anúncio/ASIN.
+
 **Subtítulo:** Video player
 
 **Categoria:** Entretenimento (Apps → Vídeo)

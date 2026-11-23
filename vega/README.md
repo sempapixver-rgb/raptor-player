@@ -4,8 +4,8 @@ Aplicativo de TV feito em React Native para **VegaOS**, o sistema do
 Fire TV Stick 4K Select. É a mesma identidade do app Android/webOS:
 um **tocador de vídeo** com ativação por código, sem conteúdo embutido.
 
-- Pacote: `com.raptor.player.vega`
-- Componente: `com.raptor.player.vega.main`
+- Pacote: `com.raptor.player.store`
+- Componente: `com.raptor.player.store.main`
 - Versão: `1.0.0` (build `2026111401`)
 - Vega OS: mínimo e alvo `1.2`
 - Arquitetura: `armv7` (Fire TV Stick 4K Select)

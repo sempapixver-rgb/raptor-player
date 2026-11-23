@@ -16,4 +16,4 @@ export const PRIVACY_URL = `${SITE_BASE}/privacidade.html`;
 export const TERMS_VERSION = 2;
 
 /** Identificacao do pacote (mesma do manifest.toml). */
-export const PACKAGE_ID = 'com.raptor.player.vega';
+export const PACKAGE_ID = 'com.raptor.player.store';
