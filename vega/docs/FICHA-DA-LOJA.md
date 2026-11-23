@@ -111,9 +111,14 @@ No third-party content is embedded in the APK.
 
 **Submitted build (already live in the console)**
 ```
-Raptor-Store.apk  —  Fire OS / Vega OS (Fire Tablets, Fire TVs, Automotive)
-Status: In Review
+Raptor-Store.apk  —  Fire OS (Fire Tablets, Fire TVs, Automotive)
+Status: Live
 ```
+**ATENÇÃO (corrigido em 23/11):** este APK é Fire OS (Android). Ele **não**
+cobre Vega OS. O Fire TV Stick 4K Select roda Vega OS e exige um binário
+separado `build/armv7-release/raptor_armv7.vpkg`, que **ainda não foi gerado
+nem enviado**. A nota antiga "Fire OS / Vega OS" estava errada e gerou a
+confusão sobre o envio Vega.
 
 ---
 

@@ -1,0 +1,70 @@
+name: Build Vega (VPKG)
+
+on:
+  workflow_dispatch:
+    inputs:
+      sdk_version:
+        description: 'Versao do Vega SDK (vazio = mais recente)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Dependencias do sistema
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y jq build-essential lz4 python3-dev curl
+
+      - name: Instalar Vega SDK
+        env:
+          NONINTERACTIVE: 'true'
+          FORCE_ASCII: 'true'
+          VEGA_SDK_VERSION: ${{ github.event.inputs.sdk_version }}
+        run: |
+          set -euo pipefail
+          curl -fsSL https://sdk-installer.vega.labcollab.net/get_vvm.sh -o /tmp/get_vvm.sh
+          bash /tmp/get_vvm.sh
+          source "$HOME/vega/env"
+          echo "$HOME/vega/bin" >> "$GITHUB_PATH"
+          echo "VEGA_HOME=$HOME/vega" >> "$GITHUB_ENV"
+          vega --version
+
+      - name: Instalar dependencias npm
+        working-directory: vega
+        run: npm install --no-audit --no-fund
+
+      - name: Conferir TypeScript
+        working-directory: vega
+        run: npx tsc --noEmit
+
+      - name: Gerar pacote de envio (.vpkg)
+        working-directory: vega
+        run: |
+          set -euo pipefail
+          source "$HOME/vega/env"
+          bash scripts/build-submission.sh
+
+      - name: Salvar pacote Vega
+        uses: actions/upload-artifact@v4
+        with:
+          name: Raptor-Vega-vpkg
+          path: |
+            vega/build/armv7-release/raptor_armv7.vpkg
+            vega/build/armv7-release/vpkg-info.json
+          if-no-files-found: error
