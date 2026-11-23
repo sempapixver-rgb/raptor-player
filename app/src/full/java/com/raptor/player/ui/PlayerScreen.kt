@@ -90,13 +90,6 @@ private val SPEEDS = listOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 1.75f, 2f)
 /** Episódios de série: ponto em que a abertura termina. */
 private const val SKIP_OPENING_MS = 40_000L
 
-/** Canais ao vivo não têm duração nem ponto de retomada. */
-private fun isLiveStream(url: String): Boolean {
-    val low = url.lowercase()
-    return low.contains("/live/") ||
-        (low.contains(".m3u8") && !low.contains("/movie/") && !low.contains("/series/"))
-}
-
 private data class TrackOption(val label: String, val override: TrackSelectionOverride?)
 
 /** Um item reproduzível: episódio ou filme/canal. */
@@ -118,6 +111,10 @@ fun PlayerScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val prefs = remember(context) { Prefs(context) }
+
+    // A aba define se é canal ao vivo. Detectar pela URL classificava filmes
+    // .m3u8 como "ao vivo" e ligava o watchdog de reconexão no filme.
+    val isLive = !allowSeek
 
     // Sem fila (filme/canal) toca um item só. Com fila (série) os botões
     // Anterior/Próximo trocam o episódio sem fechar o player.
@@ -244,7 +241,7 @@ fun PlayerScreen(
     /** Move o vídeo para um ponto escolhido (barra de tempo ou "Pular abertura"). */
     fun seekTo(ms: Long) {
         // Canais ao vivo não têm ponto fixo: seek neles pode travar a transmissão.
-        if (!allowSeek || isLiveStream(current.url)) return
+        if (isLive) return
         val target = ms.coerceIn(0L, if (duration > 0L) duration else Long.MAX_VALUE)
         // A retomada automática não pode voltar a acertar depois de um seek manual.
         resumeApplied.value = true
@@ -263,7 +260,7 @@ fun PlayerScreen(
         val previousTitle = lastTitle
         if (previous != null && previous != current.url) {
             val pos = player.currentPosition
-            if (pos > 5_000L && previousTitle != null && !isLiveStream(previous)) {
+            if (pos > 5_000L && previousTitle != null && !isLive) {
                 runCatching { prefs.saveResumeStable(previousTitle, pos) }
             }
         }
@@ -278,13 +275,14 @@ fun PlayerScreen(
         userPaused = false
         retryCount = 0
         // A chave de retomada é o TÍTULO (estável), não a URL (que muda no Xtream).
-        resumeTarget.longValue = if (!isLiveStream(current.url)) prefs.resumeForStable(current.title) else 0L
+        resumeTarget.longValue = if (!isLive) prefs.resumeForStable(current.title) else 0L
         resumeApplied.value = false
         // playWhenReady primeiro: garante que o vídeo comece sozinho assim que
         // o primeiro frame estiver pronto (canais ao vivo, filmes e séries).
         player.playWhenReady = true
         player.setMediaItem(ExoMediaItem.fromUri(current.url))
         player.prepare()
+        player.play()
     }
 
     // Aplica a posição salva SÓ quando o jogador já tem duração conhecida.
@@ -296,12 +294,13 @@ fun PlayerScreen(
                 // pedir nada ao usuário (o servidor costuma recusar a 1ª conexão).
                 playbackError = error.message ?: "Não foi possível reproduzir"
                 val tries = retryRef.value
-                if (tries < 3 && !isLiveStream(currentUrl)) {
+                if (tries < 3 && !isLive) {
                     retryCount = tries + 1
                     playbackError = null
                     player.playWhenReady = true
                     player.setMediaItem(ExoMediaItem.fromUri(currentUrl))
                     player.prepare()
+                    player.play()
                 }
             }
 
@@ -310,7 +309,10 @@ fun PlayerScreen(
                 playbackError = null
                 // Autoplay: garante que comece sozinho quando o vídeo fica pronto.
                 // Nunca reativa com o app em segundo plano.
-                if (!player.playWhenReady && foregroundRef.value) player.playWhenReady = true
+                if (!player.playWhenReady && foregroundRef.value) {
+                    player.playWhenReady = true
+                    player.play()
+                }
                 if (!appliedRef.value.value && targetRef.value.longValue > 5_000L) {
                     val dur = player.duration
                     val target = targetRef.value.longValue
@@ -332,7 +334,7 @@ fun PlayerScreen(
         while (true) {
             delay(2_000)
             if (!foregroundRef.value) continue
-            if (player.playbackState != Player.STATE_BUFFERING || isLiveStream(currentUrl)) continue
+            if (player.playbackState != Player.STATE_BUFFERING || isLive) continue
             val before = player.currentPosition
             delay(10_000)
             if (player.playbackState != Player.STATE_BUFFERING ||
@@ -361,7 +363,7 @@ fun PlayerScreen(
             // Salva a posição final somente se o player chegou a carregar e
             // avançou de verdade — salvar 0 apagava a retomada.
             val pos = player.currentPosition
-            if (!isLiveStream(currentUrl) && pos > 5_000L) {
+            if (!isLive && pos > 5_000L) {
                 runCatching { prefs.saveResumeStable(currentTitle, pos) }
             }
             player.release()
@@ -412,38 +414,47 @@ fun PlayerScreen(
     LaunchedEffect(player) {
         while (true) {
             delay(10_000)
-            if (player.isPlaying && !isLiveStream(currentUrl)) {
+            if (player.isPlaying && !isLive) {
                 val pos = player.currentPosition
                 if (pos > 5_000L) runCatching { prefs.saveResumeStable(currentTitle, pos) }
             }
         }
     }
 
-    // Canais ao vivo: se o relógio parar de andar (ex.: depois de ~30 s),
-    // abrimos a URL novamente com um parâmetro novo para forçar uma conexão limpa.
+    // Canais ao vivo: se o relógio parar, primeiro tentamos uma recuperação
+    // leve (seek de 1 s dentro da janela). Trocar o MediaItem limpava a imagem
+    // e causava a "tela preta e depois volta"; só recarregamos se isso falhar.
     LaunchedEffect(player, current.url) {
         var lastPosition = -1L
         var stalled = 0
+        var softTries = 0
         while (true) {
             delay(10_000)
             val url = currentUrl
-            if (!isLiveStream(url) || !player.isPlaying ||
+            if (!isLive || !player.isPlaying ||
                 player.playbackState != Player.STATE_READY
             ) {
                 lastPosition = -1L
                 stalled = 0
+                softTries = 0
                 continue
             }
             val pos = player.currentPosition
             if (lastPosition >= 0 && pos <= lastPosition + 500L) stalled += 1 else stalled = 0
             lastPosition = pos
-            if (stalled >= 2) {
-                val separator = if (url.contains('?')) '&' else '?'
-                player.playWhenReady = true
-                player.setMediaItem(
-                    ExoMediaItem.fromUri("$url${separator}reconnect=${System.currentTimeMillis()}")
-                )
-                player.prepare()
+            if (stalled >= 3) {
+                if (softTries < 3) {
+                    player.seekTo(maxOf(0L, pos - 1_000L))
+                    softTries += 1
+                } else {
+                    val separator = if (url.contains('?')) '&' else '?'
+                    player.playWhenReady = true
+                    player.setMediaItem(
+                        ExoMediaItem.fromUri("$url${separator}reconnect=${System.currentTimeMillis()}")
+                    )
+                    player.prepare()
+                    softTries = 0
+                }
                 stalled = 0
                 lastPosition = -1L
             }
@@ -660,7 +671,7 @@ fun PlayerScreen(
 
                     // ⏪ / ⏩ do controle: volta/avanza 10 s em vídeos com duração.
                     Key.MediaRewind, Key.MediaFastForward -> {
-                        if (allowSeek && duration > 0 && !isLiveStream(currentUrl)) {
+                        if (!isLive && duration > 0) {
                             val step = if (event.key == Key.MediaFastForward) 10_000L else -10_000L
                             seekTo(player.currentPosition + step)
                         }
@@ -963,7 +974,7 @@ fun PlayerScreen(
                         fontSize = 12.sp
                     )
                     Spacer(Modifier.width(10.dp))
-                    if (allowSeek && duration > 0 && !isLiveStream(current.url)) {
+                    if (!isLive && duration > 0) {
                         Slider(
                             value = (if (scrubbing) scrubPosition else position)
                                 .coerceIn(0, duration).toFloat(),
