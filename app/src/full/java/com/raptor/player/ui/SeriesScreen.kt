@@ -1,9 +1,13 @@
 package com.raptor.player.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -40,6 +44,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +64,7 @@ import com.raptor.player.ui.theme.RaptorOutline
 import com.raptor.player.ui.theme.RaptorSurfaceHigh
 import com.raptor.player.ui.theme.RaptorText
 import com.raptor.player.ui.theme.RaptorTextDim
+import kotlinx.coroutines.delay
 
 /**
  * Séries em três níveis, como o usuário pediu:
@@ -449,35 +455,6 @@ private fun SeriesDetailView(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
-            if (seasons.isNotEmpty()) {
-                Text(
-                    text = "${seasons.size} temporada${if (seasons.size > 1) "s" else ""} · " +
-                        "${seasons.sumOf { it.episodes.size }} episódios",
-                    color = RaptorTextDim,
-                    fontSize = 11.sp
-                )
-                Spacer(Modifier.width(12.dp))
-            }
-            Box(
-                Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (starFocused) RaptorGreen.copy(alpha = 0.16f) else RaptorSurfaceHigh)
-                    .border(
-                        width = if (starFocused) 1.5.dp else 0.dp,
-                        color = if (starFocused) RaptorGreen else Color.Transparent,
-                        shape = RoundedCornerShape(8.dp)
-                    )
-                    .onFocusChanged { starFocused = it.isFocused }
-                    .clickable(onClick = onStar)
-                    .padding(horizontal = 12.dp, vertical = 7.dp)
-            ) {
-                Text(
-                    text = if (isFavorite) "★ Favorito" else "☆ Favoritar",
-                    color = if (isFavorite) Color(0xFFFFC107) else RaptorTextDim,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
         }
 
         when {
@@ -491,138 +468,83 @@ private fun SeriesDetailView(
 
             else -> Row(Modifier.fillMaxSize()) {
 
-                // -------------------------------------------- capa + sinopse
+                // -------------------------------------------- capa + favorito
                 BoxWithConstraints(
                     Modifier
-                        .width(170.dp)
+                        .width(140.dp)
                         .fillMaxHeight()
                         .background(RaptorSurfaceHigh.copy(alpha = 0.3f))
                         .padding(10.dp)
                 ) {
-                    // Em paisagem sobra pouca altura: a capa ocupa o que resta
-                    // depois de reservar espaço para sinopse e elenco.
-                    val textReserve = 84.dp
-                    val posterHeight = (maxHeight - textReserve)
-                        .coerceIn(80.dp, 140.dp)
-                    val posterWidth = posterHeight / 1.5f
-
-                    Column(Modifier.fillMaxSize()) {
-                        Row(Modifier.fillMaxWidth()) {
-                            Box(
-                                Modifier
-                                    .width(posterWidth)
-                                    .height(posterHeight)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(RaptorSurfaceHigh)
-                            ) {
-                                val art = detail.cover ?: entry.logo
-                                if (!art.isNullOrBlank()) {
-                                    AsyncImage(
-                                        model = art,
-                                        contentDescription = detail.name,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
-                                } else {
-                                    Text(
-                                        text = detail.name,
-                                        color = RaptorTextDim,
-                                        fontSize = 11.sp,
-                                        modifier = Modifier.align(Alignment.Center).padding(8.dp)
-                                    )
-                                }
-
-                                if (detail.rating != null && detail.rating > 0) {
-                                    Box(
-                                        Modifier
-                                            .align(Alignment.TopEnd)
-                                            .padding(5.dp)
-                                            .clip(RoundedCornerShape(5.dp))
-                                            .background(Color(0xFF1E88E5))
-                                            .padding(horizontal = 5.dp, vertical = 1.dp)
-                                    ) {
-                                        Text(
-                                            text = String.format("%.1f", detail.rating),
-                                            color = Color.White,
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                            }
-
-                            Spacer(Modifier.width(10.dp))
-
-                            Column(Modifier.weight(1f)) {
-                                val genreText = detail.displayGenre
-                                    ?.takeIf { it.isNotBlank() }
-                                    ?: detail.genre?.takeIf {
-                                        it.isNotBlank() && !isFolderGenre(it)
-                                    }
-                                if (genreText != null) {
-                                    Text(
-                                        "GÊNERO",
-                                        color = RaptorGreen,
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        genreText,
-                                        color = RaptorText,
-                                        fontSize = 10.sp,
-                                        maxLines = 3,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Spacer(Modifier.height(6.dp))
-                                }
-
-                                val year = detail.releaseDate?.take(4)?.takeIf { it.isNotBlank() }
-                                if (year != null) {
-                                    Text(
-                                        "ANO",
-                                        color = RaptorGreen,
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(year, color = RaptorText, fontSize = 10.sp)
-                                    Spacer(Modifier.height(6.dp))
-                                }
-
-                                if (detail.rating != null && detail.rating > 0) {
-                                    Text(
-                                        "NOTA",
-                                        color = RaptorGreen,
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        String.format("%.1f", detail.rating),
-                                        color = RaptorText,
-                                        fontSize = 10.sp
-                                    )
-                                }
-                            }
-                        }
-
-                        if (!detail.plot.isNullOrBlank()) {
-                            Spacer(Modifier.height(8.dp))
+                    // Só a capa: gênero, ano, nota, sinopse e elenco saíram
+                    // para dar o máximo de espaço à lista de episódios.
+                    val posterWidth = maxWidth
+                    val posterHeight = (posterWidth * 1.5f).coerceAtMost(maxHeight)
+                    Box(
+                        Modifier
+                            .width(posterWidth)
+                            .height(posterHeight)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(RaptorSurfaceHigh)
+                    ) {
+                        val art = detail.cover ?: entry.logo
+                        if (!art.isNullOrBlank()) {
+                            AsyncImage(
+                                model = art,
+                                contentDescription = detail.name,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
                             Text(
-                                text = detail.plot,
+                                text = detail.name,
                                 color = RaptorTextDim,
-                                fontSize = 10.sp,
-                                maxLines = 3,
-                                overflow = TextOverflow.Ellipsis
+                                fontSize = 11.sp,
+                                modifier = Modifier.align(Alignment.Center).padding(8.dp)
                             )
                         }
 
-                        if (!detail.cast.isNullOrBlank()) {
-                            Spacer(Modifier.height(4.dp))
+                        if (detail.rating != null && detail.rating > 0) {
+                            Box(
+                                Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(5.dp)
+                                    .clip(RoundedCornerShape(5.dp))
+                                    .background(Color(0xFF1E88E5))
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                            ) {
+                                Text(
+                                    text = String.format("%.1f", detail.rating),
+                                    color = Color.White,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        // Favorito pequeno, junto da capa.
+                        Box(
+                            Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(5.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(
+                                    if (starFocused) RaptorGreen.copy(alpha = 0.3f)
+                                    else Color.Black.copy(alpha = 0.55f)
+                                )
+                                .border(
+                                    width = if (starFocused) 1.dp else 0.dp,
+                                    color = if (starFocused) RaptorGreen else Color.Transparent,
+                                    shape = RoundedCornerShape(6.dp)
+                                )
+                                .onFocusChanged { starFocused = it.isFocused }
+                                .clickable(onClick = onStar)
+                                .padding(horizontal = 7.dp, vertical = 3.dp)
+                        ) {
                             Text(
-                                text = "Elenco: ${detail.cast}",
-                                color = RaptorTextDim.copy(alpha = 0.85f),
-                                fontSize = 9.sp,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
+                                text = if (isFavorite) "★" else "☆",
+                                color = if (isFavorite) Color(0xFFFFC107) else Color.White,
+                                fontSize = 13.sp
                             )
                         }
                     }
@@ -691,11 +613,32 @@ private fun SeriesDetailView(
                     val listState = rememberLazyListState()
                     // Ao trocar de temporada, volta ao topo da lista.
                     LaunchedEffect(seasonIndex) { listState.scrollToItem(0) }
+                    // A barra aparece ao tocar/rolar e some depois de 1,4 s,
+                    // como a barra de rolagem padrão do Android.
+                    var barVisible by remember { mutableStateOf(false) }
+                    LaunchedEffect(barVisible, listState.isScrollInProgress) {
+                        if (barVisible || listState.isScrollInProgress) {
+                            barVisible = true
+                            delay(1400L)
+                            if (!listState.isScrollInProgress) barVisible = false
+                        }
+                    }
+                    val barAlpha by animateFloatAsState(
+                        targetValue = if (barVisible) 1f else 0f,
+                        animationSpec = tween(250),
+                        label = "scrollbar"
+                    )
                     LazyColumn(
                         state = listState,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
+                            .pointerInput(Unit) {
+                                awaitEachGesture {
+                                    awaitFirstDown(requireUnconsumed = false)
+                                    barVisible = true
+                                }
+                            }
                             .drawWithContent {
                                 drawContent()
                                 // O Compose não desenha barra de rolagem por
@@ -708,7 +651,7 @@ private fun SeriesDetailView(
                                     val avg = visible.sumOf { it.size } / visible.size.toFloat()
                                     val contentH = avg * total
                                     val viewport = size.height
-                                    if (contentH > viewport) {
+                                    if (contentH > viewport && barAlpha > 0.01f) {
                                         val first = visible.first()
                                         val scrolled = first.index * avg - first.offset
                                         val thumbH = (viewport * viewport / contentH)
@@ -718,13 +661,13 @@ private fun SeriesDetailView(
                                             .coerceIn(0f, travel)
                                         val barW = 3.dp.toPx()
                                         drawRoundRect(
-                                            color = RaptorOutline.copy(alpha = 0.35f),
+                                            color = RaptorOutline.copy(alpha = 0.35f * barAlpha),
                                             topLeft = Offset(size.width - barW, 0f),
                                             size = Size(barW, viewport),
                                             cornerRadius = CornerRadius(barW / 2)
                                         )
                                         drawRoundRect(
-                                            color = RaptorGreen,
+                                            color = RaptorGreen.copy(alpha = barAlpha),
                                             topLeft = Offset(size.width - barW, y),
                                             size = Size(barW, thumbH),
                                             cornerRadius = CornerRadius(barW / 2)
