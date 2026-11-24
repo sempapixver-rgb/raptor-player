@@ -1,0 +1,27 @@
+name: Deploy TiVo to GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: Publicar app TiVo em gh-pages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Publicar em gh-pages/tivo
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site/public/tivo
+          destination_dir: tivo
+          keep_files: true
+          user_name: raptor-player
+          user_email: contato@raptor.player
