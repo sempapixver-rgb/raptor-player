@@ -1,7 +1,7 @@
 /* ================================================================
-   Raptor Player — webOS (LG)
-   Layout para 1920x1080. Escrito sem grid/flex-gap para funcionar
-   também em webOS 3.5/4 (Chromium antigo).
+   Raptor Player — TiVo OS (Vewd Core)
+   Layout baseado no webOS 1.2.2, fixo em 1920x1080 e escalado por JS
+   para 720p/1080p/4K. Sem grid/flex-gap para Chromium antigo.
    ================================================================ */
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -35,6 +35,13 @@ html, body {
 .hidden { display: none !important; }
 
 /* ---------------------------------------------------------- estrutura */
+#viewport {
+  position: absolute;
+  top: 0; left: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: top left;
+}
 #app { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
 
 .screen {

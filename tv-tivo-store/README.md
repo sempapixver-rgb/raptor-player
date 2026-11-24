@@ -5,6 +5,14 @@ Versão 1.2.2, derivada do pacote LG webOS Store (`tv-webos-store`, v1.2.2).
 TiVo OS usa o **Vewd Core**, uma plataforma HTML5 baseada em Chromium. O app é
 um widget W3C com `config.xml` e `index.html` na raiz do ZIP.
 
+Diferenças em relação ao pacote LG:
+
+- O layout 1920×1080 é escalado automaticamente para 720p/1080p/4K.
+- Back usa `Focus.isBack()` (461, 8, 27, 10009 ou `window.VK_BACK`) e fecha o
+  app com `window.close()` quando não há nada para voltar.
+- Como o TiVo não expõe o MAC por uma API Luna, o código de ativação é um
+  pseudo-MAC estável, guardado em `localStorage` (`raptor.deviceCode`).
+
 ## Build
 
 O empacotamento é feito somente na nuvem, pelo GitHub Actions:

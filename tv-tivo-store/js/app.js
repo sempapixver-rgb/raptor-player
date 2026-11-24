@@ -6,6 +6,19 @@ var APP_VERSION = '1.2.2';
 
 var SITE_BASE = 'https://raptor-player.netlify.app';
 
+/* TiVo OS pode usar 720p, 1080p ou 4K. O layout foi escrito em 1920x1080;
+   escalamos tudo junto para que a navegação por coordenadas continue correta. */
+function fitViewport() {
+  var vp = document.getElementById('viewport');
+  if (!vp) return;
+  var w = window.innerWidth || 1920;
+  var h = window.innerHeight || 1080;
+  var scale = Math.min(w / 1920, h / 1080);
+  var x = Math.max(0, (w - 1920 * scale) / 2);
+  var y = Math.max(0, (h - 1080 * scale) / 2);
+  vp.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + scale + ')';
+}
+
 /* Four public clips (CC-BY), in MP4/H.264, hosted in the developer's
    releases. They let reviewers test the player with no account or credentials. */
 var DEMO_ITEMS = [
@@ -173,6 +186,8 @@ var App = {
   demoIndex: -1,
 
   init: function () {
+    fitViewport();
+    window.addEventListener('resize', fitViewport);
     this.bindKeys();
     Focus.bindPointer();
     this.startClock();
