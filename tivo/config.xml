@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets"
+        id="com.raptor.player.tivo"
+        version="1.2.2"
+        width="1920"
+        height="1080"
+        viewmodes="fullscreen">
+  <content src="index.html"/>
+  <name>Raptor Player</name>
+  <description>Video player for Powered by TiVo smart TVs.</description>
+  <author email="contato@raptor.player">Raptor</author>
+  <icon src="assets/icon.png"/>
+  <access origin="*" subdomains="true"/>
+  <feature name="http://www.w3.org/ns/widgets#fullscreen"/>
+</widget>
