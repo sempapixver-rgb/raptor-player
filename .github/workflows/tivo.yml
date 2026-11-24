@@ -1,0 +1,46 @@
+name: Build TiVo Store
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tv-tivo-store/**'
+      - '.github/workflows/tivo.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Empacotar app TiVo (Vewd Core)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v4
+
+      - name: Validar estrutura minima
+        run: |
+          test -f tv-tivo-store/config.xml
+          test -f tv-tivo-store/index.html
+          grep -q 'id="com.raptor.player.tivo"' tv-tivo-store/config.xml
+          grep -q 'version="1.2.2"' tv-tivo-store/config.xml
+
+      - name: Empacotar widget TiVo
+        run: |
+          mkdir -p dist
+          cd tv-tivo-store
+          zip -r ../dist/Raptor-TiVo-Store.wgt . -x '*.DS_Store'
+          cd ..
+          cp dist/Raptor-TiVo-Store.wgt dist/Raptor-TiVo-Store.zip
+          ls -la dist
+
+      - name: Salvar pacote TiVo
+        uses: actions/upload-artifact@v4
+        with:
+          name: Raptor-TiVo-Store
+          path: |
+            dist/Raptor-TiVo-Store.wgt
+            dist/Raptor-TiVo-Store.zip
+          if-no-files-found: error
