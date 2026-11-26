@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Baixar o codigo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Gerar certificado de build (CN=Raptor)
         shell: pwsh
@@ -43,6 +43,19 @@ jobs:
           $xml.Package.Identity.Version = $version
           $xml.Save((Resolve-Path $manifest))
           Write-Host "Versao do pacote: $version"
+
+      - name: Restaurar dependencias UWP
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBuild\Current\Bin\amd64\MSBuild.exe" | Select-Object -First 1
+          if (-not $msbuild) { throw "MSBuild nao encontrado." }
+          & $msbuild "xbox\RaptorXbox.sln" `
+            /t:Restore `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /m
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Compilar MSIX x64
         shell: pwsh
