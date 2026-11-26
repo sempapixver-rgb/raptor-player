@@ -1,0 +1,21 @@
+{
+  "id": "com.raptor.player.store",
+  "version": "1.2.2",
+  "vendor": "Raptor",
+  "type": "web",
+  "main": "index.html",
+  "title": "Raptor Player",
+  "icon": "assets/icon.png",
+  "largeIcon": "assets/largeIcon.png",
+  "bgImage": "assets/splash.png",
+  "splashBackground": "assets/splash.png",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true,
+  "handlesRelaunch": true,
+  "trustLevel": "default",
+  "requiredPermissions": [
+    "network",
+    "media"
+  ],
+  "requiredACG": []
+}
