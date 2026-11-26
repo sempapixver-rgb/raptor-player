@@ -20,30 +20,33 @@ jobs:
       - name: Baixar o codigo
         uses: actions/checkout@v5
 
-      - name: Gerar certificado de build (CN=Raptor)
-        shell: pwsh
-        run: |
-          $cert = New-SelfSignedCertificate `
-            -Type Custom `
-            -Subject "CN=Raptor" `
-            -KeyUsage DigitalSignature `
-            -FriendlyName "Raptor Xbox Build" `
-            -CertStoreLocation "Cert:\CurrentUser\My" `
-            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3")
-          $pwd = ConvertTo-SecureString -String "raptor-xbox-build" -Force -AsPlainText
-          Export-PfxCertificate -Cert $cert -FilePath "xbox\RaptorXbox\Assets\BuildCert.pfx" -Password $pwd | Out-Null
-          Write-Host "Certificado de build criado."
-
-      - name: Aplicar versao informada
+      - name: Aplicar identidade do Partner Center e versao
         shell: pwsh
         run: |
           $version = "${{ github.event.inputs.version }}"
           if (-not $version) { $version = "1.2.2.0" }
           $manifest = "xbox\RaptorXbox\Package.appxmanifest"
           [xml]$xml = Get-Content $manifest -Raw
+          $xml.Package.Identity.Name = "Raptorplayer.RaptorPlayer"
+          $xml.Package.Identity.Publisher = "CN=8060E9B2-8FD9-403D-B8BD-1879A6E2FDCD"
           $xml.Package.Identity.Version = $version
           $xml.Save((Resolve-Path $manifest))
+          Write-Host "Identidade: $($xml.Package.Identity.Name) / $($xml.Package.Identity.Publisher)"
           Write-Host "Versao do pacote: $version"
+
+      - name: Gerar certificado de build com o Publisher da conta
+        shell: pwsh
+        run: |
+          $cert = New-SelfSignedCertificate `
+            -Type Custom `
+            -Subject "CN=8060E9B2-8FD9-403D-B8BD-1879A6E2FDCD" `
+            -KeyUsage DigitalSignature `
+            -FriendlyName "Raptor Xbox Build" `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3")
+          $pwd = ConvertTo-SecureString -String "raptor-xbox-build" -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath "xbox\RaptorXbox\Assets\BuildCert.pfx" -Password $pwd | Out-Null
+          Write-Host "Certificado de build criado com o Publisher da conta."
 
       - name: Restaurar dependencias UWP
         shell: pwsh

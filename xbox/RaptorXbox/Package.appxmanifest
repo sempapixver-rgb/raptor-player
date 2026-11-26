@@ -6,8 +6,8 @@
   IgnorableNamespaces="uap mp">
 
   <Identity
-    Name="Raptor.Player.Xbox"
-    Publisher="CN=Raptor"
+    Name="Raptorplayer.RaptorPlayer"
+    Publisher="CN=8060E9B2-8FD9-403D-B8BD-1879A6E2FDCD"
     Version="1.2.2.0" />
 
   <mp:PhoneIdentity
