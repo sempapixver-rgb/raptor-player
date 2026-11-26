@@ -16,7 +16,7 @@
 
   <Properties>
     <DisplayName>Raptor Player</DisplayName>
-    <PublisherDisplayName>Raptor</PublisherDisplayName>
+    <PublisherDisplayName>Raptor player</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 

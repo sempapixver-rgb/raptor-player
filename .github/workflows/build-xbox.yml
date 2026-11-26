@@ -30,8 +30,10 @@ jobs:
           $xml.Package.Identity.Name = "Raptorplayer.RaptorPlayer"
           $xml.Package.Identity.Publisher = "CN=8060E9B2-8FD9-403D-B8BD-1879A6E2FDCD"
           $xml.Package.Identity.Version = $version
+          $xml.Package.Properties.PublisherDisplayName = "Raptor player"
           $xml.Save((Resolve-Path $manifest))
           Write-Host "Identidade: $($xml.Package.Identity.Name) / $($xml.Package.Identity.Publisher)"
+          Write-Host "PublisherDisplayName: $($xml.Package.Properties.PublisherDisplayName)"
           Write-Host "Versao do pacote: $version"
 
       - name: Gerar certificado de build com o Publisher da conta
@@ -80,6 +82,8 @@ jobs:
             "/p:AppxPackageSigningEnabled=true"
             "/p:PackageCertificateKeyFile=$cert"
             "/p:PackageCertificatePassword=raptor-xbox-build"
+            "/p:UseDotNetNativeToolchain=true"
+            "/p:DotNetNativeToolchain=true"
             "/m"
           )
           & $msbuild @msbuildArgs
