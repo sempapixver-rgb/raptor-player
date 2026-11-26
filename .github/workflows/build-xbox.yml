@@ -64,23 +64,35 @@ jobs:
           $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
           $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBuild\Current\Bin\amd64\MSBuild.exe" | Select-Object -First 1
           if (-not $msbuild) { throw "MSBuild nao encontrado." }
-          & $msbuild "xbox\RaptorXbox.sln" `
-            /t:Build `
-            /p:Configuration=Release `
-            /p:Platform=x64 `
-            /p:AppxBundle=Always `
-            /p:AppxBundlePlatforms=x64 `
-            /p:AppxPackageSigningEnabled=true `
-            /p:PackageCertificateKeyFile=Assets\BuildCert.pfx `
-            /p:PackageCertificatePassword=raptor-xbox-build `
-            /m
+          $cert = (Resolve-Path "xbox\RaptorXbox\Assets\BuildCert.pfx").Path
+          $packageDir = Join-Path (Get-Location).Path "xbox\RaptorXbox\bin\x64\Release\AppPackages\"
+          $msbuildArgs = @(
+            "xbox\RaptorXbox\RaptorXbox.csproj"
+            "/t:Publish"
+            "/p:Configuration=Release"
+            "/p:Platform=x64"
+            "/p:AppxBundle=Always"
+            "/p:AppxBundlePlatforms=x64"
+            "/p:AppxPackageDir=$packageDir"
+            "/p:AppxPackageSigningEnabled=true"
+            "/p:PackageCertificateKeyFile=$cert"
+            "/p:PackageCertificatePassword=raptor-xbox-build"
+            "/m"
+          )
+          & $msbuild @msbuildArgs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem -Path $packageDir -Recurse -File |
+            Where-Object { $_.Extension -in ".msixbundle", ".appx", ".appxbundle" } |
+            ForEach-Object { Write-Host "PACOTE: $($_.FullName)" }
 
       - name: Salvar artefato
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Raptor-Xbox-MSIX
           path: |
             xbox/RaptorXbox/bin/x64/Release/AppPackages/**/*.msixbundle
+            xbox/RaptorXbox/bin/x64/Release/AppPackages/**/*.appxbundle
             xbox/RaptorXbox/bin/x64/Release/AppPackages/**/*.appx
+            xbox/RaptorXbox/**/*.msixbundle
+            xbox/RaptorXbox/**/*.appx
           if-no-files-found: error
