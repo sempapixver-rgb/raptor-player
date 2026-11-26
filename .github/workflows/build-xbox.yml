@@ -90,7 +90,7 @@ jobs:
           & $msbuild @msbuildArgs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-ChildItem -Path $packageDir -Recurse -File |
-            Where-Object { $_.Extension -in ".msixbundle", ".appx", ".appxbundle", ".appxupload" } |
+            Where-Object { $_.Extension -in ".msixbundle", ".appx", ".appxbundle", ".appxupload", ".msixupload" } |
             ForEach-Object { Write-Host "PACOTE: $($_.FullName)" }
 
       - name: Salvar artefato
@@ -102,7 +102,9 @@ jobs:
             xbox/RaptorXbox/bin/x64/Release/AppPackages/**/*.appxbundle
             xbox/RaptorXbox/bin/x64/Release/AppPackages/**/*.appx
             xbox/RaptorXbox/bin/x64/Release/AppPackages/**/*.appxupload
+            xbox/RaptorXbox/bin/x64/Release/AppPackages/**/*.msixupload
             xbox/RaptorXbox/**/*.msixbundle
             xbox/RaptorXbox/**/*.appx
             xbox/RaptorXbox/**/*.appxupload
+            xbox/RaptorXbox/**/*.msixupload
           if-no-files-found: error
