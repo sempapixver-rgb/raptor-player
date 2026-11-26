@@ -13,7 +13,8 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
+    # VS2022 tem o workload UWP/XAML instalado no runner da GitHub.
+    runs-on: windows-2022
 
     steps:
       - name: Baixar o codigo
