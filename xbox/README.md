@@ -48,4 +48,13 @@ a instalação e o ciclo de vida são UWP nativos do Xbox.
 
 ## Estado
 
-Projeto e workflow criados. **Nenhum build foi disparado e nada foi publicado.**
+Build concluído com sucesso em 26/11/2026:
+
+- commit `6c04559`
+- run `https://github.com/sempapixver-rgb/raptor-player/actions/runs/45898892933` (#6)
+- artefato **`Raptor-Xbox-MSIX`**, 54,7 MB
+- sha256 do ZIP do artefato:
+  `5cfd6686564b44ceb448f7ca7b4dd1b26bd1a01b9cd6e3857665e1c6230d3387`
+
+**Nada foi publicado na Microsoft Store.** O pacote está pronto apenas no
+artefato do GitHub Actions, para envio futuro pelo Partner Center.
