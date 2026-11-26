@@ -71,6 +71,8 @@ jobs:
           if (-not $msbuild) { throw "MSBuild nao encontrado." }
           $cert = (Resolve-Path "xbox\RaptorXbox\Assets\BuildCert.pfx").Path
           $packageDir = Join-Path (Get-Location).Path "xbox\RaptorXbox\bin\x64\Release\AppPackages\"
+          $version = ([xml](Get-Content "xbox\RaptorXbox\Package.appxmanifest" -Raw)).Package.Identity.Version
+          $uploadDir = Join-Path $packageDir "RaptorXbox_${version}_Test"
           $msbuildArgs = @(
             "xbox\RaptorXbox\RaptorXbox.csproj"
             "/t:Publish"
@@ -79,6 +81,7 @@ jobs:
             "/p:AppxBundle=Always"
             "/p:AppxBundlePlatforms=x64"
             "/p:AppxPackageDir=$packageDir"
+            "/p:AppxUploadPackageFolder=$uploadDir"
             "/p:AppxPackageSigningEnabled=true"
             "/p:PackageCertificateKeyFile=$cert"
             "/p:PackageCertificatePassword=raptor-xbox-build"
@@ -89,7 +92,7 @@ jobs:
           & $msbuild @msbuildArgs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Get-ChildItem -Path $packageDir -Recurse -File |
-            Where-Object { $_.Extension -in ".msixbundle", ".appx", ".appxbundle" } |
+            Where-Object { $_.Extension -in ".msixbundle", ".appx", ".appxbundle", ".appxupload" } |
             ForEach-Object { Write-Host "PACOTE: $($_.FullName)" }
 
       - name: Salvar artefato
@@ -100,6 +103,8 @@ jobs:
             xbox/RaptorXbox/bin/x64/Release/AppPackages/**/*.msixbundle
             xbox/RaptorXbox/bin/x64/Release/AppPackages/**/*.appxbundle
             xbox/RaptorXbox/bin/x64/Release/AppPackages/**/*.appx
+            xbox/RaptorXbox/bin/x64/Release/AppPackages/**/*.appxupload
             xbox/RaptorXbox/**/*.msixbundle
             xbox/RaptorXbox/**/*.appx
+            xbox/RaptorXbox/**/*.appxupload
           if-no-files-found: error
