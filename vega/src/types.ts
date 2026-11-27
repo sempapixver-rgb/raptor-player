@@ -45,6 +45,24 @@ export type Activation = {
   expiresAt?: string;
 };
 
+/** Como o Fire OS monta a fila: cada aba define quem pode buscar e avançar. */
+export type PlayOptions = {
+  /** Fila usada em Anterior/Proximo. Vazio = toca só o item escolhido. */
+  list?: Entry[];
+  /** Indice real do item na fila, para nao depender de findIndex. */
+  index?: number;
+  /** Somente episodios de serie avancam sozinhos. */
+  autoAdvance?: boolean;
+  /** Canais nunca recebem seek. */
+  allowSeek?: boolean;
+};
+
+export type PlayHandler = (
+  entry: Entry,
+  list: Entry[],
+  options?: PlayOptions,
+) => void;
+
 export type Playable = {
   entry: Entry;
   /** Lista usada para anterior/proximo no player. */

@@ -2,7 +2,7 @@ schema-version = 1
 
 [package]
 title = "Raptor Player"
-version = "1.0.0"
+version = "1.0.1"
 id = "com.raptor.player.store"
 icon = "@image/icon_512x512.png"
 

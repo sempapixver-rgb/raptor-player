@@ -151,6 +151,10 @@ export function playUrl(source: SourceConfig, entry: Entry): string {
   }
   const ext = entry.ext || 'mp4';
   if (entry.kind === 'SERIES') {
+    // Uma serie inteira nao tem URL direta: só o episodio (seriesId) tem.
+    if (!entry.seriesId) {
+      return '';
+    }
     return base + '/series/' + user + '/' + pass + '/' + id + '.' + ext;
   }
   return base + '/movie/' + user + '/' + pass + '/' + id + '.' + ext;

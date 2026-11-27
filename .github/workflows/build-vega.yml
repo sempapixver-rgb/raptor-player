@@ -51,7 +51,7 @@ jobs:
 
       - name: Conferir TypeScript
         working-directory: vega
-        run: npx tsc --noEmit
+        run: node node_modules/typescript/bin/tsc --noEmit
 
       - name: Gerar pacote de envio (.vpkg)
         working-directory: vega

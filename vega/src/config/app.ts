@@ -1,10 +1,10 @@
 /** Versao exibida em Ajustes e usada no pacote de envio. */
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.0.1';
 
 /** Marcador de build (AAAAmmdd.NN). Vira build_number no pacote Vega. */
-export const BUILD_NUMBER = '20261114.01';
+export const BUILD_NUMBER = '20261127.01';
 
-export const BUILD_DATE = '2026-11-14';
+export const BUILD_DATE = '2026-11-27';
 
 /** Site oficial: ativacao por codigo e area do cliente. */
 export const SITE_BASE = 'https://raptor-player.netlify.app';

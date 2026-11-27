@@ -1,7 +1,7 @@
 import type {Category, Entry, Kind, SourceConfig} from '../types';
 import {demoItems, demoLive} from './demo';
 import {loadPlaylist} from './m3u';
-import {allItems, categories as fetchCategories} from './xtream';
+import {allItems, categories as fetchCategories, items as fetchItems} from './xtream';
 
 export type SectionData = {
   categories: Category[];
@@ -18,44 +18,94 @@ function categoriesOf(items: Entry[]): Category[] {
       list.push({id, name: item.category || 'Outros'});
     }
   }
-  return list;
+  return list.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Carrega categorias e todos os itens de uma aba. */
-export async function loadSection(
+function inFolder(items: Entry[], categoryId: string): Entry[] {
+  if (!categoryId) {
+    return items;
+  }
+  return items.filter(item => (item.categoryId || 'outros') === categoryId);
+}
+
+async function allOf(source: SourceConfig, kind: Kind): Promise<Entry[]> {
+  if (source.mode === 'DEMO') {
+    return kind === 'LIVE' ? demoLive : kind === 'VOD' ? demoItems : [];
+  }
+  if (source.mode === 'M3U') {
+    return (await loadPlaylist(source.m3uUrl || '')).items[kind];
+  }
+  return allItems(source, kind).catch(() => [] as Entry[]);
+}
+
+export async function loadCategories(
   source: SourceConfig,
   kind: Kind,
-): Promise<SectionData> {
+): Promise<Category[]> {
   if (source.mode === 'DEMO') {
-    const items = kind === 'LIVE' ? demoLive : kind === 'VOD' ? demoItems : [];
-    return {categories: categoriesOf(items), items};
+    return categoriesOf(await allOf(source, kind));
   }
-
   if (source.mode === 'M3U') {
-    const playlist = await loadPlaylist(source.m3uUrl || '');
-    return {
-      categories: playlist.categories[kind],
-      items: playlist.items[kind],
-    };
+    return (await loadPlaylist(source.m3uUrl || '')).categories[kind];
   }
+  const cats = await fetchCategories(source, kind).catch(() => [] as Category[]);
+  if (cats.length) {
+    return cats;
+  }
+  return categoriesOf(await allOf(source, kind));
+}
 
-  const [cats, list] = await Promise.all([
-    fetchCategories(source, kind).catch(() => [] as Category[]),
-    allItems(source, kind).catch(() => [] as Entry[]),
-  ]);
+/**
+ * Carrega somente a pasta escolhida, como no Fire OS. Filmes e series nunca
+ * entram em "Todos": a lista inteira e pesada demais.
+ */
+export async function loadFolder(
+  source: SourceConfig,
+  kind: Kind,
+  categoryId: string,
+  categoryName?: string,
+): Promise<Entry[]> {
+  if (source.mode === 'DEMO' || source.mode === 'M3U') {
+    return inFolder(await allOf(source, kind), categoryId);
+  }
+  const list = await fetchItems(source, kind, categoryId).catch(
+    () => [] as Entry[],
+  );
+  return list.map(item => ({
+    ...item,
+    category: item.category || categoryName || 'Outros',
+  }));
+}
 
+/** Indice completo, usado só na busca (2+ letras) e em Favoritos/Recentes. */
+export async function loadAll(
+  source: SourceConfig,
+  kind: Kind,
+): Promise<Entry[]> {
+  const items = await allOf(source, kind);
+  if (source.mode !== 'XTREAM') {
+    return items;
+  }
+  const cats = await fetchCategories(source, kind).catch(() => [] as Category[]);
   const nameById: Record<string, string> = {};
   for (const cat of cats) {
     nameById[cat.id] = cat.name;
   }
-  const items = list.map(item => ({
+  return items.map(item => ({
     ...item,
     category:
       (item.categoryId && nameById[item.categoryId]) || item.category || 'Outros',
   }));
+}
 
-  return {
-    categories: cats.length ? cats : categoriesOf(items),
-    items,
-  };
+/** Compatibilidade com o carregador antigo. */
+export async function loadSection(
+  source: SourceConfig,
+  kind: Kind,
+): Promise<SectionData> {
+  const [categories, items] = await Promise.all([
+    loadCategories(source, kind),
+    loadAll(source, kind),
+  ]);
+  return {categories, items};
 }

@@ -12,7 +12,7 @@ import {PlayerScreen} from './screens/PlayerScreen';
 import {SectionScreen} from './screens/SectionScreen';
 import {SettingsScreen} from './screens/SettingsScreen';
 import {TermsScreen} from './screens/TermsScreen';
-import type {Entry, Kind, SourceConfig} from './types';
+import type {Entry, Kind, PlayHandler, SourceConfig} from './types';
 import {colors} from './theme';
 
 type Route =
@@ -21,8 +21,15 @@ type Route =
   | {name: 'activation'}
   | {name: 'home'}
   | {name: 'section'; kind: Kind}
-  | {name: 'settings'}
-  | {name: 'player'; entry: Entry; list: Entry[]};
+  | {name: 'settings'};
+
+type PlayerState = {
+  entry: Entry;
+  list: Entry[];
+  index: number;
+  autoAdvance: boolean;
+  allowSeek: boolean;
+};
 
 const DEMO: SourceConfig = {mode: 'DEMO', label: 'Demonstracao'};
 
@@ -30,6 +37,7 @@ export function App() {
   const [route, setRoute] = useState<Route>({name: 'boot'});
   const [source, setSource] = useState<SourceConfig | null>(null);
   const [code, setCode] = useState('');
+  const [player, setPlayer] = useState<PlayerState | null>(null);
   const sectionBack = useRef<(() => boolean) | null>(null);
 
   useEffect(() => {
@@ -62,50 +70,63 @@ export function App() {
   const onActivated = useCallback(async (next: SourceConfig) => {
     await saveSource(next);
     setSource(next);
+    setPlayer(null);
     setRoute({name: 'home'});
   }, []);
 
   const onDemo = useCallback(async () => {
     await saveSource(DEMO);
     setSource(DEMO);
+    setPlayer(null);
     setRoute({name: 'home'});
   }, []);
 
   const onChangeActivation = useCallback(async () => {
     await clearSource();
     setSource(null);
+    setPlayer(null);
     setRoute({name: 'activation'});
   }, []);
 
   const openSection = useCallback((kind: Kind) => {
+    setPlayer(null);
     setRoute({name: 'section', kind});
   }, []);
 
-  const play = useCallback((entry: Entry, list: Entry[]) => {
-    setRoute({name: 'player', entry, list});
+  // O player fica por cima da casca: a aba, a pasta, a busca e a rolagem
+  // continuam exatamente onde estavam, como no Fire OS.
+  const play = useCallback<PlayHandler>((entry, list, options = {}) => {
+    const queue: Entry[] = options.list ?? list;
+    const found = queue.findIndex(
+      item => item.id === entry.id && item.kind === entry.kind,
+    );
+    const index = options.index ?? (found >= 0 ? found : 0);
+    setPlayer({
+      entry,
+      list: queue,
+      index,
+      autoAdvance: options.autoAdvance ?? false,
+      allowSeek: options.allowSeek ?? entry.kind !== 'LIVE',
+    });
   }, []);
 
   const closePlayer = useCallback(() => {
-    setRoute(current =>
-      current.name === 'player'
-        ? {name: 'section', kind: current.entry.kind}
-        : current,
-    );
+    setPlayer(null);
   }, []);
 
   const back = useKeplerBackHandler();
 
   useEffect(() => {
     const subscription = back.addEventListener('hardwareBackPress', () => {
+      if (player) {
+        closePlayer();
+        return true;
+      }
       if (route.name === 'section') {
         if (sectionBack.current && sectionBack.current()) {
           return true;
         }
         setRoute({name: 'home'});
-        return true;
-      }
-      if (route.name === 'player') {
-        setRoute({name: 'section', kind: route.entry.kind});
         return true;
       }
       if (route.name === 'settings') {
@@ -119,7 +140,7 @@ export function App() {
       return false;
     });
     return () => subscription.remove();
-  }, [back, route]);
+  }, [back, closePlayer, player, route]);
 
   let screen: React.ReactNode;
 
@@ -155,16 +176,6 @@ export function App() {
         backRef={sectionBack}
       />
     );
-  } else if (route.name === 'player') {
-    screen = (
-      <PlayerScreen
-        source={source}
-        entry={route.entry}
-        list={route.list}
-        onClose={closePlayer}
-        onSelect={play}
-      />
-    );
   } else {
     screen = (
       <SettingsScreen
@@ -177,12 +188,35 @@ export function App() {
     );
   }
 
-  return <View style={styles.root}>{screen}</View>;
+  return (
+    <View style={styles.root}>
+      {screen}
+      {player ? (
+        <View style={styles.playerOverlay}>
+          <PlayerScreen
+            source={source!}
+            entry={player.entry}
+            list={player.list}
+            index={player.index}
+            autoAdvance={player.autoAdvance}
+            allowSeek={player.allowSeek}
+            onClose={closePlayer}
+            onSelect={play}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.bg,
+  },
+  playerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+    elevation: 10,
   },
 });

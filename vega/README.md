@@ -6,7 +6,7 @@ um **tocador de vídeo** com ativação por código, sem conteúdo embutido.
 
 - Pacote: `com.raptor.player.store`
 - Componente: `com.raptor.player.store.main`
-- Versão: `1.0.0` (build `2026111401`)
+- Versão: `1.0.1` (build `2026112701`)
 - Vega OS: mínimo e alvo `1.2`
 - Arquitetura: `armv7` (Fire TV Stick 4K Select)
 
@@ -21,24 +21,28 @@ vega/
 ├── scripts/
 │   └── build-submission.sh  gera o .vpkg com build_number válido
 └── src/
-    ├── App.tsx            rotas e fluxo (termos → ativação → menu → aba → player)
+    ├── App.tsx            rotas; player por cima da aba (como no Fire OS)
     ├── theme.ts           cores, espaçamentos e raios
-    ├── types.ts           tipos de catálogo, fonte e ativação
-    ├── components/ui.tsx  focáveis, botões, cabeçalho, tile, estados
+    ├── types.ts           tipos de catálogo, fonte, ativação e fila
+    ├── components/
+    │   ├── ui.tsx         focáveis, botões, cabeçalho, tile, estados
+    │   └── DlnaSheet.tsx  envio para TV na rede (📺 TV)
     ├── screens/
     │   ├── TermsScreen.tsx       termos de uso no primeiro início
     │   ├── ActivationScreen.tsx  código do aparelho + consulta ao site
     │   ├── HomeScreen.tsx        menu Canais / Filmes / Séries / Ajustes
-    │   ├── SectionScreen.tsx     categorias, busca e episódios
-    │   ├── PlayerScreen.tsx      player W3C + controles de TV
+    │   ├── SectionScreen.tsx     layout por aba, pastas, favoritos e recentes
+    │   ├── PlayerScreen.tsx      retomada, escala, fila, seek e DLNA
     │   └── SettingsScreen.tsx    conta, demonstração e sobre
     └── core/
         ├── activation.ts  consulta /api/device no site
         ├── device.ts      código estável do aparelho (formato MAC)
-        ├── xtream.ts      cliente Xtream (categorias, itens, episódios)
+        ├── xtream.ts      cliente Xtream (categorias, pasta, episódios)
         ├── m3u.ts         parser de playlist M3U com cache
         ├── demo.ts        catálogo público de demonstração
-        ├── library.ts     carrega uma aba inteira
+        ├── library.ts     carrega categorias e uma pasta por vez
+        ├── favorites.ts   favoritos e vistos recentemente
+        ├── dlna.ts        AVTransport (SetAVTransportURI / Play / Stop)
         ├── sourceStore.ts salva/limpa a configuração da conta
         ├── storage.ts     AsyncStorage com prefixo
         └── format.ts      tempo e normalização de texto
@@ -81,12 +85,23 @@ Upload de binário**. A ficha da loja e o checklist estão em
 ## Navegação
 
 - Menu principal ao abrir: Canais, Filmes, Séries e Ajustes.
-- D-pad navega; **OK** abre; **Voltar** retorna ao menu (e fecha o player).
-- Na aba, a busca procura em todas as pastas daquela aba.
-- Séries abrem a lista de episódios; ao terminar um episódio, o próximo
-  da lista começa automaticamente.
-- Player: OK/Pausar, −10s, +10s, Anterior, Próximo e barra de progresso.
-  As teclas de mídia do controle também funcionam.
+- **Canais**: três colunas (pastas, lista e detalhe) com prévia do item
+  selecionado. Canal nunca recebe seek.
+- **Filmes e Séries**: a pasta é obrigatória; a aba lembra a última pasta e
+  oferece Favoritos, Visto recentemente e ordenação em Filmes.
+- A busca só consulta o índice completo depois de 2 letras.
+- O player abre por cima da aba: ao voltar, pasta, busca e posição da lista
+  continuam onde estavam.
+- Séries abrem a lista de episódios; só episódios avançam sozinhos no fim.
+- Filmes e séries retomam de onde pararam; ao terminar, a posição é limpa.
+- **Ajustar** alterna o enquadramento (Ajustar/Preencher/Esticar).
+- **Velocidade** (0,5x a 2x), **Áudio** (faixas) e **Legendas** no rodapé,
+  como no Fire OS; velocidade fica salva no aparelho.
+- Seek manual (−10s, +10s e “Pular abertura”) apenas em filmes e séries.
+- Botão **📺 TV** envia o vídeo para uma TV DLNA na mesma rede (endereço
+  salvo no aparelho). HLS de canal é convertido para `.ts`.
+- Rodapé do player: Anterior/Próximo; retry e watchdog reiniciam o vídeo com
+  URL nova se a reprodução travar. As teclas de mídia também funcionam.
 
 ## Privacidade e conteúdo
 

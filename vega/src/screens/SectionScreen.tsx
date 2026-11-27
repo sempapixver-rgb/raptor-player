@@ -1,6 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   FlatList,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -15,9 +16,20 @@ import {
   Tile,
 } from '../components/ui';
 import {normalizeText} from '../core/format';
-import {loadSection} from '../core/library';
+import {
+  addRecent,
+  loadFavorites,
+  loadRecent,
+  toggleFavorite,
+} from '../core/favorites';
+import {
+  loadAll,
+  loadCategories,
+  loadFolder,
+} from '../core/library';
+import {readJSON, writeJSON} from '../core/storage';
 import {seriesEpisodes} from '../core/xtream';
-import type {Category, Entry, Kind, SourceConfig} from '../types';
+import type {Category, Entry, Kind, PlayHandler, SourceConfig} from '../types';
 import {colors, radius, space} from '../theme';
 
 const TITLES: Record<Kind, string> = {
@@ -26,50 +38,169 @@ const TITLES: Record<Kind, string> = {
   SERIES: 'Series',
 };
 
+const FAV = '__fav__';
+const RECENT = '__recent__';
+
 type Props = {
   source: SourceConfig;
   kind: Kind;
   onExit: () => void;
-  onPlay: (entry: Entry, list: Entry[]) => void;
+  onPlay: PlayHandler;
   backRef: React.MutableRefObject<(() => boolean) | null>;
 };
 
-type SidebarItem = Category & {count: number};
+type SidebarItem = Category & {count?: number};
+type SortMode = 'default' | 'name-asc' | 'name-desc' | 'rating';
+const SORTS: SortMode[] = ['default', 'name-asc', 'name-desc', 'rating'];
+const SORT_LABELS: Record<SortMode, string> = {
+  default: 'Ordem',
+  'name-asc': 'Nome A-Z',
+  'name-desc': 'Nome Z-A',
+  rating: 'Avaliacao',
+};
+
+const folderKey = (source: SourceConfig, kind: Kind) =>
+  'folder.' +
+  source.mode +
+  '.' +
+  (source.baseUrl || source.m3uUrl || source.label || '') +
+  '.' +
+  kind;
+
+function sortItems(list: Entry[], kind: Kind, mode: SortMode): Entry[] {
+  if (kind !== 'VOD' || mode === 'default') {
+    return list;
+  }
+  const copy = [...list];
+  if (mode === 'name-asc') {
+    copy.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (mode === 'name-desc') {
+    copy.sort((a, b) => b.name.localeCompare(a.name));
+  } else if (mode === 'rating') {
+    copy.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  }
+  return copy;
+}
 
 export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Entry[]>([]);
+  const [allCache, setAllCache] = useState<Entry[]>([]);
+  const [favorites, setFavorites] = useState<Entry[]>([]);
+  const [recent, setRecent] = useState<Entry[]>([]);
   const [activeCat, setActiveCat] = useState('');
   const [query, setQuery] = useState('');
+  const [sort, setSort] = useState<SortMode>('default');
   const [series, setSeries] = useState<Entry | null>(null);
+  const [selectedLive, setSelectedLive] = useState<Entry | null>(null);
+  const [selected, setSelected] = useState<Entry | null>(null);
 
   const gridRef = useRef<FlatList<Entry>>(null);
   const [preferred, setPreferred] = useState(true);
 
-  const reload = useCallback(async () => {
+  const key = folderKey(source, kind);
+
+  useEffect(() => {
+    let alive = true;
     setLoading(true);
     setError('');
-    try {
-      const data = await loadSection(source, kind);
-      setCategories(data.categories);
-      setItems(data.items);
-    } catch {
-      setError('Nao foi possivel carregar agora. Confira a conexao.');
-    } finally {
+    (async () => {
+      try {
+        const cats = await loadCategories(source, kind);
+        const saved = await readJSON<string>(key, '');
+        const initial =
+          kind === 'LIVE'
+            ? saved || ''
+            : cats.find(cat => cat.id === saved)?.id ||
+              cats[0]?.id ||
+              '';
+        if (alive) {
+          setCategories(cats);
+          setActiveCat(initial);
+        }
+      } catch {
+        if (alive) {
+          setError('Nao foi possivel carregar agora. Confira a conexao.');
+          setLoading(false);
+        }
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [key, kind, source]);
+
+  useEffect(() => {
+    if (activeCat === FAV || activeCat === RECENT) {
       setLoading(false);
+      return;
     }
-  }, [source, kind]);
+    if (kind !== 'LIVE' && !categories.length) {
+      return;
+    }
+    let alive = true;
+    setLoading(true);
+    setError('');
+    const cat = categories.find(item => item.id === activeCat);
+    loadFolder(source, kind, activeCat, cat?.name)
+      .then(list => {
+        if (alive) {
+          setItems(list);
+          void writeJSON(key, activeCat);
+        }
+      })
+      .catch(() => {
+        if (alive) {
+          setError('Nao foi possivel carregar esta pasta.');
+        }
+      })
+      .finally(() => {
+        if (alive) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      alive = false;
+    };
+  }, [activeCat, categories, key, kind, source]);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    let alive = true;
+    Promise.all([loadFavorites(kind), loadRecent(kind)])
+      .then(([fav, rec]) => {
+        if (alive) {
+          setFavorites(fav);
+          setRecent(rec);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [kind]);
+
+  // O indice completo e pesado: só é buscado quando o usuario digita 2 letras.
+  useEffect(() => {
+    if (normalizeText(query).length < 2) {
+      return;
+    }
+    let alive = true;
+    loadAll(source, kind)
+      .then(list => {
+        if (alive) {
+          setAllCache(list);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [kind, query, source]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setPreferred(false);
-    }, 1500);
+    const timer = setTimeout(() => setPreferred(false), 1500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -86,49 +217,109 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
     };
   }, [backRef, series]);
 
+  useEffect(() => {
+    if (kind === 'LIVE' && items.length && !selectedLive) {
+      setSelectedLive(items[0]);
+    }
+  }, [items, kind, selectedLive]);
+
   const counts = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const item of items) {
+    for (const item of allCache) {
       const id = item.categoryId || 'outros';
       map[id] = (map[id] || 0) + 1;
     }
     return map;
-  }, [items]);
+  }, [allCache]);
 
   const sidebar = useMemo<SidebarItem[]>(() => {
-    const all: SidebarItem[] = [
-      {id: '', name: 'Todos os itens', count: items.length},
+    const list: SidebarItem[] = [
+      {id: FAV, name: 'Favoritos', count: favorites.length},
+      {id: RECENT, name: 'Visto recentemente', count: recent.length},
     ];
-    for (const cat of categories) {
-      all.push({id: cat.id, name: cat.name, count: counts[cat.id] || 0});
+    if (kind === 'LIVE') {
+      list.push({id: '', name: 'Todos os itens', count: allCache.length || items.length});
     }
-    return all;
-  }, [categories, counts, items.length]);
+    for (const cat of categories) {
+      list.push({
+        id: cat.id,
+        name: cat.name,
+        count: allCache.length ? counts[cat.id] || 0 : undefined,
+      });
+    }
+    return list;
+  }, [allCache.length, categories, counts, favorites.length, items.length, kind, recent.length]);
 
   const visible = useMemo(() => {
     const text = normalizeText(query);
-    if (text) {
-      return items.filter(item => normalizeText(item.name).includes(text));
+    if (text.length >= 2) {
+      const sourceList = allCache.length ? allCache : items;
+      return sortItems(
+        sourceList.filter(item => normalizeText(item.name).includes(text)),
+        kind,
+        sort,
+      );
     }
-    if (!activeCat) {
-      return items;
+    if (activeCat === FAV) {
+      return sortItems(favorites, kind, sort);
     }
-    return items.filter(item => item.categoryId === activeCat);
-  }, [items, activeCat, query]);
+    if (activeCat === RECENT) {
+      return recent;
+    }
+    return sortItems(items, kind, sort);
+  }, [activeCat, allCache, favorites, items, kind, query, recent, sort]);
 
-  const openSeries = useCallback((entry: Entry) => {
-    setSeries(entry);
+  const remember = useCallback(
+    (entry: Entry) => {
+      void addRecent(entry);
+      setRecent(previous => [
+        entry,
+        ...previous.filter(
+          item => !(item.id === entry.id && item.kind === entry.kind),
+        ),
+      ]);
+    },
+    [],
+  );
+
+  const fav = useCallback((entry: Entry) => {
+    void toggleFavorite(entry).then(setFavorites);
   }, []);
 
   const select = useCallback(
-    (entry: Entry) => {
-      if (kind === 'SERIES' && source.mode === 'XTREAM') {
-        openSeries(entry);
+    (entry: Entry, index: number) => {
+      remember(entry);
+      setSelected(entry);
+      if (kind === 'SERIES' && source.mode !== 'XTREAM') {
+        onPlay(entry, [entry], {
+          list: [entry],
+          index: 0,
+          autoAdvance: true,
+          allowSeek: true,
+        });
         return;
       }
-      onPlay(entry, visible);
+      if (kind === 'SERIES') {
+        setSeries(entry);
+        return;
+      }
+      if (kind === 'LIVE') {
+        onPlay(entry, visible, {
+          list: visible,
+          index,
+          autoAdvance: false,
+          allowSeek: false,
+        });
+        return;
+      }
+      onPlay(entry, [], {
+        list: [],
+        index: 0,
+        autoAdvance: false,
+        allowSeek: true,
+      });
     },
-    [kind, openSeries, onPlay, source.mode, visible],
+    [kind, onPlay, remember, source.mode, visible],
   );
 
   const title = TITLES[kind];
@@ -139,10 +330,22 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
         <Header
           title={series.name}
           subtitle="Escolha um episodio"
-          onBack={onExit}
+          onBack={() => setSeries(null)}
           right={<Button label="Voltar" onPress={() => setSeries(null)} />}
         />
-        <EpisodeList source={source} series={series} onPlay={onPlay} />
+        <EpisodeList
+          source={source}
+          series={series}
+          onPlay={(entry, episodes, index) => {
+            remember(entry);
+            onPlay(entry, episodes, {
+              list: episodes,
+              index,
+              autoAdvance: true,
+              allowSeek: true,
+            });
+          }}
+        />
       </View>
     );
   }
@@ -155,8 +358,20 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
         onBack={onExit}
         right={
           <View style={styles.headerRight}>
+            {selected ? (
+              <Button
+                label={
+                  favorites.some(
+                    item =>
+                      item.id === selected.id && item.kind === selected.kind,
+                  )
+                    ? '★ Remover'
+                    : '☆ Favorito'
+                }
+                onPress={() => fav(selected)}
+              />
+            ) : null}
             <Text style={styles.countText}>{visible.length} itens</Text>
-            <Button label="Atualizar" onPress={reload} />
           </View>
         }
       />
@@ -193,27 +408,115 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
           />
         </View>
 
-        <View style={styles.content}>
-          <View style={styles.toolbar}>
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Buscar em todas as pastas desta aba"
-              placeholderTextColor={colors.textDim}
-              autoCorrect={false}
-              style={styles.search}
+        {kind === 'LIVE' ? (
+          <View style={styles.liveList}>
+            <FlatList
+              data={visible}
+              keyExtractor={(item, index) => 'live-' + item.id + '-' + index}
+              style={styles.fill}
+              contentContainerStyle={styles.liveContent}
+              renderItem={({item, index}) => (
+                <Focusable
+                  accessibilityLabel={item.name}
+                  hasTVPreferredFocus={preferred && index === 0}
+                  onPress={() => select(item, index)}
+                  onFocus={() => setSelectedLive(item)}
+                  style={[
+                    styles.liveItem,
+                    selectedLive?.id === item.id ? styles.liveItemActive : null,
+                  ]}
+                  focusedStyle={styles.liveItemFocused}>
+                  {item.logo ? (
+                    <Image
+                      source={{uri: item.logo}}
+                      style={styles.liveLogo}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <View style={styles.liveLogo} />
+                  )}
+                  <Text style={styles.liveName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                </Focusable>
+              )}
             />
-            {query ? (
-              <Button label="Limpar busca" onPress={() => setQuery('')} />
-            ) : null}
           </View>
+        ) : null}
 
-          {loading ? (
+        <View style={styles.content}>
+          {kind !== 'LIVE' ? (
+            <View style={styles.toolbar}>
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Buscar em todas as pastas desta aba"
+                placeholderTextColor={colors.textDim}
+                autoCorrect={false}
+                style={styles.search}
+              />
+              {kind === 'VOD' ? (
+                <Button
+                  label={SORT_LABELS[sort]}
+                  onPress={() =>
+                    setSort(current => SORTS[(SORTS.indexOf(current) + 1) % SORTS.length])
+                  }
+                />
+              ) : null}
+              {query ? (
+                <Button label="Limpar busca" onPress={() => setQuery('')} />
+              ) : null}
+            </View>
+          ) : null}
+
+          {kind === 'LIVE' ? (
+            <View style={styles.detail}>
+              {error ? (
+                <Empty title="Falha ao carregar" detail={error} />
+              ) : selectedLive ? (
+                <>
+                  <Text style={styles.detailCategory} numberOfLines={1}>
+                    {selectedLive.category || 'Canal ao vivo'}
+                  </Text>
+                  <Text style={styles.detailTitle} numberOfLines={2}>
+                    {selectedLive.name}
+                  </Text>
+                  <Text style={styles.liveBadge}>AO VIVO</Text>
+                  {selectedLive.plot ? (
+                    <Text style={styles.detailPlot} numberOfLines={4}>
+                      {selectedLive.plot}
+                    </Text>
+                  ) : null}
+                  <Button
+                    kind="primary"
+                    label="▶ Assistir"
+                    hasTVPreferredFocus
+                    onPress={() => {
+                      const at = visible.findIndex(
+                        item => item.id === selectedLive.id,
+                      );
+                      select(selectedLive, at >= 0 ? at : 0);
+                    }}
+                  />
+                  <Button
+                    label="★ Favorito"
+                    onPress={() => fav(selectedLive)}
+                  />
+                </>
+              ) : (
+                <Empty title="Selecione um canal" detail="" />
+              )}
+            </View>
+          ) : loading ? (
             <Loading label={'Carregando ' + title.toLowerCase() + '...'} />
           ) : error ? (
             <View style={styles.errorBox}>
               <Empty title="Falha ao carregar" detail={error} />
-              <Button kind="primary" label="Tentar de novo" onPress={reload} />
+              <Button
+                kind="primary"
+                label="Escolher outra pasta"
+                onPress={() => setActiveCat(categories[0]?.id || '')}
+              />
             </View>
           ) : (
             <FlatList
@@ -240,8 +543,9 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
               renderItem={({item, index}) => (
                 <Tile
                   entry={item}
-                  onPress={() => select(item)}
+                  onPress={() => select(item, index)}
                   onFocus={() => {
+                    setSelected(item);
                     try {
                       gridRef.current?.scrollToIndex({
                         index,
@@ -269,7 +573,7 @@ function EpisodeList({
 }: {
   source: SourceConfig;
   series: Entry;
-  onPlay: (entry: Entry, list: Entry[]) => void;
+  onPlay: (entry: Entry, episodes: Entry[], index: number) => void;
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -279,12 +583,11 @@ function EpisodeList({
     let alive = true;
     setLoading(true);
     setError('');
-    if (source.mode !== 'XTREAM') {
-      setLoading(false);
-      setError('Este item nao possui lista de episodios.');
-      return;
-    }
-    seriesEpisodes(source, series)
+    const task =
+      source.mode === 'XTREAM'
+        ? seriesEpisodes(source, series)
+        : Promise.resolve([series]);
+    task
       .then(list => {
         if (!alive) {
           return;
@@ -307,7 +610,7 @@ function EpisodeList({
     return () => {
       alive = false;
     };
-  }, [source, series]);
+  }, [series, source]);
 
   if (loading) {
     return <Loading label="Carregando episodios..." />;
@@ -325,7 +628,7 @@ function EpisodeList({
         <Focusable
           accessibilityLabel={item.name}
           hasTVPreferredFocus={index === 0}
-          onPress={() => onPlay(item, episodes)}
+          onPress={() => onPlay(item, episodes, index)}
           style={styles.epRow}
           focusedStyle={styles.epRowFocused}>
           <Text style={styles.epNum}>{String(index + 1).padStart(2, '0')}</Text>
@@ -361,14 +664,14 @@ const styles = StyleSheet.create({
   countText: {
     color: colors.textDim,
     fontSize: 12,
-    marginRight: space.md,
+    marginLeft: space.md,
   },
   body: {
     flex: 1,
     flexDirection: 'row',
   },
   sidebar: {
-    width: 268,
+    width: 196,
     borderRightWidth: 1,
     borderRightColor: colors.line,
     backgroundColor: colors.bgSoft,
@@ -414,6 +717,76 @@ const styles = StyleSheet.create({
   catCount: {
     color: colors.textDim,
     fontSize: 11,
+  },
+  liveList: {
+    width: 300,
+    borderRightWidth: 1,
+    borderRightColor: colors.line,
+    backgroundColor: colors.bgSoft,
+  },
+  liveContent: {
+    padding: space.sm,
+  },
+  liveItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: space.sm,
+    paddingVertical: space.sm,
+    borderRadius: radius.sm,
+    marginBottom: 4,
+  },
+  liveItemActive: {
+    backgroundColor: colors.panel,
+  },
+  liveItemFocused: {
+    backgroundColor: colors.panelSoft,
+  },
+  liveLogo: {
+    width: 44,
+    height: 32,
+    marginRight: space.sm,
+  },
+  liveName: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 13,
+  },
+  detail: {
+    flex: 1,
+    padding: space.xl,
+    justifyContent: 'center',
+  },
+  detailCategory: {
+    color: colors.accent,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginBottom: space.sm,
+  },
+  detailTitle: {
+    color: colors.text,
+    fontSize: 30,
+    fontWeight: '800',
+  },
+  liveBadge: {
+    alignSelf: 'flex-start',
+    color: colors.bg,
+    backgroundColor: colors.accent,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 2,
+    paddingHorizontal: space.sm,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    marginTop: space.md,
+  },
+  detailPlot: {
+    color: colors.textDim,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: space.md,
+    marginBottom: space.lg,
+    maxWidth: 640,
   },
   content: {
     flex: 1,

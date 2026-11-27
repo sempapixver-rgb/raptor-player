@@ -80,6 +80,23 @@ Texto da página:
 | Teste de reprodução no Fire TV Stick 4K Select | A fazer pelo usuário no aparelho |
 | Conta Amazon Developer | Feito — console logado em 23/11 |
 
+### Build de correção (27/11/2026)
+
+Versão `1.0.1`, build `2026112701`. O código agora segue o Fire OS:
+
+- Canais em três colunas, com detalhe do item selecionado; canal sem seek.
+- Filmes e séries em pasta obrigatória, com última pasta lembrada,
+  Favoritos, Visto recentemente e ordenação em Filmes.
+- Busca com índice completo só a partir de 2 letras.
+- Player por cima da aba: volta na mesma pasta, busca e posição da lista.
+- Retomada salva/limpa em filmes e séries; retry/watchdog com URL nova.
+- Enquadramento ajustável (Ajustar/Preencher/Esticar), velocidade 0,5x–2x,
+  seleção de faixa de áudio e legendas.
+- Botão **📺 TV** com AVTransport (a TV é adicionada pelo endereço na rede).
+
+**Não publicar** esta versão sem autorização; a release `2026111401` continua
+a que está Live.
+
 ## 4. Como o revisor testa
 
 1. Instalar o app. Na primeira abertura aparecem os termos de uso.

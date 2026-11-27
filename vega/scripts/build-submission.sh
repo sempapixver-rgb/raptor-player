@@ -7,7 +7,7 @@
 #   Error 1: build_number must be greater than 0, found: 0
 #
 # A versao e o build vem de src/config/app.ts, para nao divergirem do que o
-# app mostra em Ajustes: BUILD_NUMBER "20261114.01" vira 2026111401.
+# app mostra em Ajustes: BUILD_NUMBER "20261127.01" vira 2026112701.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
