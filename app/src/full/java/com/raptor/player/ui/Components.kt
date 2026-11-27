@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CircularProgressIndicator
@@ -526,9 +527,37 @@ fun PosterGrid(
     onClick: (MediaEntry) -> Unit,
     onStar: (MediaEntry) -> Unit,
     contentPadding: PaddingValues = PaddingValues(14.dp),
-    columns: Int = 6
+    columns: Int = 6,
+    // false enquanto o player está aberto: ao fechar, o foco volta ao pôster
+    // que abriu o vídeo, na mesma posição da grade.
+    active: Boolean = true
 ) {
+    val gridState = rememberLazyGridState()
+    var focusedId by remember { mutableStateOf<String?>(null) }
+    val requesters = remember(items) { List(items.size) { FocusRequester() } }
+    var wasActive by remember { mutableStateOf(active) }
+
+    LaunchedEffect(active, items) {
+        if (active && !wasActive) {
+            val id = focusedId
+            if (id != null) {
+                val index = items.indexOfFirst { it.id == id }
+                if (index >= 0) {
+                    val visible = gridState.layoutInfo.visibleItemsInfo
+                        .any { it.key == id }
+                    if (!visible) gridState.scrollToItem(index)
+                    // O item pode ter saído da composição enquanto o player
+                    // estava aberto: espera um frame antes de pedir o foco.
+                    delay(60L)
+                    requesters.getOrNull(index)?.requestFocus()
+                }
+            }
+        }
+        wasActive = active
+    }
+
     LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Fixed(columns),
         contentPadding = contentPadding,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -541,7 +570,10 @@ fun PosterGrid(
                 entry = entry,
                 isFavorite = entry.id in favoriteIds,
                 onClick = { onClick(entry) },
-                onStar = { onStar(entry) }
+                onStar = { onStar(entry) },
+                modifier = Modifier
+                    .focusRequester(requesters[index])
+                    .onFocusChanged { if (it.isFocused) focusedId = entry.id }
             )
         }
     }

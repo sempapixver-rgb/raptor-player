@@ -203,6 +203,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         recents = recents,
                         cacheKey = session.key(),
                         refreshKey = refreshTick,
+                        active = current == null,
                         onPlay = { entry, queue -> play(entry, queue, allowSeek = true) },
                         onToggleFavorite = { toggleFavorite(it) }
                     )
@@ -213,6 +214,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         recents = recents,
                         cacheKey = session.key(),
                         refreshKey = refreshTick,
+                        active = current == null,
                         onPlayEpisode = { queue, index -> playEpisode(queue, index) },
                         onToggleFavorite = { toggleFavorite(it) }
                     )

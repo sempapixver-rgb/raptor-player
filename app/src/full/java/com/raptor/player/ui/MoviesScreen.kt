@@ -57,6 +57,7 @@ fun MoviesScreen(
     recents: List<MediaEntry>,
     cacheKey: String = "",
     refreshKey: Int = 0,
+    active: Boolean = true,
     onPlay: (MediaEntry, List<MediaEntry>) -> Unit,
     onToggleFavorite: (MediaEntry) -> Unit
 ) {
@@ -305,7 +306,8 @@ fun MoviesScreen(
                             // filmes antes de tocar e mostrava "2 de 918" no player.
                             onClick = { entry -> onPlay(entry, emptyList()) },
                             onStar = onToggleFavorite,
-                            columns = columns
+                            columns = columns,
+                            active = active
                         )
                     }
                 }

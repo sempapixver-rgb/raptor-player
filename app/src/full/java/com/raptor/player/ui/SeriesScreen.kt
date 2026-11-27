@@ -38,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -80,6 +82,7 @@ fun SeriesScreen(
     recents: List<MediaEntry>,
     cacheKey: String = "",
     refreshKey: Int = 0,
+    active: Boolean = true,
     onPlayEpisode: (queue: List<PlayItem>, index: Int) -> Unit,
     onToggleFavorite: (MediaEntry) -> Unit
 ) {
@@ -246,7 +249,8 @@ fun SeriesScreen(
             onBack = { opened = null },
             onRetry = { detailTick++ },
             onStar = { onToggleFavorite(current) },
-            onPlayEpisode = onPlayEpisode
+            onPlayEpisode = onPlayEpisode,
+            active = active
         )
         return
     }
@@ -361,7 +365,8 @@ fun SeriesScreen(
                             favoriteIds = favoriteIds,
                             onClick = { opened = it },
                             onStar = onToggleFavorite,
-                            columns = columns
+                            columns = columns,
+                            active = active
                         )
                     }
                 }
@@ -389,7 +394,8 @@ private fun SeriesDetailView(
     onBack: () -> Unit,
     onRetry: () -> Unit,
     onStar: () -> Unit,
-    onPlayEpisode: (List<PlayItem>, Int) -> Unit
+    onPlayEpisode: (List<PlayItem>, Int) -> Unit,
+    active: Boolean = true
 ) {
     var seasonIndex by remember(detail?.id) { mutableIntStateOf(0) }
     var backFocused by remember { mutableStateOf(false) }
@@ -613,6 +619,34 @@ private fun SeriesDetailView(
                     val listState = rememberLazyListState()
                     // Ao trocar de temporada, volta ao topo da lista.
                     LaunchedEffect(seasonIndex) { listState.scrollToItem(0) }
+                    // Ao fechar o player, o foco e a rolagem voltam ao episódio
+                    // que estava selecionado (mesmo comportamento do Vega).
+                    var focusedEpisodeId by remember {
+                        mutableStateOf<String?>(null)
+                    }
+                    val episodeRequesters = remember(episodes) {
+                        List(episodes.size) { FocusRequester() }
+                    }
+                    var wasActive by remember { mutableStateOf(active) }
+                    LaunchedEffect(active, episodes) {
+                        if (active && !wasActive) {
+                            val id = focusedEpisodeId
+                            if (id != null) {
+                                val index = episodes.indexOfFirst { it.id == id }
+                                if (index >= 0) {
+                                    if (listState.layoutInfo.visibleItemsInfo
+                                        .none { it.key == id }
+                                    ) {
+                                        // O índice 0 é o cabeçalho "EPISÓDIOS".
+                                        listState.scrollToItem(index + 1)
+                                    }
+                                    delay(60L)
+                                    episodeRequesters.getOrNull(index)?.requestFocus()
+                                }
+                            }
+                        }
+                        wasActive = active
+                    }
                     // A barra aparece ao tocar/rolar e some depois de 1,4 s,
                     // como a barra de rolagem padrão do Android.
                     var barVisible by remember { mutableStateOf(false) }
@@ -698,6 +732,13 @@ private fun SeriesDetailView(
                         items(count = episodes.size, key = { episodes[it].id }) { index ->
                             EpisodeRow(
                                 episode = episodes[index],
+                                modifier = Modifier
+                                    .focusRequester(episodeRequesters[index])
+                                    .onFocusChanged {
+                                        if (it.isFocused) {
+                                            focusedEpisodeId = episodes[index].id
+                                        }
+                                    },
                                 onPlay = {
                                     val ep = episodes[index]
                                     onPlayEpisode(playQueue, indexById[ep.id] ?: 0)
@@ -712,10 +753,14 @@ private fun SeriesDetailView(
 }
 
 @Composable
-private fun EpisodeRow(episode: Episode, onPlay: () -> Unit) {
+private fun EpisodeRow(
+    episode: Episode,
+    onPlay: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     var focused by remember { mutableStateOf(false) }
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(
