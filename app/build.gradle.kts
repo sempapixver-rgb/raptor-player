@@ -59,7 +59,7 @@ android {
             dimension = "store"
             applicationId = "com.raptor.player.store"
             minSdk = 21
-            versionCode = 22
+            versionCode = 23
             versionName = "1.3.4"
             versionNameSuffix = "-store"
             buildConfigField("boolean", "IS_STORE", "true")
