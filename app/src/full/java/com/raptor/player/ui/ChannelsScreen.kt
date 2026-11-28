@@ -44,10 +44,16 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.media3.common.MediaItem as ExoMediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import com.raptor.player.BuildConfig
 import com.raptor.player.data.Category
 import com.raptor.player.data.ChannelEpg
 import com.raptor.player.data.ContentStore
@@ -661,6 +667,7 @@ private fun ActionButton(label: String, primary: Boolean = false, onClick: () ->
 }
 
 /** Prévia ao vivo (muda de canal sem sair da tela). */
+@OptIn(UnstableApi::class)
 @Composable
 private fun LivePreview(
     url: String?,
@@ -670,12 +677,32 @@ private fun LivePreview(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val urlRef = rememberUpdatedState(url)
+    val enabledRef = rememberUpdatedState(enabled)
+    val previewRetry = remember { mutableIntStateOf(0) }
 
     // Um único player para esta tela. Antes ele era liberado a cada troca de
     // canal e a prévia seguinte usava um player já destruído — era isso que
     // fechava o app ao navegar entre os canais.
+    // No Android usa a mesma rede/MIME do player cheio; Fire OS fica intacto.
     val player = remember {
-        ExoPlayer.Builder(context).build().apply {
+        val builder = ExoPlayer.Builder(context)
+        if (BuildConfig.FLAVOR == "mobile") {
+            val httpFactory = DefaultHttpDataSource.Factory()
+                .setAllowCrossProtocolRedirects(true)
+                .setConnectTimeoutMs(30_000)
+                .setReadTimeoutMs(30_000)
+            builder
+                .setMediaSourceFactory(
+                    DefaultMediaSourceFactory(context).setDataSourceFactory(httpFactory)
+                )
+                .setRenderersFactory(
+                    DefaultRenderersFactory(context).setExtensionRendererMode(
+                        DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+                    )
+                )
+        }
+        builder.build().apply {
             volume = 0f
         }
     }
@@ -683,7 +710,44 @@ private fun LivePreview(
     var inForeground by remember { mutableStateOf(true) }
     val foregroundRef = rememberUpdatedState(inForeground)
 
-    DisposableEffect(Unit) {
+    DisposableEffect(player) {
+        fun restartPreview() {
+            val current = urlRef.value
+            if (current.isNullOrBlank() || !enabledRef.value) return
+            player.setMediaItem(mediaItemFor(freshUrl(current)))
+            player.prepare()
+            if (foregroundRef.value) {
+                player.playWhenReady = true
+                player.play()
+            }
+        }
+
+        // A prévia também reconecta quando o canal termina ou falha — era
+        // nela que a tela ficava preta antes mesmo de abrir o player cheio.
+        val listener = object : Player.Listener {
+            override fun onPlayerError(error: PlaybackException) {
+                if (BuildConfig.FLAVOR != "mobile") return
+                val tries = previewRetry.intValue
+                if (tries < 3) {
+                    previewRetry.intValue = tries + 1
+                    restartPreview()
+                } else {
+                    player.stop()
+                    player.clearMediaItems()
+                }
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (BuildConfig.FLAVOR != "mobile") return
+                if (playbackState == Player.STATE_READY) {
+                    previewRetry.intValue = 0
+                } else if (playbackState == Player.STATE_ENDED && enabledRef.value) {
+                    restartPreview()
+                }
+            }
+        }
+        player.addListener(listener)
+
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP, Lifecycle.Event.ON_PAUSE -> {
@@ -694,7 +758,7 @@ private fun LivePreview(
                 Lifecycle.Event.ON_START -> inForeground = true
                 Lifecycle.Event.ON_RESUME -> {
                     inForeground = true
-                    if (url != null && enabled) {
+                    if (!urlRef.value.isNullOrBlank() && enabledRef.value) {
                         player.playWhenReady = true
                         player.play()
                     }
@@ -705,18 +769,20 @@ private fun LivePreview(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
+            player.removeListener(listener)
             player.release()
         }
     }
 
     LaunchedEffect(url, enabled) {
+        previewRetry.intValue = 0
         // Com o player em tela cheia aberto a prévia é descartada para não
         // ocupar uma conexão do servidor (limite de conexões da conta).
         if (url.isNullOrBlank() || !enabled) {
             player.stop()
             player.clearMediaItems()
         } else {
-            player.setMediaItem(ExoMediaItem.fromUri(url))
+            player.setMediaItem(mediaItemFor(url))
             player.prepare()
             // Se o app estiver em segundo plano, só prepara: nada de áudio.
             if (foregroundRef.value) {

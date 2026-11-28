@@ -79,6 +79,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.TrackGroup
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.util.Util
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -114,9 +115,23 @@ private data class SeasonGroup(val season: String, val entries: List<EpisodePick
  * presa e nunca entrega os dados. Um parâmetro novo força uma conexão limpa.
  * Repetir a URL exata (como o Android fazia) dava "Source error" no filme.
  */
-private fun freshUrl(url: String): String {
+internal fun freshUrl(url: String): String {
     val separator = if (url.contains('?')) '&' else '?'
     return "$url${separator}r=${System.currentTimeMillis()}"
+}
+
+/**
+ * Mesmo mecanismo do base.apk: o MIME é informado explicitamente para que o
+ * ExoPlayer escolha o analisador correto mesmo quando o servidor responde com
+ * Content-Type genérico. Só no flavor mobile; Fire OS continua com fromUri.
+ */
+@OptIn(UnstableApi::class)
+internal fun mediaItemFor(url: String): ExoMediaItem {
+    if (BuildConfig.FLAVOR != "mobile") return ExoMediaItem.fromUri(url)
+    val mime = Util.getAdaptiveMimeTypeForContentType(Util.inferContentType(url))
+    return ExoMediaItem.Builder().setUri(url).apply {
+        if (!mime.isNullOrBlank()) setMimeType(mime)
+    }.build()
 }
 
 @OptIn(UnstableApi::class)
@@ -139,6 +154,9 @@ fun PlayerScreen(
     // A aba define se é canal ao vivo. Detectar pela URL classificava filmes
     // .m3u8 como "ao vivo" e ligava o watchdog de reconexão no filme.
     val isLive = !allowSeek
+    // Correções abaixo valem somente para o Android (flavor mobile).
+    // Fire OS/LG continuam com o comportamento que já estava estável.
+    val mobileLiveFix = BuildConfig.FLAVOR == "mobile"
 
     // Sem fila (filme/canal) toca um item só. Com fila (série) os botões
     // Anterior/Próximo trocam o episódio sem fechar o player.
@@ -245,7 +263,7 @@ fun PlayerScreen(
         userPaused = false
         controlsVisible = true
         player.playWhenReady = true
-        player.setMediaItem(ExoMediaItem.fromUri(freshUrl(current.url)))
+        player.setMediaItem(mediaItemFor(freshUrl(current.url)))
         player.prepare()
         player.play()
     }
@@ -274,7 +292,7 @@ fun PlayerScreen(
                 player.playbackState == Player.STATE_BUFFERING ||
                 player.playerError != null
             ) {
-                player.setMediaItem(ExoMediaItem.fromUri(freshUrl(current.url)))
+                player.setMediaItem(mediaItemFor(freshUrl(current.url)))
                 player.prepare()
             }
             player.play()
@@ -302,7 +320,7 @@ fun PlayerScreen(
         }
         playbackError = null
         player.playWhenReady = true
-        player.setMediaItem(ExoMediaItem.fromUri(freshUrl(currentUrl)))
+        player.setMediaItem(mediaItemFor(freshUrl(currentUrl)))
         player.prepare()
         player.play()
     }
@@ -384,7 +402,7 @@ fun PlayerScreen(
         // Primeira abertura usa a URL exata do servidor, como no base.apk.
         // O cache-buster fica só nas reconexões: some M3U com token na URL
         // rejeita parâmetro acrescentado.
-        player.setMediaItem(ExoMediaItem.fromUri(current.url))
+        player.setMediaItem(mediaItemFor(current.url))
         player.prepare()
         player.play()
     }
@@ -394,35 +412,52 @@ fun PlayerScreen(
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
-                // Filme falhou ao carregar: tenta de novo algumas vezes sem
-                // pedir nada ao usuário (o servidor costuma recusar a 1ª conexão).
+                // O base.apk também reconecta canais ao vivo quando o servidor
+                // recusa a conexão. No Android fazemos o mesmo; Fire OS fica
+                // como estava. Nunca pedimos ao usuário para tentar de novo.
                 playbackError = error.message ?: "Não foi possível reproduzir"
                 val tries = retryRef.value
-                if (tries < 3 && !isLive) {
+                if (tries < 3 && (!isLive || mobileLiveFix)) {
                     retryCount = tries + 1
                     playbackError = null
                     // URL nova e posição preservada: repetir a mesma faz o
-                    // servidor devolver o erro; recomeçar do zero perdia a retomada.
+                    // servidor devolver o erro. Em canal ao vivo a posição é 0.
                     reloadPreservingPosition()
                 }
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState != Player.STATE_READY) return
-                playbackError = null
-                // Autoplay: garante que comece sozinho quando o vídeo fica pronto.
-                // Nunca reativa com o app em segundo plano.
-                if (!player.playWhenReady && foregroundRef.value) {
-                    player.playWhenReady = true
-                    player.play()
-                }
-                if (!appliedRef.value.value && targetRef.value.longValue > 5_000L) {
-                    val dur = player.duration
-                    val target = targetRef.value.longValue
-                    if (dur > 0L && target < dur - 2_000L) {
-                        player.seekTo(target)
+                when (playbackState) {
+                    Player.STATE_READY -> {
+                        playbackError = null
+                        // Canais ao vivo podem ficar horas abertos: uma queda
+                        // antiga não pode consumir as tentativas de uma nova.
+                        if (mobileLiveFix) retryCount = 0
+                        // Autoplay: garante que comece sozinho quando o vídeo fica pronto.
+                        // Nunca reativa com o app em segundo plano.
+                        if (!player.playWhenReady && foregroundRef.value) {
+                            player.playWhenReady = true
+                            player.play()
+                        }
+                        if (!appliedRef.value.value && targetRef.value.longValue > 5_000L) {
+                            val dur = player.duration
+                            val target = targetRef.value.longValue
+                            if (dur > 0L && target < dur - 2_000L) {
+                                player.seekTo(target)
+                            }
+                            appliedRef.value.value = true
+                        }
                     }
-                    appliedRef.value.value = true
+                    // O base.apk reconecta o canal quando a transmissão termina.
+                    // Sem isso a última imagem congela ou a tela fica preta.
+                    Player.STATE_ENDED -> {
+                        if (mobileLiveFix && isLive) {
+                            playbackError = null
+                            retryCount = 0
+                            reloadPreservingPosition()
+                        }
+                    }
+                    else -> Unit
                 }
             }
         }
@@ -432,12 +467,14 @@ fun PlayerScreen(
 
     // Watchdog: alguns servidores recusam a primeira conexão e o ExoPlayer fica
     // preso em BUFFERING sem disparar onPlayerError. Se o relógio não andar por
-    // 10 s, recarregamos o item — sem isso o filme abria e ficava preto.
+    // 10 s, recarregamos o item — sem isso o filme/canal abria e ficava preto.
     LaunchedEffect(player) {
         while (true) {
             delay(2_000)
             if (!foregroundRef.value) continue
-            if (player.playbackState != Player.STATE_BUFFERING || isLive) continue
+            if (player.playbackState != Player.STATE_BUFFERING ||
+                (isLive && !mobileLiveFix)
+            ) continue
             val before = player.currentPosition
             delay(10_000)
             if (player.playbackState != Player.STATE_BUFFERING ||
@@ -559,7 +596,7 @@ fun PlayerScreen(
             lastPosition = pos
             if (stalled >= 2) {
                 player.playWhenReady = true
-                player.setMediaItem(ExoMediaItem.fromUri(freshUrl(url)))
+                player.setMediaItem(mediaItemFor(freshUrl(url)))
                 player.prepare()
                 player.play()
                 stalled = 0
