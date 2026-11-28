@@ -302,7 +302,7 @@ fun PlayerScreen(
         }
         playbackError = null
         player.playWhenReady = true
-        player.setMediaItem(ExoMediaItem.fromUri(freshUrl(currentUrl.value)))
+        player.setMediaItem(ExoMediaItem.fromUri(freshUrl(currentUrl)))
         player.prepare()
         player.play()
     }
