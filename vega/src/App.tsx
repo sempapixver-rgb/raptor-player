@@ -4,7 +4,7 @@ import {useKeplerBackHandler} from '@amazon-devices/react-native-kepler';
 import {Loading} from './components/ui';
 import {TERMS_VERSION} from './config/app';
 import {deviceCode as readDeviceCode} from './core/device';
-import {clearSource, loadSource, saveSource} from './core/sourceStore';
+import {loadSource, saveSource} from './core/sourceStore';
 import {readJSON, writeJSON} from './core/storage';
 import {ActivationScreen} from './screens/ActivationScreen';
 import {HomeScreen} from './screens/HomeScreen';
@@ -81,9 +81,9 @@ export function App() {
     setRoute({name: 'home'});
   }, []);
 
-  const onChangeActivation = useCallback(async () => {
-    await clearSource();
-    setSource(null);
+  // Não apagar a conta atual antes do sucesso: se o usuário desistir, a
+  // ativação antiga continua válida. A nova source só é salva em onActivated.
+  const onChangeActivation = useCallback(() => {
     setPlayer(null);
     setRoute({name: 'activation'});
   }, []);

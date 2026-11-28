@@ -9,7 +9,7 @@ import {
   type DlnaDevice,
 } from '../core/dlna';
 import type {Entry, SourceConfig} from '../types';
-import {colors, radius, space} from '../theme';
+import {colors, f, radius, s, space} from '../theme';
 import {Button} from './ui';
 
 type Props = {
@@ -145,10 +145,11 @@ export function DlnaSheet({visible, source, entry, onClose}: Props) {
 const styles = StyleSheet.create({
   sheet: {
     position: 'absolute',
-    top: 64,
+    top: s(64),
     right: space.lg,
-    bottom: 140,
-    width: 640,
+    bottom: s(140),
+    width: s(640),
+    maxWidth: '88%',
     padding: space.lg,
     borderRadius: radius.md,
     backgroundColor: 'rgba(7,11,18,0.96)',
@@ -162,12 +163,12 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontSize: 20,
+    fontSize: f(20),
     fontWeight: '800',
   },
   hint: {
     color: colors.textDim,
-    fontSize: 12,
+    fontSize: f(12),
     marginTop: space.sm,
   },
   addRow: {
@@ -177,19 +178,19 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 44,
+    height: s(44),
     borderRadius: radius.pill,
     backgroundColor: colors.panel,
     borderWidth: 2,
     borderColor: colors.line,
     color: colors.text,
     paddingHorizontal: space.md,
-    fontSize: 14,
+    fontSize: f(14),
     marginRight: space.sm,
   },
   message: {
     color: colors.accent,
-    fontSize: 12,
+    fontSize: f(12),
     marginTop: space.sm,
   },
   list: {
@@ -209,11 +210,11 @@ const styles = StyleSheet.create({
   },
   deviceName: {
     color: colors.text,
-    fontSize: 14,
+    fontSize: f(14),
     fontWeight: '700',
   },
   deviceUrl: {
     color: colors.textDim,
-    fontSize: 11,
+    fontSize: f(11),
   },
 });

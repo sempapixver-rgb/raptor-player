@@ -75,14 +75,11 @@ interface_name = "com.amazon.kepler.media.IMediaPlaybackServer"
 command_options = [
     "Play",
     "Pause",
-    "StartOver",
-    "Previous",
-    "Next",
     "SkipForward",
     "SkipBackward",
 ]
 attribute_options = ["AudioAdvanceMuted"]
-features = ["AdvancedSeek", "VariableSpeed", "AudioTracks", "TextTracks"]
+features = ["AdvancedSeek"]
 
 [needs]
 [[needs.module]]

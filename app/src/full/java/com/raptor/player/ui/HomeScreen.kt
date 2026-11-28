@@ -27,6 +27,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.raptor.player.BuildConfig
 import com.raptor.player.data.Activation
 import com.raptor.player.data.ContentStore
 import com.raptor.player.data.MediaEntry
@@ -81,6 +82,11 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
         try {
             kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
                 ContentStore.preloadCategories(source, session.key())
+                // No Android (mobile) seguimos o base.apk: carrega o catálogo
+                // inteiro de uma vez. Fire OS fica com o modelo antigo, estável.
+                if (BuildConfig.FLAVOR == "mobile") {
+                    ContentStore.preloadCatalog(source, session.key())
+                }
             }
         } catch (_: Throwable) {
             // Se falhar, cada aba tenta de novo ao abrir, com a mensagem de erro.

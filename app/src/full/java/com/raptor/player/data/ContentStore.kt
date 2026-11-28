@@ -386,6 +386,50 @@ object ContentStore {
         }
     }
 
+    /**
+     * Modelo do base.apk: uma única leitura de canais, filmes e séries e tudo
+     * fica em memória. Chamado só no flavor mobile; o Fire TV Stick antigo
+     * continua com o modelo de uma pasta por vez. Não grava em disco porque
+     * a lista inteira é grande.
+     */
+    suspend fun preloadCatalog(source: PlaylistSource, base: String) {
+        coroutineScope {
+            for (kind in listOf(MediaKind.LIVE, MediaKind.VOD, MediaKind.SERIES)) {
+                launch {
+                    val all = runCatching { source.items(kind, null) }.getOrNull()
+                        ?: return@launch
+                    val lean = withContext(Dispatchers.Default) {
+                        all.map { entry ->
+                            MediaEntry(
+                                id = entry.id,
+                                name = entry.name,
+                                logo = entry.logo,
+                                categoryId = entry.categoryId,
+                                kind = entry.kind,
+                                containerExtension = entry.containerExtension,
+                                directUrl = entry.directUrl,
+                                rating = entry.rating,
+                                plot = null,
+                                year = entry.year
+                            )
+                        }
+                    }
+                    synchronized(lock) {
+                        searchBase = base
+                        searchKind = kind
+                        searchList = lean
+                        itemCache[itemKey(base, kind, null)] = all
+                        all.groupBy { it.categoryId.orEmpty() }.forEach { (catId, list) ->
+                            if (catId.isNotBlank()) {
+                                itemCache[itemKey(base, kind, catId)] = list
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // ------------------------------------------------------------------ limpeza
 
     /** Botão "Atualizar": esquece pastas e itens guardados. */

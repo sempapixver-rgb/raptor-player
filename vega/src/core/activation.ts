@@ -1,6 +1,7 @@
 import {SITE_BASE} from '../config/app';
 import type {Activation, SourceConfig} from '../types';
 import {normalizeCode} from './device';
+import {fetchTimed} from './media';
 
 export type ActivationResult =
   | {status: 'ok'; source: SourceConfig; activation: Activation}
@@ -34,10 +35,9 @@ export async function fetchActivation(code: string): Promise<ActivationResult> {
     '&t=' +
     Date.now();
 
-  let response: Response;
-  try {
-    response = await fetch(url, {method: 'GET'});
-  } catch {
+  // Sem tempo limite o polling travava para sempre e o botão parava de responder.
+  const response = await fetchTimed(url, {method: 'GET'}, 10000);
+  if (!response) {
     return {
       status: 'offline',
       message: 'Sem conexao com o servidor de ativacao.',

@@ -27,6 +27,7 @@ import {
   loadCategories,
   loadFolder,
 } from '../core/library';
+import {clearPlaylistCache} from '../core/m3u';
 import {readJSON, writeJSON} from '../core/storage';
 import {seriesEpisodes} from '../core/xtream';
 import type {Category, Entry, Kind, PlayHandler, SourceConfig} from '../types';
@@ -125,7 +126,7 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
     return () => {
       alive = false;
     };
-  }, [key, kind, source]);
+  }, [key, kind, refresh, source]);
 
   useEffect(() => {
     if (activeCat === FAV || activeCat === RECENT) {
@@ -144,8 +145,15 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
         if (alive) {
           setItems(list);
           void writeJSON(key, activeCat);
-          // Trocar de pasta deve trocar tambem a previa, nao manter item antigo.
-          setSelected(list.length ? list[0] : null);
+          // Trocar de pasta troca a previa; atualizar a mesma pasta mantem
+          // o item que o usuario estava vendo.
+          setSelected(atual =>
+            atual && list.some(item => item.id === atual.id)
+              ? atual
+              : list.length
+                ? list[0]
+                : null,
+          );
         }
       })
       .catch(() => {
@@ -352,7 +360,10 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
           <Text style={styles.clock}>{clock}</Text>
           <Button
             label="⟳ Atualizar"
-            onPress={() => setRefresh(value => value + 1)}
+            onPress={() => {
+              clearPlaylistCache();
+              setRefresh(value => value + 1);
+            }}
           />
         </View>
       </View>

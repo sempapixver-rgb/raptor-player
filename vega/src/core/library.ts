@@ -68,9 +68,8 @@ export async function loadFolder(
   if (source.mode === 'DEMO' || source.mode === 'M3U') {
     return inFolder(await allOf(source, kind), categoryId);
   }
-  const list = await fetchItems(source, kind, categoryId).catch(
-    () => [] as Entry[],
-  );
+  // Erro precisa chegar à tela: engoli-lo aqui fazia a pasta parecer vazia.
+  const list = await fetchItems(source, kind, categoryId);
   return list.map(item => ({
     ...item,
     category: item.category || categoryName || 'Outros',

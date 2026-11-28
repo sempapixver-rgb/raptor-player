@@ -71,6 +71,24 @@ export function PlayerScreen({
   const resumeApplied = useRef(false);
   const saveTick = useRef(0);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const userSeeked = useRef(false);
+  const statusRef = useRef<Status>('loading');
+  const updateStatus = useCallback((next: Status) => {
+    statusRef.current = next;
+    setStatus(next);
+  }, []);
+  const safePlay = useCallback(
+    (video: VideoPlayer) => {
+      void video
+        .play()
+        .then(() => updateStatus('playing'))
+        .catch(() => {
+          updateStatus('error');
+          setMessage('Nao foi possivel controlar a reproducao.');
+        });
+    },
+    [updateStatus],
+  );
 
   const appState = useKeplerAppStateManager();
   const appStateRef = useRef(appState);
@@ -79,9 +97,18 @@ export function PlayerScreen({
   const baseUrl = useMemo(() => playUrl(source, entry), [source, entry]);
   // canais nunca recebem seek; isso tambem define o watchdog de ao vivo.
   const isLive = !allowSeek || entry.kind === 'LIVE';
+  // Titulo + serie/pasta evita que filmes homonimos e episodios de series
+  // diferentes compartilhem a mesma posicao salva.
   const resumeKey = useMemo(
-    () => 'resume.stable.' + normalizeText(entry.name),
-    [entry.name],
+    () =>
+      'resume.stable.' +
+      [
+        entry.kind,
+        entry.seriesId || entry.id,
+        entry.categoryId || '',
+        normalizeText(entry.name),
+      ].join('.'),
+    [entry.categoryId, entry.id, entry.kind, entry.name, entry.seriesId],
   );
   // A retomada usa o titulo, nunca a URL (que muda a cada sessao Xtream).
   const url = useMemo(
@@ -95,19 +122,20 @@ export function PlayerScreen({
     userPaused.current = false;
     wantPlay.current = true;
     endedRef.current = false;
+    userSeeked.current = false;
   }, [entry.id, entry.kind]);
 
   useEffect(() => {
     if (!surface || !url) {
       if (surface && !url) {
-        setStatus('error');
+        updateStatus('error');
         setMessage('Este item nao tem uma URL reproduzivel.');
       }
       return;
     }
 
     let cancelled = false;
-    setStatus('loading');
+    updateStatus('loading');
     setMessage('');
     setTime(0);
     setDuration(0);
@@ -121,6 +149,7 @@ export function PlayerScreen({
     watchdog.current = {time: -1, at: Date.now()};
     resumeApplied.current = false;
     resumeTarget.current = 0;
+    userSeeked.current = false;
     if (!isLive) {
       void readJSON<number>(resumeKey, 0)
         .then(value => {
@@ -143,7 +172,7 @@ export function PlayerScreen({
         await video.play();
         if (!cancelled) {
           started.current = true;
-          setStatus('playing');
+          updateStatus('playing');
         }
       } catch {
         readyRetries.current += 1;
@@ -169,7 +198,7 @@ export function PlayerScreen({
         setAttempt(attemptRef.current);
         return;
       }
-      setStatus('error');
+      updateStatus('error');
       setMessage(text);
     };
 
@@ -179,20 +208,23 @@ export function PlayerScreen({
       }
       dataReady.current = true;
       started.current = true;
-      setStatus('playing');
+      noDataSince.current = Date.now();
+      // Pronto não significa tocando: o aparelho pode ter recusado o play.
+      updateStatus(video.paused ? 'paused' : 'playing');
     };
     const onPlaying = () => {
       if (!cancelled) {
         dataReady.current = true;
         started.current = true;
-        setStatus('playing');
+        noDataSince.current = Date.now();
+        updateStatus('playing');
       }
     };
     const onError = () => fail('Nao foi possivel reproduzir este item.');
     const onEnded = () => {
       if (!cancelled) {
         endedRef.current = true;
-        setStatus('ended');
+        updateStatus('ended');
       }
     };
 
@@ -224,10 +256,12 @@ export function PlayerScreen({
         }
         video.src = finalUrl;
         video.load();
-        await video.play();
-        if (!cancelled) {
+        if (wantPlay.current) {
+          await video.play();
+        }
+        if (!cancelled && !video.paused) {
           started.current = true;
-          setStatus('playing');
+          updateStatus('playing');
         }
       } catch {
         fail('Nao foi possivel reproduzir este item.');
@@ -250,6 +284,7 @@ export function PlayerScreen({
       const target = resumeTarget.current;
       if (
         !resumeApplied.current &&
+        !userSeeked.current &&
         target > 5 &&
         total > 0 &&
         target < total - 2
@@ -261,6 +296,18 @@ export function PlayerScreen({
           // Fluxo sem seek.
         }
         resumeApplied.current = true;
+      }
+
+      // Mantem o estado do overlay de acordo com o video, inclusive quando
+      // o aparelho pausa sozinho sem dispensar evento.
+      if (statusRef.current !== 'error' && statusRef.current !== 'ended') {
+        if (!video.paused) {
+          if (statusRef.current !== 'playing') {
+            updateStatus('playing');
+          }
+        } else if (userPaused.current && statusRef.current === 'playing') {
+          updateStatus('paused');
+        }
       }
 
       // Autoplay: se ficou pronto mas parou, insiste como a LG/Android fazem.
@@ -276,7 +323,11 @@ export function PlayerScreen({
       // Watchdog: canal ao vivo e VOD podem travar sem dispensar erro.
       const now = Date.now();
       // Nenhum dado apos 12 s tambem e travamento (buffer que nunca começa).
-      if (!dataReady.current && now - noDataSince.current > 12000) {
+      if (
+        !dataReady.current &&
+        !userPaused.current &&
+        now - noDataSince.current > 12000
+      ) {
         fail('Servidor nao enviou o video. Reconectando...');
         noDataSince.current = now;
       }
@@ -316,7 +367,8 @@ export function PlayerScreen({
         hideTimer.current = null;
       }
       const last = Number(video.currentTime) || 0;
-      if (!isLive && last > 5) {
+      // Fim de VOD nao e retomada: limpar para nao reabrir do ultimo segundo.
+      if (!isLive && !endedRef.current && last > 5) {
         void writeJSON(resumeKey, last).catch(() => undefined);
       }
       video.removeEventListener('canplay', onReady);
@@ -364,24 +416,24 @@ export function PlayerScreen({
         video.currentTime = 0;
         wantPlay.current = true;
         userPaused.current = false;
-        void video.play().then(() => setStatus('playing'));
+        safePlay(video);
         return;
       }
       if (status === 'playing') {
         userPaused.current = true;
         wantPlay.current = false;
         video.pause();
-        setStatus('paused');
+        updateStatus('paused');
         return;
       }
       userPaused.current = false;
       wantPlay.current = true;
-      void video.play().then(() => setStatus('playing'));
+      safePlay(video);
     } catch {
-      setStatus('error');
+      updateStatus('error');
       setMessage('Nao foi possivel controlar a reproducao.');
     }
-  }, [showOverlay, status]);
+  }, [safePlay, showOverlay, status]);
 
   const seek = useCallback(
     (delta: number) => {
@@ -398,15 +450,21 @@ export function PlayerScreen({
       if (total > 0 && next > total - 1) {
         next = total - 1;
       }
+      // Seek manual vence a retomada automática e também salva posição.
+      userSeeked.current = true;
+      resumeApplied.current = true;
       try {
         video.currentTime = next;
         setTime(next);
+        if (!isLive) {
+          void writeJSON(resumeKey, next).catch(() => undefined);
+        }
       } catch {
         // Fluxo sem seek.
       }
       showOverlay();
     },
-    [allowSeek, showOverlay],
+    [allowSeek, isLive, resumeKey, showOverlay],
   );
 
   const safeIndex = Math.max(0, Math.min(index, Math.max(0, list.length - 1)));
@@ -502,6 +560,7 @@ export function PlayerScreen({
               label={status === 'playing' ? '❚❚' : '▶'}
               onPress={toggle}
               style={styles.pbtnBig}
+              hasTVPreferredFocus
             />
           </View>
 

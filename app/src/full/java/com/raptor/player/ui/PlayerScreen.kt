@@ -81,10 +81,12 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import com.raptor.player.BuildConfig
 import com.raptor.player.data.Dlna
 import com.raptor.player.data.DlnaDevice
 import com.raptor.player.data.Prefs
@@ -212,9 +214,25 @@ fun PlayerScreen(
             .setMediaSourceFactory(
                 DefaultMediaSourceFactory(context).setDataSourceFactory(httpFactory)
             )
+            // Mesmo motor do base.apk: DefaultRenderersFactory com extension
+            // renderers no modo PREFER. No Fire OS mantemos o padrão, que já
+            // está estável e não pode ser alterado sem autorização.
+            .setRenderersFactory(
+                DefaultRenderersFactory(context).setExtensionRendererMode(
+                    if (BuildConfig.FLAVOR == "mobile")
+                        DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
+                    else
+                        DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF
+                )
+            )
             .setLoadControl(
                 DefaultLoadControl.Builder()
-                    .setBufferDurationsMs(20_000, 45_000, 1_500, 3_000)
+                    .setBufferDurationsMs(
+                        if (BuildConfig.FLAVOR == "mobile") 30_000 else 20_000,
+                        if (BuildConfig.FLAVOR == "mobile") 60_000 else 45_000,
+                        1_500,
+                        3_000,
+                    )
                     .build()
             )
             .build()
@@ -274,6 +292,20 @@ fun PlayerScreen(
     val resumeTarget = remember { mutableLongStateOf(0L) }
     val appliedRef = rememberUpdatedState(resumeApplied)
     val targetRef = rememberUpdatedState(resumeTarget)
+
+    /** Recarrega com conexão nova sem perder o ponto atual do vídeo. */
+    fun reloadPreservingPosition() {
+        val saved = if (!isLive) player.currentPosition else 0L
+        if (saved > 5_000L) {
+            resumeTarget.longValue = saved
+            resumeApplied.value = false
+        }
+        playbackError = null
+        player.playWhenReady = true
+        player.setMediaItem(ExoMediaItem.fromUri(freshUrl(currentUrl.value)))
+        player.prepare()
+        player.play()
+    }
 
     /** Move o vídeo para um ponto escolhido (barra de tempo ou "Pular abertura"). */
     fun seekTo(ms: Long) {
@@ -349,6 +381,9 @@ fun PlayerScreen(
         // playWhenReady primeiro: garante que o vídeo comece sozinho assim que
         // o primeiro frame estiver pronto (canais ao vivo, filmes e séries).
         player.playWhenReady = true
+        // Primeira abertura usa a URL exata do servidor, como no base.apk.
+        // O cache-buster fica só nas reconexões: some M3U com token na URL
+        // rejeita parâmetro acrescentado.
         player.setMediaItem(ExoMediaItem.fromUri(current.url))
         player.prepare()
         player.play()
@@ -366,11 +401,9 @@ fun PlayerScreen(
                 if (tries < 3 && !isLive) {
                     retryCount = tries + 1
                     playbackError = null
-                    player.playWhenReady = true
-                    // URL nova: repetir a mesma faz o servidor devolver o erro.
-                    player.setMediaItem(ExoMediaItem.fromUri(freshUrl(currentUrl)))
-                    player.prepare()
-                    player.play()
+                    // URL nova e posição preservada: repetir a mesma faz o
+                    // servidor devolver o erro; recomeçar do zero perdia a retomada.
+                    reloadPreservingPosition()
                 }
             }
 
@@ -416,11 +449,7 @@ fun PlayerScreen(
                 continue
             }
             retryCount = tries + 1
-            playbackError = null
-            player.playWhenReady = true
-            player.setMediaItem(ExoMediaItem.fromUri(freshUrl(currentUrl)))
-            player.prepare()
-            player.play()
+            reloadPreservingPosition()
         }
     }
 

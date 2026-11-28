@@ -13,11 +13,28 @@ export function freshUrl(url: string): string {
 }
 
 /**
- * O player nativo nao segue redirecionamento entre protocolos (302 de
- * http para https, por exemplo). Uma consulta HEAD resolve o destino final
- * antes de entregar a URL ao player. Sem resposta no tempo limite, a URL
- * original e mantida para nao atrasar o inicio.
+ * Busca com tempo limite real: aborta a requisicao e limpa o timer.
+ * `Promise.race` so com setTimeout deixava fetch e timers pendurados.
  */
+export async function fetchTimed(
+  url: string,
+  init: RequestInit | undefined,
+  timeoutMs: number,
+): Promise<Response | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...(init || {}),
+      signal: controller.signal,
+    } as RequestInit);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Consulta de catalogo com tempo limite e tentativa em http quando o servidor
  * aceita certificado apenas em uma das duas formas (mesmo fallback do Android).
@@ -26,23 +43,16 @@ export async function fetchWithFallback(
   url: string,
   timeoutMs = 15000,
 ): Promise<Response | null> {
-  const once = async (target: string): Promise<Response | null> => {
-    try {
-      return await Promise.race([
-        fetch(target),
-        new Promise<null>(resolve => setTimeout(() => resolve(null), timeoutMs)),
-      ]);
-    } catch {
-      return null;
-    }
-  };
-
-  const primary = await once(url);
+  const primary = await fetchTimed(url, undefined, timeoutMs);
   if (primary && primary.ok) {
     return primary;
   }
   if (/^https:\/\//i.test(url)) {
-    const fallback = await once(url.replace(/^https:\/\//i, 'http://'));
+    const fallback = await fetchTimed(
+      url.replace(/^https:\/\//i, 'http://'),
+      undefined,
+      timeoutMs,
+    );
     if (fallback && fallback.ok) {
       return fallback;
     }
@@ -50,19 +60,20 @@ export async function fetchWithFallback(
   return primary;
 }
 
+/**
+ * O player nativo nao segue redirecionamento entre protocolos (302 de
+ * http para https, por exemplo). Uma consulta HEAD resolve o destino final
+ * antes de entregar a URL ao player. Sem resposta no tempo limite, a URL
+ * original e mantida para nao atrasar o inicio.
+ */
 export async function resolveRedirect(url: string): Promise<string> {
   if (!/^https?:\/\//i.test(url)) {
     return url;
   }
-  try {
-    const resolved = await Promise.race([
-      fetch(url, {method: 'HEAD', redirect: 'follow'} as RequestInit)
-        .then(response => response.url || url)
-        .catch(() => url),
-      new Promise<string>(resolve => setTimeout(() => resolve(url), 2500)),
-    ]);
-    return resolved || url;
-  } catch {
-    return url;
-  }
+  const resolved = await fetchTimed(
+    url,
+    {method: 'HEAD', redirect: 'follow'} as RequestInit,
+    2500,
+  );
+  return resolved?.url || url;
 }
