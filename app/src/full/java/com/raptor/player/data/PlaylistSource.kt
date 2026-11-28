@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
+import com.raptor.player.BuildConfig
 import com.raptor.player.RaptorApp
 import java.io.File
 import java.io.IOException
@@ -349,9 +350,26 @@ class M3uSource(private val url: String) : PlaylistSource {
             }
         }
 
-        // Mesmo mecanismo do base.apk: baixa a lista para um arquivo local
-        // uma vez por dia e parseia do disco. O texto da rede nunca fica na
-        // memória e abrir o app de novo não refaz o download.
+        // Fire OS fica exatamente como estava: leitura direta da rede.
+        if (BuildConfig.FLAVOR != "mobile") {
+            val first = runCatching { fetchEntries(target) }
+            first.getOrNull()?.let {
+                workingUrl = target
+                return@withContext it
+            }
+            val fallback = httpFallback(target)
+                ?: throw first.exceptionOrNull() ?: IOException("Falha ao carregar a lista")
+            val second = runCatching { fetchEntries(fallback) }
+            second.getOrNull()?.let {
+                workingUrl = fallback
+                return@withContext it
+            }
+            throw second.exceptionOrNull() ?: IOException("Falha ao carregar a lista")
+        }
+
+        // Mesmo mecanismo do base.apk, só no Android: baixa a lista para um
+        // arquivo local uma vez por dia e parseia do disco. O texto da rede
+        // nunca fica na memória e abrir o app de novo não refaz o download.
         val file = playlistCacheFile(target)
         val stamp = File(file.absolutePath + ".date")
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(Date())
@@ -406,6 +424,23 @@ class M3uSource(private val url: String) : PlaylistSource {
             }
         }
         stamp.writeText(today)
+    }
+
+    /** Caminho antigo, mantido para Fire OS: parse direto do stream da rede. */
+    private fun fetchEntries(target: String): List<MediaEntry> {
+        val request = Request.Builder()
+            .url(target)
+            .header("User-Agent", "Raptor/1.2 (Android)")
+            .build()
+        return http.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Playlist respondeu HTTP ${response.code}")
+            }
+            val body = response.body ?: return emptyList()
+            body.charStream().buffered().use { reader ->
+                M3uParser.parseLines(reader.lineSequence())
+            }
+        }
     }
 
     private fun fetchText(target: String): String {
