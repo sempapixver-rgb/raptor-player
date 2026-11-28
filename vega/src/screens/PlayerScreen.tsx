@@ -1,11 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {
   useKeplerAppStateManager,
   useTVEventHandler,
@@ -15,14 +9,14 @@ import {
   KeplerVideoSurfaceView,
   VideoPlayer,
 } from '@amazon-devices/react-native-w3cmedia';
-import {Button, Focusable} from '../components/ui';
+import {Button} from '../components/ui';
 import {DlnaSheet} from '../components/DlnaSheet';
-import {addRecent} from '../core/favorites';
-import {formatTime} from '../core/format';
-import {readJSON, removeKey, writeJSON} from '../core/storage';
+import {formatTime, normalizeText} from '../core/format';
+import {freshUrl, resolveRedirect} from '../core/media';
+import {readJSON, writeJSON} from '../core/storage';
 import {playUrl} from '../core/xtream';
 import type {Entry, PlayHandler, SourceConfig} from '../types';
-import {colors, radius, space} from '../theme';
+import {colors, f, s} from '../theme';
 
 type Props = {
   source: SourceConfig;
@@ -36,28 +30,11 @@ type Props = {
 };
 
 type Status = 'loading' | 'playing' | 'paused' | 'ended' | 'error';
-type ScaleMode = 'fit' | 'fill' | 'strech' | 'none';
-type Sheet = 'speed' | 'audio' | 'subs' | null;
-type TrackOption = {id: string; label: string; active: boolean};
 
-const SCALES: ScaleMode[] = ['fit', 'fill', 'strech'];
-const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
-
-function sameTracks(a: TrackOption[], b: TrackOption[]): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
-  for (let i = 0; i < a.length; i += 1) {
-    if (
-      a[i].id !== b[i].id ||
-      a[i].label !== b[i].label ||
-      a[i].active !== b[i].active
-    ) {
-      return false;
-    }
-  }
-  return true;
-}
+/** Enquadramento automatico (fit), o mesmo do app Android que funciona. */
+const SCALE_MODE = 'fit';
+const MAX_RETRIES = 3;
+const MAX_AUTOPLAY_TRIES = 8;
 
 export function PlayerScreen({
   source,
@@ -75,111 +52,158 @@ export function PlayerScreen({
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [attempt, setAttempt] = useState(0);
-  const [scaleMode, setScaleMode] = useState<ScaleMode>('fit');
+  const [reload, setReload] = useState(0);
+  const [overlay, setOverlay] = useState(true);
   const [dlnaOpen, setDlnaOpen] = useState(false);
-  const [sheet, setSheet] = useState<Sheet>(null);
-  const [speed, setSpeed] = useState(1);
-  const [audioTracks, setAudioTracks] = useState<TrackOption[]>([]);
-  const [textTracks, setTextTracks] = useState<TrackOption[]>([]);
 
   const player = useRef<VideoPlayer | null>(null);
   const attemptRef = useRef(0);
-  const resumeKey = allowSeek ? entry.kind + ':' + entry.id : null;
+  const userPaused = useRef(false);
+  const wantPlay = useRef(true);
+  const started = useRef(false);
+  const dataReady = useRef(false);
+  const noDataSince = useRef(Date.now());
+  const retryScheduled = useRef(false);
+  const endedRef = useRef(false);
+  const readyRetries = useRef(0);
+  const watchdog = useRef({time: -1, at: Date.now()});
   const resumeTarget = useRef(0);
-  const resumeApplied = useRef(true);
-  const userSeeked = useRef(false);
-  const ended = useRef(false);
-  const lastSave = useRef(0);
-  const watchdog = useRef({time: 0, at: Date.now()});
+  const resumeApplied = useRef(false);
+  const saveTick = useRef(0);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const appState = useKeplerAppStateManager();
   const appStateRef = useRef(appState);
   appStateRef.current = appState;
-  const speedRef = useRef(speed);
-  speedRef.current = speed;
 
   const baseUrl = useMemo(() => playUrl(source, entry), [source, entry]);
-  const url = useMemo(() => {
-    if (!baseUrl || attempt <= 0) {
-      return baseUrl;
-    }
-    return (
-      baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'r=' + Date.now()
-    );
-  }, [baseUrl, attempt]);
+  // canais nunca recebem seek; isso tambem define o watchdog de ao vivo.
+  const isLive = !allowSeek || entry.kind === 'LIVE';
+  const resumeKey = useMemo(
+    () => 'resume.stable.' + normalizeText(entry.name),
+    [entry.name],
+  );
+  // A retomada usa o titulo, nunca a URL (que muda a cada sessao Xtream).
+  const url = useMemo(
+    () => (baseUrl && attempt > 0 ? freshUrl(baseUrl) : baseUrl),
+    [attempt, baseUrl],
+  );
 
   useEffect(() => {
     attemptRef.current = 0;
     setAttempt(0);
-    userSeeked.current = false;
-    ended.current = false;
+    userPaused.current = false;
+    wantPlay.current = true;
+    endedRef.current = false;
   }, [entry.id, entry.kind]);
 
   useEffect(() => {
-    let alive = true;
-    const fallback: ScaleMode = entry.kind === 'LIVE' ? 'fit' : 'fill';
-    readJSON<ScaleMode>('player.scale', fallback)
-      .then(saved => {
-        if (alive && SCALES.indexOf(saved) >= 0) {
-          setScaleMode(saved);
-        }
-      })
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, [entry.kind]);
-
-  useEffect(() => {
-    let alive = true;
-    readJSON<number>('player.speed', 1)
-      .then(saved => {
-        if (alive && SPEEDS.indexOf(saved) >= 0) {
-          setSpeed(saved);
-        }
-      })
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    void addRecent(entry);
-  }, [entry]);
-
-  useEffect(() => {
     if (!surface || !url) {
-      if (!url) {
+      if (surface && !url) {
         setStatus('error');
         setMessage('Este item nao tem uma URL reproduzivel.');
       }
       return;
     }
+
     let cancelled = false;
     setStatus('loading');
     setMessage('');
     setTime(0);
     setDuration(0);
-    ended.current = false;
-    lastSave.current = 0;
-    watchdog.current = {time: 0, at: Date.now()};
+    started.current = false;
+    dataReady.current = false;
+    noDataSince.current = Date.now();
+    retryScheduled.current = false;
+    endedRef.current = false;
+    readyRetries.current = 0;
+    saveTick.current = 0;
+    watchdog.current = {time: -1, at: Date.now()};
+    resumeApplied.current = false;
+    resumeTarget.current = 0;
+    if (!isLive) {
+      void readJSON<number>(resumeKey, 0)
+        .then(value => {
+          if (!cancelled) {
+            resumeTarget.current = Number(value) || 0;
+          }
+        })
+        .catch(() => undefined);
+    }
 
     const video = new VideoPlayer();
     player.current = video;
 
-    const start = async () => {
-      let target = 0;
-      if (resumeKey) {
-        const saved = await readJSON<number>('resume.' + resumeKey, 0);
-        target = Number(saved) || 0;
+    /** Insiste no play quando o primeiro comando e recusado pelo aparelho. */
+    const playIt = async () => {
+      if (cancelled || !wantPlay.current || player.current !== video) {
+        return;
       }
+      try {
+        await video.play();
+        if (!cancelled) {
+          started.current = true;
+          setStatus('playing');
+        }
+      } catch {
+        readyRetries.current += 1;
+        if (readyRetries.current > MAX_AUTOPLAY_TRIES) {
+          return;
+        }
+        setTimeout(() => {
+          if (!cancelled) {
+            void playIt();
+          }
+        }, 500 + readyRetries.current * 300);
+      }
+    };
+
+    /** Nova conexao ate 3 vezes; um unico erro por ciclo evita gastar todas. */
+    const fail = (text: string) => {
+      if (cancelled || retryScheduled.current) {
+        return;
+      }
+      if (attemptRef.current < MAX_RETRIES) {
+        retryScheduled.current = true;
+        attemptRef.current += 1;
+        setAttempt(attemptRef.current);
+        return;
+      }
+      setStatus('error');
+      setMessage(text);
+    };
+
+    const onReady = () => {
       if (cancelled) {
         return;
       }
-      resumeTarget.current = target;
-      resumeApplied.current = userSeeked.current || target <= 5;
+      dataReady.current = true;
+      started.current = true;
+      setStatus('playing');
+    };
+    const onPlaying = () => {
+      if (!cancelled) {
+        dataReady.current = true;
+        started.current = true;
+        setStatus('playing');
+      }
+    };
+    const onError = () => fail('Nao foi possivel reproduzir este item.');
+    const onEnded = () => {
+      if (!cancelled) {
+        endedRef.current = true;
+        setStatus('ended');
+      }
+    };
 
+    video.addEventListener('canplay', onReady);
+    video.addEventListener('loadeddata', onReady);
+    video.addEventListener('playing', onPlaying);
+    video.addEventListener('error', onError);
+    video.addEventListener('ended', onEnded);
+
+    /** Inicia sem esperar storage e resolve 302 entre http e https. */
+    const start = async () => {
       try {
         await video.initialize();
         if (cancelled) {
@@ -194,31 +218,22 @@ export function PlayerScreen({
           // Sem foco de midia o player continua funcionando.
         }
         video.setSurfaceHandle(surface);
-        video.src = url;
-        video.load();
-        await video.play();
-        try {
-          video.playbackRate = speedRef.current;
-        } catch {
-          // Velocidade nao suportada por este stream.
-        }
-        if (!cancelled) {
-          setStatus('playing');
-        }
-      } catch {
+        const finalUrl = await resolveRedirect(url);
         if (cancelled) {
           return;
         }
-        if (attemptRef.current < 3) {
-          attemptRef.current += 1;
-          setAttempt(attemptRef.current);
-          return;
+        video.src = finalUrl;
+        video.load();
+        await video.play();
+        if (!cancelled) {
+          started.current = true;
+          setStatus('playing');
         }
-        setStatus('error');
-        setMessage('Nao foi possivel reproduzir este item.');
+      } catch {
+        fail('Nao foi possivel reproduzir este item.');
       }
     };
-    start();
+    void start();
 
     const timer = setInterval(() => {
       if (cancelled || player.current !== video) {
@@ -231,71 +246,50 @@ export function PlayerScreen({
         setDuration(total);
       }
 
-      try {
-        if (video.playbackRate !== speedRef.current) {
-          video.playbackRate = speedRef.current;
-        }
-        const audioList = video.audioTracks as any;
-        const audio: TrackOption[] = [];
-        for (let i = 0; i < Number(audioList?.length || 0); i += 1) {
-          const track = audioList[i];
-          if (track) {
-            audio.push({
-              id: String(track.id ?? i),
-              label: String(track.label || track.language || 'Faixa ' + (i + 1)),
-              active: Boolean(track.enabled),
-            });
-          }
-        }
-        const textList = video.textTracks as any;
-        const text: TrackOption[] = [];
-        for (let i = 0; i < Number(textList?.length || 0); i += 1) {
-          const track = textList[i];
-          if (track) {
-            text.push({
-              id: String(track.id ?? i),
-              label: String(track.label || track.language || 'Legenda ' + (i + 1)),
-              active: track.mode === 'showing',
-            });
-          }
-        }
-        setAudioTracks(previous =>
-          sameTracks(previous, audio) ? previous : audio,
-        );
-        setTextTracks(previous => (sameTracks(previous, text) ? previous : text));
-      } catch {
-        // Faixas indisponiveis neste stream.
-      }
-
+      // Retomada so com duracao conhecida; seekTo antes do prepare e ignorado.
+      const target = resumeTarget.current;
       if (
+        !resumeApplied.current &&
+        target > 5 &&
         total > 0 &&
-        resumeTarget.current > 5 &&
-        !resumeApplied.current
+        target < total - 2
       ) {
-        const target = resumeTarget.current;
-        if (target < total - 2) {
-          try {
-            video.currentTime = target;
-            setTime(target);
-          } catch {
-            // Player ainda nao aceita seek.
-          }
+        try {
+          video.currentTime = target;
+          setTime(target);
+        } catch {
+          // Fluxo sem seek.
         }
         resumeApplied.current = true;
       }
 
-      if (resumeKey && current > 5 && Math.abs(current - lastSave.current) >= 10) {
-        lastSave.current = current;
-        void writeJSON('resume.' + resumeKey, current);
+      // Autoplay: se ficou pronto mas parou, insiste como a LG/Android fazem.
+      if (!video.paused && started.current && userPaused.current === false) {
+        readyRetries.current = 0;
+      } else if (video.paused && wantPlay.current && !userPaused.current) {
+        readyRetries.current += 1;
+        if (readyRetries.current <= MAX_AUTOPLAY_TRIES) {
+          void playIt();
+        }
       }
 
-      const paused = Boolean((video as any).paused);
+      // Watchdog: canal ao vivo e VOD podem travar sem dispensar erro.
       const now = Date.now();
-      if (!paused && total > 0 && current > 0) {
-        if (Math.abs(current - watchdog.current.time) < 0.2) {
-          if (now - watchdog.current.at > 10000 && attemptRef.current < 3) {
-            attemptRef.current += 1;
-            setAttempt(attemptRef.current);
+      // Nenhum dado apos 12 s tambem e travamento (buffer que nunca começa).
+      if (!dataReady.current && now - noDataSince.current > 12000) {
+        fail('Servidor nao enviou o video. Reconectando...');
+        noDataSince.current = now;
+      }
+      if (current > 0 && !video.paused) {
+        const previous = watchdog.current.time;
+        if (previous >= 0 && Math.abs(current - previous) < 0.2) {
+          if (now - watchdog.current.at > 10000) {
+            fail(
+              isLive
+                ? 'Canal parado. Reconectando...'
+                : 'Video parado. Reconectando...',
+            );
+            watchdog.current = {time: -1, at: now};
           }
         } else {
           watchdog.current = {time: current, at: now};
@@ -304,39 +298,32 @@ export function PlayerScreen({
         watchdog.current = {time: current, at: now};
       }
 
-      setStatus(previous => {
-        if (previous === 'loading' || previous === 'error' || previous === 'ended') {
-          return previous;
+      // Salva a posicao a cada 10 s (nunca em canal ao vivo).
+      saveTick.current += 1;
+      if (saveTick.current >= 20) {
+        saveTick.current = 0;
+        if (!isLive && current > 5) {
+          void writeJSON(resumeKey, current).catch(() => undefined);
         }
-        return paused ? 'paused' : 'playing';
-      });
-    }, 500);
-
-    const onEnded = () => {
-      ended.current = true;
-      setStatus('ended');
-      if (resumeKey) {
-        void removeKey('resume.' + resumeKey);
       }
-    };
-    try {
-      (video as any).addEventListener('ended', onEnded);
-    } catch {
-      // Evento opcional.
-    }
+    }, 500);
 
     return () => {
       cancelled = true;
       clearInterval(timer);
-      const current = Number(video.currentTime) || 0;
-      if (resumeKey && !ended.current && current > 5) {
-        void writeJSON('resume.' + resumeKey, current);
+      if (hideTimer.current) {
+        clearTimeout(hideTimer.current);
+        hideTimer.current = null;
       }
-      try {
-        (video as any).removeEventListener('ended', onEnded);
-      } catch {
-        // Evento opcional.
+      const last = Number(video.currentTime) || 0;
+      if (!isLive && last > 5) {
+        void writeJSON(resumeKey, last).catch(() => undefined);
       }
+      video.removeEventListener('canplay', onReady);
+      video.removeEventListener('loadeddata', onReady);
+      video.removeEventListener('playing', onPlaying);
+      video.removeEventListener('error', onError);
+      video.removeEventListener('ended', onEnded);
       if (player.current === video) {
         player.current = null;
       }
@@ -346,7 +333,24 @@ export function PlayerScreen({
         // Player ja liberado.
       }
     };
-  }, [surface, url, resumeKey]);
+  }, [isLive, reload, resumeKey, surface, url]);
+
+  const showOverlay = useCallback(() => {
+    setOverlay(true);
+    if (hideTimer.current) {
+      clearTimeout(hideTimer.current);
+      hideTimer.current = null;
+    }
+  }, []);
+
+  /** Controles some sozinhos enquanto o video esta rolando. */
+  useEffect(() => {
+    if (!overlay || status !== 'playing') {
+      return;
+    }
+    const timer = setTimeout(() => setOverlay(false), 4500);
+    return () => clearTimeout(timer);
+  }, [overlay, status]);
 
   const toggle = useCallback(() => {
     const video = player.current;
@@ -354,23 +358,30 @@ export function PlayerScreen({
       return;
     }
     try {
+      showOverlay();
       if (status === 'ended') {
-        ended.current = false;
+        endedRef.current = false;
         video.currentTime = 0;
-        video.play().then(() => setStatus('playing')).catch(() => undefined);
+        wantPlay.current = true;
+        userPaused.current = false;
+        void video.play().then(() => setStatus('playing'));
         return;
       }
       if (status === 'playing') {
+        userPaused.current = true;
+        wantPlay.current = false;
         video.pause();
         setStatus('paused');
         return;
       }
-      video.play().then(() => setStatus('playing')).catch(() => undefined);
+      userPaused.current = false;
+      wantPlay.current = true;
+      void video.play().then(() => setStatus('playing'));
     } catch {
       setStatus('error');
       setMessage('Nao foi possivel controlar a reproducao.');
     }
-  }, [status]);
+  }, [showOverlay, status]);
 
   const seek = useCallback(
     (delta: number) => {
@@ -390,16 +401,12 @@ export function PlayerScreen({
       try {
         video.currentTime = next;
         setTime(next);
-        userSeeked.current = true;
-        resumeApplied.current = true;
-        if (resumeKey) {
-          void writeJSON('resume.' + resumeKey, next);
-        }
       } catch {
         // Fluxo sem seek.
       }
+      showOverlay();
     },
-    [allowSeek, resumeKey],
+    [allowSeek, showOverlay],
   );
 
   const safeIndex = Math.max(0, Math.min(index, Math.max(0, list.length - 1)));
@@ -421,18 +428,6 @@ export function PlayerScreen({
     [allowSeek, autoAdvance, list, onSelect],
   );
 
-  const goPrevious = useCallback(() => {
-    if (previous) {
-      goTo(previous, safeIndex - 1);
-    }
-  }, [goTo, previous, safeIndex]);
-
-  const goNext = useCallback(() => {
-    if (next) {
-      goTo(next, safeIndex + 1);
-    }
-  }, [goTo, next, safeIndex]);
-
   useEffect(() => {
     if (status !== 'ended' || !autoAdvance || !next) {
       return;
@@ -449,68 +444,10 @@ export function PlayerScreen({
       seek(-10);
     } else if (type === 'fastForward') {
       seek(10);
+    } else {
+      showOverlay();
     }
   });
-
-  const cycleScale = useCallback(() => {
-    const current = SCALES.indexOf(scaleMode);
-    const chosen = SCALES[(current + 1) % SCALES.length];
-    setScaleMode(chosen);
-    void writeJSON('player.scale', chosen);
-  }, [scaleMode]);
-
-  const chooseSpeed = useCallback((value: number) => {
-    setSpeed(value);
-    speedRef.current = value;
-    const video = player.current;
-    if (video) {
-      try {
-        video.playbackRate = value;
-      } catch {
-        // Stream nao aceita mudanca de velocidade.
-      }
-    }
-    void writeJSON('player.speed', value);
-    setSheet(null);
-  }, []);
-
-  const chooseAudio = useCallback((id: string | null) => {
-    const video = player.current;
-    const list = video?.audioTracks as any;
-    if (!video || !list) {
-      return;
-    }
-    try {
-      for (let i = 0; i < Number(list.length || 0); i += 1) {
-        const track = list[i];
-        if (track) {
-          track.enabled = (id === null ? 0 : i) === Number(id);
-        }
-      }
-    } catch {
-      // Faixas nao alteraveis.
-    }
-    setSheet(null);
-  }, []);
-
-  const chooseSubs = useCallback((id: string | null) => {
-    const video = player.current;
-    const list = video?.textTracks as any;
-    if (!video || !list) {
-      return;
-    }
-    try {
-      for (let i = 0; i < Number(list.length || 0); i += 1) {
-        const track = list[i];
-        if (track) {
-          track.mode = id !== null && i === Number(id) ? 'showing' : 'disabled';
-        }
-      }
-    } catch {
-      // Legendas nao alteraveis.
-    }
-    setSheet(null);
-  }, []);
 
   const percent = duration > 0 ? Math.min(100, (time / duration) * 100) : 0;
 
@@ -518,21 +455,21 @@ export function PlayerScreen({
     <View style={styles.root}>
       <KeplerVideoSurfaceView
         style={StyleSheet.absoluteFill}
-        scalingmode={scaleMode}
+        scalingmode={SCALE_MODE}
         onSurfaceViewCreated={setSurface}
       />
 
       {status === 'loading' ? (
-        <View style={styles.overlay}>
+        <View style={styles.loading}>
           <ActivityIndicator color={colors.accent} size="large" />
-          <Text style={styles.overlayText}>Abrindo o video...</Text>
+          <Text style={styles.loadingText}>Carregando...</Text>
         </View>
       ) : null}
 
       {status === 'error' ? (
-        <View style={styles.overlay}>
-          <Text style={styles.errorTitle}>Falha na reproducao</Text>
-          <Text style={styles.overlayText}>{message}</Text>
+        <View style={styles.error}>
+          <Text style={styles.errorTitle}>Nao foi possivel abrir este video</Text>
+          <Text style={styles.loadingText}>{message}</Text>
           <View style={styles.errorActions}>
             <Button
               kind="primary"
@@ -541,6 +478,7 @@ export function PlayerScreen({
               onPress={() => {
                 attemptRef.current = 0;
                 setAttempt(0);
+                setReload(value => value + 1);
               }}
             />
             <Button label="Voltar" onPress={onClose} />
@@ -548,127 +486,65 @@ export function PlayerScreen({
         </View>
       ) : null}
 
-      <View style={styles.topBar}>
-        <Button label="Voltar" onPress={onClose} />
-        <View style={styles.titles}>
-          <Text style={styles.title} numberOfLines={1}>
-            {entry.name}
-          </Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {allowSeek ? entry.category || 'Video' : 'Ao vivo'}
-          </Text>
-        </View>
-        <Button label="Ajustar" onPress={cycleScale} />
-        <Button label="📺 TV" onPress={() => setDlnaOpen(true)} />
-      </View>
-
-      <View style={styles.bottomBar}>
-        {allowSeek ? (
-          <View style={styles.progressWrap}>
-            <View style={styles.progressTrack}>
-              <View
-                style={[styles.progressFill, {width: (percent + '%') as any}]}
-              />
-            </View>
-            <View style={styles.times}>
-              <Text style={styles.timeText}>{formatTime(time)}</Text>
-              <Text style={styles.timeText}>{formatTime(duration)}</Text>
-            </View>
+      {overlay && status !== 'error' ? (
+        <View style={styles.overlay}>
+          <View style={styles.playerTop}>
+            <Text style={styles.playerTitle} numberOfLines={1}>
+              {entry.name}
+            </Text>
+            <Text style={styles.playerBadge}>
+              {isLive ? 'AO VIVO' : 'VIDEO'}
+            </Text>
           </View>
-        ) : (
-          <Text style={styles.liveText}>AO VIVO</Text>
-        )}
 
-        <View style={styles.controls}>
-          <Button
-            kind="primary"
-            label={status === 'playing' ? 'Pausar' : 'Reproduzir'}
-            hasTVPreferredFocus
-            onPress={toggle}
-          />
-          {allowSeek ? (
-            <>
-              <Button label="-10s" onPress={() => seek(-10)} />
-              <Button label="+10s" onPress={() => seek(10)} />
-              {entry.kind === 'SERIES' ? (
-                <Button label="Pular abertura" onPress={() => seek(40)} />
-              ) : null}
-            </>
-          ) : null}
-          <Button label="Anterior" onPress={goPrevious} />
-          <Button label="Proximo" onPress={goNext} />
-        </View>
-
-        <View style={styles.controls}>
-          <Button label={'Velocidade ' + speed + 'x'} onPress={() => setSheet('speed')} />
-          <Button label={'Audio' + (audioTracks.length ? ' (' + audioTracks.length + ')' : '')} onPress={() => setSheet('audio')} />
-          <Button label={'Legendas' + (textTracks.length ? ' (' + textTracks.length + ')' : '')} onPress={() => setSheet('subs')} />
-        </View>
-      </View>
-
-      {sheet ? (
-        <View style={styles.sheetWrap}>
-          <View style={styles.sheet}>
-            <View style={styles.sheetHead}>
-              <Text style={styles.sheetTitle}>
-                {sheet === 'speed'
-                  ? 'Velocidade'
-                  : sheet === 'audio'
-                    ? 'Faixa de audio'
-                    : 'Legendas'}
-              </Text>
-              <Button label="Fechar" onPress={() => setSheet(null)} />
-            </View>
-            <FlatList
-              data={
-                sheet === 'speed'
-                  ? SPEEDS.map(value => ({
-                      id: String(value),
-                      label: value + 'x',
-                      active: value === speed,
-                    }))
-                  : sheet === 'audio'
-                    ? audioTracks
-                    : textTracks
-              }
-              keyExtractor={item => item.id}
-              style={styles.sheetList}
-              ListEmptyComponent={
-                <Text style={styles.sheetHint}>Nenhuma opcao neste video.</Text>
-              }
-              renderItem={({item}) => (
-                <Focusable
-                  accessibilityLabel={item.label}
-                  onPress={() => {
-                    if (sheet === 'speed') {
-                      chooseSpeed(Number(item.id));
-                    } else if (sheet === 'audio') {
-                      chooseAudio(item.id);
-                    } else {
-                      chooseSubs(item.id);
-                    }
-                  }}
-                  style={[styles.sheetRow, item.active ? styles.sheetRowActive : null]}
-                  focusedStyle={styles.sheetRowFocused}>
-                  <Text style={styles.sheetRowText}>
-                    {item.active ? '✓ ' : ''}
-                    {item.label}
-                  </Text>
-                </Focusable>
-              )}
+          <View style={styles.playerCenter}>
+            <Button
+              label={status === 'playing' ? '❚❚' : '▶'}
+              onPress={toggle}
+              style={styles.pbtnBig}
             />
-            {sheet === 'audio' || sheet === 'subs' ? (
-              <Button
-                label="Padrao"
-                onPress={() => {
-                  if (sheet === 'audio') {
-                    chooseAudio(null);
-                  } else {
-                    chooseSubs(null);
-                  }
-                }}
-              />
+          </View>
+
+          <View style={styles.playerBottom}>
+            <View style={styles.playerNav}>
+              {previous ? (
+                <Button
+                  label="◀ Anterior"
+                  onPress={() => goTo(previous, safeIndex - 1)}
+                  style={styles.pbtnNav}
+                />
+              ) : null}
+              {next ? (
+                <Button
+                  label="Proximo ▶"
+                  onPress={() => goTo(next, safeIndex + 1)}
+                  style={styles.pbtnNav}
+                />
+              ) : null}
+            </View>
+
+            {allowSeek ? (
+              <View style={styles.progress}>
+                <View style={styles.bar}>
+                  <View style={[styles.fill, {width: (percent + '%') as any}]} />
+                </View>
+                <View style={styles.times}>
+                  <Text style={styles.time}>{formatTime(time)}</Text>
+                  <Text style={styles.time}>{formatTime(duration)}</Text>
+                </View>
+              </View>
             ) : null}
+
+            <View style={styles.playerControls}>
+              <Button label="Voltar" onPress={onClose} />
+              {allowSeek ? (
+                <>
+                  <Button label="-10s" onPress={() => seek(-10)} />
+                  <Button label="+10s" onPress={() => seek(10)} />
+                </>
+              ) : null}
+              <Button label="📺 TV" onPress={() => setDlnaOpen(true)} />
+            </View>
           </View>
         </View>
       ) : null}
@@ -684,159 +560,82 @@ export function PlayerScreen({
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.72)',
-    zIndex: 2,
-  },
-  overlayText: {
-    color: colors.textSoft,
-    fontSize: 14,
-    marginTop: space.sm,
-    textAlign: 'center',
-    maxWidth: 520,
-  },
-  errorTitle: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  errorActions: {
-    flexDirection: 'row',
-    marginTop: space.lg,
-  },
-  topBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-    backgroundColor: 'rgba(7,11,18,0.78)',
-    zIndex: 3,
-  },
-  titles: {
-    marginLeft: space.md,
-    marginRight: space.md,
-    flex: 1,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  subtitle: {
-    color: colors.textDim,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  bottomBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-    backgroundColor: 'rgba(7,11,18,0.82)',
-    zIndex: 3,
-  },
-  progressWrap: {
-    marginBottom: space.sm,
-  },
-  progressTrack: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.accent,
-  },
-  times: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  timeText: {
-    color: colors.textDim,
-    fontSize: 11,
-  },
-  liveText: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 2,
-    marginBottom: space.sm,
-  },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: radius.md,
-    marginTop: space.xs,
-  },
-  sheetWrap: {
+  root: {flex: 1, backgroundColor: '#000000'},
+  loading: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.55)',
+    zIndex: 2,
+  },
+  loadingText: {
+    color: colors.textSoft,
+    fontSize: f(20),
+    marginTop: s(14),
+  },
+  error: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.85)',
     zIndex: 4,
+    paddingHorizontal: s(120),
   },
-  sheet: {
-    width: 620,
-    maxHeight: '70%',
-    padding: space.lg,
-    borderRadius: radius.lg,
-    backgroundColor: 'rgba(7,11,18,0.98)',
+  errorTitle: {color: colors.text, fontSize: f(32), fontWeight: '700'},
+  errorActions: {flexDirection: 'row', marginTop: s(40)},
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'space-between',
+    paddingTop: s(44),
+    paddingBottom: s(44),
+    paddingHorizontal: s(64),
+    zIndex: 3,
+  },
+  playerTop: {flexDirection: 'row', alignItems: 'flex-start'},
+  playerTitle: {
+    color: colors.text,
+    fontSize: f(34),
+    fontWeight: '700',
+    marginRight: s(22),
+    flex: 1,
+  },
+  playerBadge: {
+    color: colors.accent,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: colors.accent,
+    fontSize: f(13),
+    fontWeight: '800',
+    letterSpacing: s(2),
+    paddingHorizontal: s(12),
+    paddingVertical: s(5),
+    borderRadius: 999,
   },
-  sheetHead: {
+  playerCenter: {alignItems: 'center', justifyContent: 'center'},
+  playerBottom: {flexDirection: 'column'},
+  playerNav: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: space.md,
+    justifyContent: 'center',
+    marginBottom: s(22),
   },
-  sheetTitle: {
-    color: colors.text,
-    fontSize: 20,
-    fontWeight: '800',
+  pbtnBig: {
+    width: s(104),
+    height: s(104),
+    borderRadius: s(52),
+    paddingHorizontal: 0,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  sheetList: {
-    flexGrow: 0,
-    maxHeight: 380,
+  pbtnNav: {
+    height: s(74),
+    borderRadius: 999,
+    paddingHorizontal: s(40),
+    marginHorizontal: s(14),
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
-  sheetHint: {
-    color: colors.textDim,
-    fontSize: 13,
-    paddingVertical: space.md,
-  },
-  sheetRow: {
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    borderRadius: radius.sm,
-    marginBottom: 4,
-    backgroundColor: colors.panel,
-  },
-  sheetRowActive: {
-    backgroundColor: colors.accentSoft,
-  },
-  sheetRowFocused: {
-    backgroundColor: colors.panelSoft,
-    borderWidth: 2,
-    borderColor: colors.focusRing,
-  },
-  sheetRowText: {
-    color: colors.text,
-    fontSize: 15,
-  },
+  progress: {marginBottom: s(12), padding: s(10)},
+  bar: {height: s(8), borderRadius: s(4), backgroundColor: 'rgba(255,255,255,0.2)'},
+  fill: {height: s(8), borderRadius: s(4), backgroundColor: colors.accent},
+  times: {flexDirection: 'row', justifyContent: 'space-between', marginTop: s(7)},
+  time: {color: colors.textSoft, fontSize: f(16)},
+  playerControls: {flexDirection: 'row', marginTop: s(12)},
 });

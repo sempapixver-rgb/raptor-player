@@ -1,3 +1,4 @@
+import {fetchWithFallback} from './media';
 import type {Category, Entry, Kind} from '../types';
 
 export type Playlist = {
@@ -143,9 +144,9 @@ export async function loadPlaylist(url: string): Promise<Playlist> {
   if (hit && Date.now() - hit.at < 10 * 60 * 1000) {
     return hit.data;
   }
-  const response = await fetch(key);
-  if (!response.ok) {
-    throw new Error('HTTP ' + response.status);
+  const response = await fetchWithFallback(key);
+  if (!response || !response.ok) {
+    throw new Error(response ? 'HTTP ' + response.status : 'Sem resposta');
   }
   const data = parsePlaylist(await response.text());
   cache.set(key, {at: Date.now(), data});

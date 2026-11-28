@@ -1,3 +1,4 @@
+import {fetchWithFallback} from './media';
 import type {Category, Entry, Kind, SourceConfig} from '../types';
 
 /** Aceita host puro, URL com barra no fim ou com /player_api.php. */
@@ -34,9 +35,9 @@ function apiUrl(source: SourceConfig, params: Record<string, string>): string {
 }
 
 async function getJSON<T>(url: string): Promise<T> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error('HTTP ' + response.status);
+  const response = await fetchWithFallback(url);
+  if (!response || !response.ok) {
+    throw new Error(response ? 'HTTP ' + response.status : 'Sem resposta');
   }
   return (await response.json()) as T;
 }

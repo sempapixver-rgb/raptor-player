@@ -4,7 +4,7 @@ import {Brand, Button} from '../components/ui';
 import {SITE_BASE} from '../config/app';
 import {fetchActivation} from '../core/activation';
 import type {SourceConfig} from '../types';
-import {colors, radius, space} from '../theme';
+import {colors, f, radius, s, space} from '../theme';
 
 type Props = {
   deviceCode: string;
@@ -76,20 +76,22 @@ export function ActivationScreen({deviceCode, onActivated, onDemo}: Props) {
   return (
     <View style={styles.root}>
       <View style={styles.top}>
-        <Brand />
+        <View style={styles.brandBig}>
+          <Text style={styles.logo}>RAPTOR</Text>
+          <Text style={styles.tag}>VIDEO PLAYER</Text>
+        </View>
       </View>
 
       <View style={styles.body}>
         <View style={styles.left}>
-          <Text style={styles.step}>PASSO 1</Text>
           <Text style={styles.title}>Ative este aparelho</Text>
           <Text style={styles.text}>
-            No celular ou computador, abra o site abaixo, entre na sua conta e
-            informe o codigo do aparelho. A liberacao e automatica.
+            No celular ou computador, abra o site abaixo e informe o codigo do
+            aparelho. A liberacao e automatica. Nada e digitado no controle.
           </Text>
 
           <View style={styles.siteBox}>
-            <Text style={styles.siteLabel}>SITE DE ATIVACAO</Text>
+            <Text style={styles.lbl}>SITE DE ATIVACAO</Text>
             <Text style={styles.site}>{SITE_BASE.replace(/^https?:\/\//, '')}</Text>
           </View>
 
@@ -100,20 +102,16 @@ export function ActivationScreen({deviceCode, onActivated, onDemo}: Props) {
               hasTVPreferredFocus
               onPress={() => check(false)}
             />
-            <Button label="Usar modo demonstracao" onPress={onDemo} />
+            <Button label="▶ Testar o player" onPress={onDemo} />
           </View>
         </View>
 
         <View style={styles.right}>
-          <Text style={styles.codeLabel}>CODIGO DESTE APARELHO</Text>
-          <View style={styles.codeBox}>
-            <Text style={styles.code}>{deviceCode}</Text>
-          </View>
-          <Text style={styles.hint}>
-            Informe exatamente este codigo no site. Ele fica salvo neste
-            aparelho e nao muda.
+          <Text style={styles.lbl}>CODIGO DESTE APARELHO (MAC)</Text>
+          <Text style={styles.code} numberOfLines={1}>
+            {deviceCode}
           </Text>
-          <View style={styles.statusBox}>
+          <View style={styles.status}>
             <View style={styles.statusDot} />
             <Text style={styles.statusText}>{message}</Text>
           </View>
@@ -121,134 +119,72 @@ export function ActivationScreen({deviceCode, onActivated, onDemo}: Props) {
       </View>
 
       <Text style={styles.footer}>
-        O aplicativo e apenas um tocador de video. Nenhum conteudo vem
-        instalado.
+        O aplicativo e apenas um tocador de video. Nenhum conteudo vem instalado.
       </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    padding: space.xl,
+  root: {flex: 1, backgroundColor: colors.bg, padding: s(80)},
+  top: {marginBottom: s(34)},
+  brandBig: {flexDirection: 'column'},
+  logo: {
+    color: colors.accent,
+    fontSize: f(30),
+    fontWeight: '900',
+    letterSpacing: s(10),
   },
-  top: {
-    marginBottom: space.lg,
-  },
-  body: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  left: {
-    flex: 1.15,
-    paddingRight: space.xl,
-  },
+  tag: {color: colors.textDim, fontSize: f(11), letterSpacing: s(4), marginTop: s(5)},
+  body: {flex: 1, flexDirection: 'row', alignItems: 'center'},
+  left: {flex: 1.15, paddingRight: s(56)},
   right: {
     flex: 0.85,
     backgroundColor: colors.panel,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: space.lg,
+    padding: s(36),
   },
-  step: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 3,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 32,
-    fontWeight: '800',
-    marginTop: space.sm,
-  },
+  title: {color: colors.text, fontSize: f(30), fontWeight: '800', marginTop: s(34)},
   text: {
     color: colors.textSoft,
-    fontSize: 15,
-    lineHeight: 23,
-    marginTop: space.sm,
-    maxWidth: 560,
+    fontSize: f(18),
+    lineHeight: f(28),
+    marginTop: s(10),
+    maxWidth: s(660),
   },
   siteBox: {
-    marginTop: space.lg,
-    padding: space.md,
+    marginTop: s(34),
+    padding: s(16),
     borderRadius: radius.md,
     backgroundColor: colors.bgSoft,
     borderWidth: 1,
     borderColor: colors.line,
     alignSelf: 'flex-start',
-    minWidth: 320,
   },
-  siteLabel: {
-    color: colors.textDim,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 2,
-  },
-  site: {
-    color: colors.accent,
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  actions: {
-    flexDirection: 'row',
-    marginTop: space.lg,
-  },
-  codeLabel: {
-    color: colors.textDim,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 2,
-  },
-  codeBox: {
-    marginTop: space.sm,
-    paddingVertical: space.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.bgSoft,
-    borderWidth: 1,
-    borderColor: colors.line,
-    alignItems: 'center',
-  },
+  lbl: {color: colors.textDim, fontSize: f(13), letterSpacing: s(2)},
+  site: {color: colors.accent, fontSize: f(17), marginTop: s(4)},
+  actions: {flexDirection: 'row', marginTop: s(34)},
   code: {
     color: colors.text,
-    fontSize: 30,
+    fontSize: f(40),
     fontWeight: '800',
-    letterSpacing: 3,
+    letterSpacing: s(2),
+    marginTop: s(10),
   },
-  hint: {
-    color: colors.textDim,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: space.sm,
-  },
-  statusBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: space.lg,
-    padding: space.sm,
-    borderRadius: radius.sm,
-    backgroundColor: colors.bgSoft,
-  },
+  status: {flexDirection: 'row', alignItems: 'center', marginTop: s(10)},
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: s(9),
+    height: s(9),
+    borderRadius: s(5),
     backgroundColor: colors.gold,
-    marginRight: space.sm,
+    marginRight: s(9),
   },
-  statusText: {
-    color: colors.textSoft,
-    fontSize: 12,
-    flex: 1,
-  },
+  statusText: {color: colors.textSoft, fontSize: f(17)},
   footer: {
     color: colors.textDim,
-    fontSize: 11,
+    fontSize: f(15),
     textAlign: 'center',
     marginTop: space.md,
   },

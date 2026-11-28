@@ -9,7 +9,7 @@ import {
   PRIVACY_URL,
 } from '../config/app';
 import type {SourceConfig} from '../types';
-import {colors, radius, space} from '../theme';
+import {colors, f, radius, s, space} from '../theme';
 
 type Props = {
   source: SourceConfig;
@@ -57,26 +57,25 @@ export function SettingsScreen({
 
           <View style={styles.actions}>
             <Focusable
-              accessibilityLabel="Usar modo demonstracao"
+              accessibilityLabel="Ativar TV"
               hasTVPreferredFocus
-              onPress={onDemo}
+              onPress={onChangeActivation}
               style={styles.action}
               focusedStyle={styles.actionFocused}>
-              <Text style={styles.actionTitle}>Usar modo demonstracao</Text>
+              <Text style={styles.actionTitle}>Ativar TV</Text>
               <Text style={styles.actionDetail}>
-                Videos publicos, sem conta e sem lista.
+                Registrar este aparelho no site.
               </Text>
             </Focusable>
 
             <Focusable
-              accessibilityLabel="Trocar ativacao"
-              onPress={onChangeActivation}
+              accessibilityLabel="Testar o player"
+              onPress={onDemo}
               style={styles.action}
               focusedStyle={styles.actionFocused}>
-              <Text style={styles.actionTitle}>Trocar ativacao</Text>
+              <Text style={styles.actionTitle}>Testar o player</Text>
               <Text style={styles.actionDetail}>
-                Remove a configuracao atual deste aparelho e volta para a tela
-                de codigo.
+                Videos publicos, sem conta.
               </Text>
             </Focusable>
           </View>
@@ -102,26 +101,21 @@ export function SettingsScreen({
             <Text style={styles.rowValue}>{PACKAGE_ID}</Text>
           </View>
           <Text style={styles.note}>
-            Este aplicativo e um tocador de video. Ele nao inclui, hospeda ou
-            distribui conteudo. A reproducao usa apenas a lista ou o servidor
-            configurado pelo usuario.
+            Este aplicativo e um tocador de video. Ele nao inclui, hospeda nem
+            distribui conteudo.
           </Text>
           <Text style={styles.link}>Privacidade: {PRIVACY_URL}</Text>
         </View>
+
+        <Button label="Voltar ao menu" onPress={onExit} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  content: {
-    padding: space.lg,
-    paddingBottom: space.xxl,
-  },
+  root: {flex: 1, backgroundColor: colors.bg},
+  content: {padding: space.lg, paddingBottom: space.xxl},
   card: {
     backgroundColor: colors.panel,
     borderRadius: radius.lg,
@@ -132,32 +126,22 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     color: colors.textDim,
-    fontSize: 10,
+    fontSize: f(15),
     fontWeight: '700',
-    letterSpacing: 2,
+    letterSpacing: s(2),
     marginBottom: space.sm,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: space.xs + 2,
+    paddingVertical: s(8),
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
-  rowLabel: {
-    color: colors.textDim,
-    fontSize: 13,
-  },
-  rowValue: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  actions: {
-    flexDirection: 'row',
-    marginTop: space.lg,
-  },
+  rowLabel: {color: colors.textSoft, fontSize: f(20)},
+  rowValue: {color: colors.text, fontSize: f(20), fontWeight: '600'},
+  actions: {flexDirection: 'row', marginTop: space.lg},
   action: {
     flex: 1,
     marginRight: space.md,
@@ -165,32 +149,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.bgSoft,
   },
-  actionFocused: {
-    backgroundColor: colors.panelSoft,
-  },
-  actionTitle: {
-    color: colors.text,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  actionDetail: {
-    color: colors.textDim,
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 17,
-  },
-  aboutRow: {
-    marginBottom: space.sm,
-  },
-  note: {
-    color: colors.textSoft,
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: space.md,
-  },
-  link: {
-    color: colors.accentSoft,
-    fontSize: 11,
-    marginTop: space.sm,
-  },
+  actionFocused: {backgroundColor: colors.panelSoft, borderColor: colors.accent},
+  actionTitle: {color: colors.text, fontSize: f(23), fontWeight: '700'},
+  actionDetail: {color: colors.textDim, fontSize: f(17), marginTop: s(4), lineHeight: f(24)},
+  aboutRow: {marginBottom: space.sm},
+  note: {color: colors.textSoft, fontSize: f(18), lineHeight: f(27), marginTop: space.md},
+  link: {color: colors.accent, fontSize: f(17), marginTop: space.sm},
 });

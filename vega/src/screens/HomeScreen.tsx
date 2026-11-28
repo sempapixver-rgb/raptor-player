@@ -1,8 +1,8 @@
 import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
-import {Brand, Focusable} from '../components/ui';
+import {Button, Brand, Focusable} from '../components/ui';
 import type {Kind, SourceConfig} from '../types';
-import {colors, radius, space} from '../theme';
+import {colors, f, s, space} from '../theme';
 
 type Props = {
   source: SourceConfig;
@@ -13,50 +13,39 @@ type Props = {
 
 const CARDS: Array<{
   kind: Kind;
-  title: string;
-  detail: string;
-  glyph: string;
+  num: string;
+  label: string;
+  sub: string;
 }> = [
-  {kind: 'LIVE', title: 'Canais', detail: 'Assistir ao vivo', glyph: 'TV'},
-  {kind: 'VOD', title: 'Filmes', detail: 'Catalogo de filmes', glyph: 'FILME'},
-  {kind: 'SERIES', title: 'Series', detail: 'Episodios por temporada', glyph: 'SERIES'},
+  {kind: 'LIVE', num: '01', label: 'Canais', sub: 'Assistir ao vivo'},
+  {kind: 'VOD', num: '02', label: 'Filmes', sub: 'Catalogo de filmes'},
+  {kind: 'SERIES', num: '03', label: 'Series', sub: 'Episodios por temporada'},
 ];
 
+/** Menu principal: mesmo desenho do menu da LG. */
 export function HomeScreen({source, deviceCode, onOpen, onSettings}: Props) {
   const isDemo = source.mode === 'DEMO';
   return (
     <View style={styles.root}>
-      <View style={styles.header}>
-        <Brand />
-        <View style={styles.status}>
-          <View style={styles.statusDot} />
-          <Text style={styles.statusText}>
-            {isDemo ? 'Modo demonstracao' : source.label || 'Conta ativa'}
-          </Text>
+      <View style={styles.head}>
+        <View style={styles.brandBig}>
+          <Text style={styles.logo}>RAPTOR</Text>
+          <Text style={styles.tag}>VIDEO PLAYER</Text>
         </View>
-      </View>
-
-      <View style={styles.hero}>
-        <Text style={styles.heroTitle}>O que voce quer assistir?</Text>
-        <Text style={styles.heroSub}>
-          Use as setas do controle para navegar e OK para abrir.
-        </Text>
       </View>
 
       <View style={styles.cards}>
         {CARDS.map((card, index) => (
           <Focusable
             key={card.kind}
-            accessibilityLabel={card.title}
+            accessibilityLabel={card.label}
             hasTVPreferredFocus={index === 0}
             onPress={() => onOpen(card.kind)}
             style={styles.card}
             focusedStyle={styles.cardFocused}>
-            <View style={styles.cardGlyphBox}>
-              <Text style={styles.cardGlyph}>{card.glyph}</Text>
-            </View>
-            <Text style={styles.cardTitle}>{card.title}</Text>
-            <Text style={styles.cardDetail}>{card.detail}</Text>
+            <Text style={styles.cardNum}>{card.num}</Text>
+            <Text style={styles.cardLabel}>{card.label}</Text>
+            <Text style={styles.cardSub}>{card.sub}</Text>
           </Focusable>
         ))}
 
@@ -65,21 +54,19 @@ export function HomeScreen({source, deviceCode, onOpen, onSettings}: Props) {
           onPress={onSettings}
           style={styles.card}
           focusedStyle={styles.cardFocused}>
-          <View style={styles.cardGlyphBox}>
-            <Text style={styles.cardGlyph}>AJUSTES</Text>
-          </View>
-          <Text style={styles.cardTitle}>Ajustes</Text>
-          <Text style={styles.cardDetail}>Conta, ativacao e sobre</Text>
+          <Text style={styles.cardNum}>04</Text>
+          <Text style={styles.cardLabel}>Ajustes</Text>
+          <Text style={styles.cardSub}>Conta, ativacao e sobre</Text>
         </Focusable>
       </View>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          {isDemo
-            ? 'Demonstracao com videos publicos. Nenhuma conta necessaria.'
-            : 'Ativado neste aparelho.'}
+      <View style={styles.foot}>
+        <Text style={styles.footText}>
+          OK abre a aba {'·'} Volta fecha o app
         </Text>
-        <Text style={styles.footerCode}>Codigo: {deviceCode}</Text>
+        <Text style={styles.footCode}>
+          {isDemo ? 'Modo demonstracao' : deviceCode}
+        </Text>
       </View>
     </View>
   );
@@ -89,102 +76,78 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.bg,
-    paddingHorizontal: space.xl,
-    paddingTop: space.lg,
-    paddingBottom: space.lg,
+    paddingHorizontal: s(120),
+    justifyContent: 'center',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  head: {
+    paddingBottom: s(54),
   },
-  status: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: space.md,
-    paddingVertical: space.xs + 2,
-    borderRadius: radius.pill,
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.line,
+  brandBig: {
+    flexDirection: 'column',
   },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.accent,
-    marginRight: space.sm,
+  logo: {
+    color: colors.accent,
+    fontSize: f(62),
+    fontWeight: '900',
+    letterSpacing: s(18),
   },
-  statusText: {
-    color: colors.textSoft,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  hero: {
-    marginTop: space.xl,
-    marginBottom: space.lg,
-  },
-  heroTitle: {
-    color: colors.text,
-    fontSize: 34,
-    fontWeight: '800',
-  },
-  heroSub: {
-    color: colors.textSoft,
-    fontSize: 15,
-    marginTop: space.xs,
+  tag: {
+    color: colors.textDim,
+    fontSize: f(16),
+    letterSpacing: s(8),
+    marginTop: s(12),
   },
   cards: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'stretch',
-    maxHeight: 320,
   },
   card: {
+    // Largura proporcional: quatro cartoes cabem em 720p, 1080p e 4K.
     flex: 1,
-    marginRight: space.md,
-    padding: space.lg,
-    borderRadius: radius.lg,
+    minWidth: 0,
+    height: s(258),
+    marginRight: s(30),
+    paddingVertical: s(32),
+    paddingHorizontal: s(30),
+    borderRadius: s(18),
+    borderWidth: 1,
+    borderColor: colors.line,
     backgroundColor: colors.panel,
     justifyContent: 'flex-end',
   },
   cardFocused: {
+    borderColor: colors.accent,
     backgroundColor: colors.panelSoft,
   },
-  cardGlyphBox: {
-    flex: 1,
-    alignItems: 'flex-start',
-    justifyContent: 'flex-start',
+  cardNum: {
+    color: colors.textDim,
+    fontSize: f(20),
+    letterSpacing: s(3),
+    marginBottom: 'auto',
   },
-  cardGlyph: {
-    color: colors.accentSoft,
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: 2,
-  },
-  cardTitle: {
+  cardLabel: {
     color: colors.text,
-    fontSize: 24,
+    fontSize: f(44),
     fontWeight: '800',
   },
-  cardDetail: {
-    color: colors.textDim,
-    fontSize: 12,
-    marginTop: 4,
+  cardSub: {
+    color: colors.textSoft,
+    fontSize: f(19),
+    marginTop: s(8),
   },
-  footer: {
+  foot: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: space.lg,
+    marginTop: s(54),
   },
-  footerText: {
+  footText: {
     color: colors.textDim,
-    fontSize: 12,
+    fontSize: f(20),
   },
-  footerCode: {
+  footCode: {
     color: colors.textDim,
-    fontSize: 12,
-    letterSpacing: 1,
+    fontSize: f(18),
+    letterSpacing: s(2),
   },
 });

@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   FlatList,
   Image,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -11,7 +12,6 @@ import {
   Button,
   Empty,
   Focusable,
-  Header,
   Loading,
   Tile,
 } from '../components/ui';
@@ -30,7 +30,7 @@ import {
 import {readJSON, writeJSON} from '../core/storage';
 import {seriesEpisodes} from '../core/xtream';
 import type {Category, Entry, Kind, PlayHandler, SourceConfig} from '../types';
-import {colors, radius, space} from '../theme';
+import {colors, f, radius, s, screenWidth} from '../theme';
 
 const TITLES: Record<Kind, string> = {
   LIVE: 'Canais',
@@ -50,14 +50,6 @@ type Props = {
 };
 
 type SidebarItem = Category & {count?: number};
-type SortMode = 'default' | 'name-asc' | 'name-desc' | 'rating';
-const SORTS: SortMode[] = ['default', 'name-asc', 'name-desc', 'rating'];
-const SORT_LABELS: Record<SortMode, string> = {
-  default: 'Ordem',
-  'name-asc': 'Nome A-Z',
-  'name-desc': 'Nome Z-A',
-  rating: 'Avaliacao',
-};
 
 const folderKey = (source: SourceConfig, kind: Kind) =>
   'folder.' +
@@ -67,21 +59,8 @@ const folderKey = (source: SourceConfig, kind: Kind) =>
   '.' +
   kind;
 
-function sortItems(list: Entry[], kind: Kind, mode: SortMode): Entry[] {
-  if (kind !== 'VOD' || mode === 'default') {
-    return list;
-  }
-  const copy = [...list];
-  if (mode === 'name-asc') {
-    copy.sort((a, b) => a.name.localeCompare(b.name));
-  } else if (mode === 'name-desc') {
-    copy.sort((a, b) => b.name.localeCompare(a.name));
-  } else if (mode === 'rating') {
-    copy.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-  }
-  return copy;
-}
-
+/** Tela de navegacao: topbar + painel de categorias + lista + previa,
+ *  exatamente como na LG. */
 export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -92,15 +71,28 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
   const [recent, setRecent] = useState<Entry[]>([]);
   const [activeCat, setActiveCat] = useState('');
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<SortMode>('default');
   const [series, setSeries] = useState<Entry | null>(null);
-  const [selectedLive, setSelectedLive] = useState<Entry | null>(null);
   const [selected, setSelected] = useState<Entry | null>(null);
+  const [refresh, setRefresh] = useState(0);
+  const [clock, setClock] = useState('--:--');
 
   const gridRef = useRef<FlatList<Entry>>(null);
   const [preferred, setPreferred] = useState(true);
-
   const key = folderKey(source, kind);
+
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      setClock(
+        String(now.getHours()).padStart(2, '0') +
+          ':' +
+          String(now.getMinutes()).padStart(2, '0'),
+      );
+    };
+    tick();
+    const timer = setInterval(tick, 15000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -119,6 +111,9 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
         if (alive) {
           setCategories(cats);
           setActiveCat(initial);
+          if (!cats.length) {
+            setLoading(false);
+          }
         }
       } catch {
         if (alive) {
@@ -149,6 +144,8 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
         if (alive) {
           setItems(list);
           void writeJSON(key, activeCat);
+          // Trocar de pasta deve trocar tambem a previa, nao manter item antigo.
+          setSelected(list.length ? list[0] : null);
         }
       })
       .catch(() => {
@@ -164,7 +161,7 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
     return () => {
       alive = false;
     };
-  }, [activeCat, categories, key, kind, source]);
+  }, [activeCat, categories, key, kind, refresh, source]);
 
   useEffect(() => {
     let alive = true;
@@ -181,7 +178,7 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
     };
   }, [kind]);
 
-  // O indice completo e pesado: só é buscado quando o usuario digita 2 letras.
+  // Indice completo apenas quando o usuario digita (2+ letras).
   useEffect(() => {
     if (normalizeText(query).length < 2) {
       return;
@@ -217,12 +214,6 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
     };
   }, [backRef, series]);
 
-  useEffect(() => {
-    if (kind === 'LIVE' && items.length && !selectedLive) {
-      setSelectedLive(items[0]);
-    }
-  }, [items, kind, selectedLive]);
-
   const counts = useMemo(() => {
     const map: Record<string, number> = {};
     for (const item of allCache) {
@@ -254,33 +245,26 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
     const text = normalizeText(query);
     if (text.length >= 2) {
       const sourceList = allCache.length ? allCache : items;
-      return sortItems(
-        sourceList.filter(item => normalizeText(item.name).includes(text)),
-        kind,
-        sort,
-      );
+      return sourceList.filter(item => normalizeText(item.name).includes(text));
     }
     if (activeCat === FAV) {
-      return sortItems(favorites, kind, sort);
+      return favorites;
     }
     if (activeCat === RECENT) {
       return recent;
     }
-    return sortItems(items, kind, sort);
-  }, [activeCat, allCache, favorites, items, kind, query, recent, sort]);
+    return items;
+  }, [activeCat, allCache, favorites, items, query, recent]);
 
-  const remember = useCallback(
-    (entry: Entry) => {
-      void addRecent(entry);
-      setRecent(previous => [
-        entry,
-        ...previous.filter(
-          item => !(item.id === entry.id && item.kind === entry.kind),
-        ),
-      ]);
-    },
-    [],
-  );
+  const remember = useCallback((entry: Entry) => {
+    void addRecent(entry);
+    setRecent(previous => [
+      entry,
+      ...previous.filter(
+        item => !(item.id === entry.id && item.kind === entry.kind),
+      ),
+    ]);
+  }, []);
 
   const fav = useCallback((entry: Entry) => {
     void toggleFavorite(entry).then(setFavorites);
@@ -290,16 +274,7 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
     (entry: Entry, index: number) => {
       remember(entry);
       setSelected(entry);
-      if (kind === 'SERIES' && source.mode !== 'XTREAM') {
-        onPlay(entry, [entry], {
-          list: [entry],
-          index: 0,
-          autoAdvance: true,
-          allowSeek: true,
-        });
-        return;
-      }
-      if (kind === 'SERIES') {
+      if (kind === 'SERIES' && source.mode !== 'DEMO') {
         setSeries(entry);
         return;
       }
@@ -312,9 +287,9 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
         });
         return;
       }
-      onPlay(entry, [], {
-        list: [],
-        index: 0,
+      onPlay(entry, visible.length ? visible : [entry], {
+        list: visible.length ? visible : [entry],
+        index: visible.length ? index : 0,
         autoAdvance: false,
         allowSeek: true,
       });
@@ -322,17 +297,15 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
     [kind, onPlay, remember, source.mode, visible],
   );
 
-  const title = TITLES[kind];
-
   if (series) {
     return (
       <View style={styles.root}>
-        <Header
-          title={series.name}
-          subtitle="Escolha um episodio"
-          onBack={() => setSeries(null)}
-          right={<Button label="Voltar" onPress={() => setSeries(null)} />}
-        />
+        <View style={styles.detailHead}>
+          <Button label="‹ Voltar" onPress={() => setSeries(null)} />
+          <Text style={styles.detailTitle} numberOfLines={1}>
+            {series.name}
+          </Text>
+        </View>
         <EpisodeList
           source={source}
           series={series}
@@ -352,38 +325,47 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
 
   return (
     <View style={styles.root}>
-      <Header
-        title={title}
-        subtitle={source.label || 'Conta ativa'}
-        onBack={onExit}
-        right={
-          <View style={styles.headerRight}>
-            {selected ? (
-              <Button
-                label={
-                  favorites.some(
-                    item =>
-                      item.id === selected.id && item.kind === selected.kind,
-                  )
-                    ? '★ Remover'
-                    : '☆ Favorito'
-                }
-                onPress={() => fav(selected)}
-              />
-            ) : null}
-            <Text style={styles.countText}>{visible.length} itens</Text>
-          </View>
-        }
-      />
+      {/* topbar */}
+      <View style={styles.topbar}>
+        <Focusable
+          accessibilityLabel="Menu principal"
+          onPress={onExit}
+          style={styles.topMenu}>
+          <Text style={styles.topMenuText}>‹</Text>
+        </Focusable>
+        <Text style={styles.brandLogo}>RAPTOR</Text>
+        <View style={styles.titles}>
+          <Text style={styles.tabTitle}>{TITLES[kind]}</Text>
+          <Text style={styles.tabSub} numberOfLines={1}>
+            {source.label || 'Conta ativa'}
+          </Text>
+        </View>
+        <View style={styles.topbarRight}>
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Buscar por nome"
+            placeholderTextColor={colors.textDim}
+            autoCorrect={false}
+            style={styles.search}
+          />
+          <Text style={styles.clock}>{clock}</Text>
+          <Button
+            label="⟳ Atualizar"
+            onPress={() => setRefresh(value => value + 1)}
+          />
+        </View>
+      </View>
 
       <View style={styles.body}>
-        <View style={styles.sidebar}>
-          <Text style={styles.sidebarTitle}>CATEGORIAS</Text>
+        {/* painel de categorias */}
+        <View style={styles.panel}>
+          <Text style={styles.panelLabel}>CATEGORIAS</Text>
           <FlatList
             data={sidebar}
             keyExtractor={item => 'cat-' + item.id}
             style={styles.fill}
-            contentContainerStyle={styles.sidebarContent}
+            contentContainerStyle={styles.panelContent}
             renderItem={({item, index}) => {
               const active = item.id === activeCat;
               return (
@@ -392,24 +374,32 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
                   hasTVPreferredFocus={preferred && index === 0}
                   onPress={() => {
                     setQuery('');
+                    setSelected(null);
                     setActiveCat(item.id);
                   }}
-                  style={[styles.catItem, active ? styles.catActive : null]}
-                  focusedStyle={styles.catFocused}>
+                  style={[styles.panelItem, active ? styles.panelItemActive : null]}
+                  focusedStyle={styles.panelItemFocused}>
                   <Text
-                    numberOfLines={2}
-                    style={[styles.catText, active ? styles.catTextActive : null]}>
+                    numberOfLines={1}
+                    style={[styles.panelItemLabel, active ? styles.panelItemLabelActive : null]}>
                     {item.name}
                   </Text>
-                  <Text style={styles.catCount}>{item.count}</Text>
+                  {item.count != null ? (
+                    <Text style={styles.panelItemCount}>{item.count}</Text>
+                  ) : null}
                 </Focusable>
               );
             }}
           />
         </View>
 
-        {kind === 'LIVE' ? (
-          <View style={styles.liveList}>
+        {/* lista */}
+        <View style={styles.listPane}>
+          {loading ? (
+            <Loading label={'Carregando ' + TITLES[kind].toLowerCase() + '...'} />
+          ) : error ? (
+            <Empty title="Falha ao carregar" detail={error} />
+          ) : kind === 'LIVE' ? (
             <FlatList
               data={visible}
               keyExtractor={(item, index) => 'live-' + item.id + '-' + index}
@@ -420,111 +410,35 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
                   accessibilityLabel={item.name}
                   hasTVPreferredFocus={preferred && index === 0}
                   onPress={() => select(item, index)}
-                  onFocus={() => setSelectedLive(item)}
+                  onFocus={() => setSelected(item)}
                   style={[
-                    styles.liveItem,
-                    selectedLive?.id === item.id ? styles.liveItemActive : null,
+                    styles.itemRow,
+                    selected?.id === item.id ? styles.itemRowSelected : null,
                   ]}
-                  focusedStyle={styles.liveItemFocused}>
+                  focusedStyle={styles.itemRowFocused}>
+                  <Text style={styles.itemNum}>{String(index + 1).padStart(2, '0')}</Text>
                   {item.logo ? (
                     <Image
                       source={{uri: item.logo}}
-                      style={styles.liveLogo}
+                      style={styles.itemLogo}
                       resizeMode="contain"
                     />
                   ) : (
-                    <View style={styles.liveLogo} />
+                    <View style={styles.itemLogo} />
                   )}
-                  <Text style={styles.liveName} numberOfLines={1}>
+                  <Text style={styles.itemName} numberOfLines={1}>
                     {item.name}
                   </Text>
                 </Focusable>
               )}
             />
-          </View>
-        ) : null}
-
-        <View style={styles.content}>
-          {kind !== 'LIVE' ? (
-            <View style={styles.toolbar}>
-              <TextInput
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Buscar em todas as pastas desta aba"
-                placeholderTextColor={colors.textDim}
-                autoCorrect={false}
-                style={styles.search}
-              />
-              {kind === 'VOD' ? (
-                <Button
-                  label={SORT_LABELS[sort]}
-                  onPress={() =>
-                    setSort(current => SORTS[(SORTS.indexOf(current) + 1) % SORTS.length])
-                  }
-                />
-              ) : null}
-              {query ? (
-                <Button label="Limpar busca" onPress={() => setQuery('')} />
-              ) : null}
-            </View>
-          ) : null}
-
-          {kind === 'LIVE' ? (
-            <View style={styles.detail}>
-              {error ? (
-                <Empty title="Falha ao carregar" detail={error} />
-              ) : selectedLive ? (
-                <>
-                  <Text style={styles.detailCategory} numberOfLines={1}>
-                    {selectedLive.category || 'Canal ao vivo'}
-                  </Text>
-                  <Text style={styles.detailTitle} numberOfLines={2}>
-                    {selectedLive.name}
-                  </Text>
-                  <Text style={styles.liveBadge}>AO VIVO</Text>
-                  {selectedLive.plot ? (
-                    <Text style={styles.detailPlot} numberOfLines={4}>
-                      {selectedLive.plot}
-                    </Text>
-                  ) : null}
-                  <Button
-                    kind="primary"
-                    label="▶ Assistir"
-                    hasTVPreferredFocus
-                    onPress={() => {
-                      const at = visible.findIndex(
-                        item => item.id === selectedLive.id,
-                      );
-                      select(selectedLive, at >= 0 ? at : 0);
-                    }}
-                  />
-                  <Button
-                    label="★ Favorito"
-                    onPress={() => fav(selectedLive)}
-                  />
-                </>
-              ) : (
-                <Empty title="Selecione um canal" detail="" />
-              )}
-            </View>
-          ) : loading ? (
-            <Loading label={'Carregando ' + title.toLowerCase() + '...'} />
-          ) : error ? (
-            <View style={styles.errorBox}>
-              <Empty title="Falha ao carregar" detail={error} />
-              <Button
-                kind="primary"
-                label="Escolher outra pasta"
-                onPress={() => setActiveCat(categories[0]?.id || '')}
-              />
-            </View>
           ) : (
             <FlatList
               ref={gridRef}
               data={visible}
               style={styles.fill}
-              keyExtractor={(item, index) => item.kind + ':' + item.id + ':' + index}
               numColumns={4}
+              keyExtractor={(item, index) => item.kind + ':' + item.id + ':' + index}
               columnWrapperStyle={styles.gridRow}
               contentContainerStyle={styles.gridContent}
               initialNumToRender={16}
@@ -533,11 +447,7 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
               ListEmptyComponent={
                 <Empty
                   title="Nada por aqui"
-                  detail={
-                    query
-                      ? 'Nenhum item encontrado para esta busca.'
-                      : 'Esta pasta esta vazia.'
-                  }
+                  detail={query ? 'Nenhum item encontrado.' : 'Esta pasta esta vazia.'}
                 />
               }
               renderItem={({item, index}) => (
@@ -561,6 +471,51 @@ export function SectionScreen({source, kind, onExit, onPlay, backRef}: Props) {
             />
           )}
         </View>
+
+        {/* previa */}
+        {selected ? (
+          <View style={styles.preview}>
+            <ScrollView contentContainerStyle={styles.previewScroll}>
+              <Text style={styles.previewBadge}>
+                {kind === 'LIVE' ? 'AO VIVO' : kind === 'SERIES' ? 'SERIE' : 'FILME'}
+              </Text>
+              <Text style={styles.previewTitle} numberOfLines={2}>
+                {selected.name}
+              </Text>
+              <Text style={styles.previewMeta} numberOfLines={1}>
+                {selected.category || TITLES[kind]}
+              </Text>
+              {selected.plot ? (
+                <Text style={styles.previewPlot} numberOfLines={5}>
+                  {selected.plot}
+                </Text>
+              ) : null}
+              <View style={styles.previewActions}>
+                <Button
+                  label={
+                    favorites.some(
+                      item =>
+                        item.id === selected.id && item.kind === selected.kind,
+                    )
+                      ? '★'
+                      : '☆'
+                  }
+                  onPress={() => fav(selected)}
+                />
+                <Button
+                  kind="primary"
+                  label="▶ Assistir"
+                  onPress={() => {
+                    const at = visible.findIndex(
+                      item => item.id === selected.id,
+                    );
+                    select(selected, at >= 0 ? at : 0);
+                  }}
+                />
+              </View>
+            </ScrollView>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -629,237 +584,157 @@ function EpisodeList({
           accessibilityLabel={item.name}
           hasTVPreferredFocus={index === 0}
           onPress={() => onPlay(item, episodes, index)}
-          style={styles.epRow}
-          focusedStyle={styles.epRowFocused}>
-          <Text style={styles.epNum}>{String(index + 1).padStart(2, '0')}</Text>
-          <View style={styles.epInfo}>
-            <Text style={styles.epName} numberOfLines={1}>
-              {item.name}
-            </Text>
-            {item.plot ? (
-              <Text style={styles.epPlot} numberOfLines={2}>
-                {item.plot}
-              </Text>
-            ) : null}
-          </View>
-          <Text style={styles.epSeason}>{item.category || ''}</Text>
+          style={styles.episode}
+          focusedStyle={styles.episodeFocused}>
+          <Text style={styles.episodeNum}>{String(index + 1).padStart(2, '0')}</Text>
+          <Text style={styles.episodeName} numberOfLines={1}>
+            {item.name}
+          </Text>
         </Focusable>
       )}
     />
   );
 }
 
+const panelWidth = s(330);
+const previewWidth = s(570);
+
 const styles = StyleSheet.create({
-  fill: {
-    flex: 1,
-  },
-  root: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  headerRight: {
+  fill: {flex: 1},
+  root: {flex: 1, backgroundColor: colors.bg},
+  topbar: {
+    height: s(100),
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: s(38),
+    backgroundColor: 'rgba(27,38,30,0.55)',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
   },
-  countText: {
-    color: colors.textDim,
-    fontSize: 12,
-    marginLeft: space.md,
-  },
-  body: {
-    flex: 1,
-    flexDirection: 'row',
-  },
-  sidebar: {
-    width: 196,
-    borderRightWidth: 1,
-    borderRightColor: colors.line,
-    backgroundColor: colors.bgSoft,
-    paddingTop: space.md,
-  },
-  sidebarTitle: {
-    color: colors.textDim,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 2,
-    paddingHorizontal: space.md,
-    marginBottom: space.sm,
-  },
-  sidebarContent: {
-    paddingHorizontal: space.sm,
-    paddingBottom: space.lg,
-  },
-  catItem: {
-    flexDirection: 'row',
+  topMenu: {
+    width: s(62),
+    height: s(62),
+    borderRadius: s(12),
+    borderWidth: 1,
+    borderColor: colors.line,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: space.sm,
-    paddingVertical: space.sm,
-    borderRadius: radius.sm,
-    marginBottom: 2,
-  },
-  catActive: {
-    backgroundColor: colors.panel,
-  },
-  catFocused: {
-    backgroundColor: colors.panelSoft,
-  },
-  catText: {
-    color: colors.textSoft,
-    fontSize: 13,
-    flex: 1,
-    paddingRight: space.xs,
-  },
-  catTextActive: {
-    color: colors.text,
-    fontWeight: '700',
-  },
-  catCount: {
-    color: colors.textDim,
-    fontSize: 11,
-  },
-  liveList: {
-    width: 300,
-    borderRightWidth: 1,
-    borderRightColor: colors.line,
-    backgroundColor: colors.bgSoft,
-  },
-  liveContent: {
-    padding: space.sm,
-  },
-  liveItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: space.sm,
-    paddingVertical: space.sm,
-    borderRadius: radius.sm,
-    marginBottom: 4,
-  },
-  liveItemActive: {
-    backgroundColor: colors.panel,
-  },
-  liveItemFocused: {
-    backgroundColor: colors.panelSoft,
-  },
-  liveLogo: {
-    width: 44,
-    height: 32,
-    marginRight: space.sm,
-  },
-  liveName: {
-    flex: 1,
-    color: colors.text,
-    fontSize: 13,
-  },
-  detail: {
-    flex: 1,
-    padding: space.xl,
     justifyContent: 'center',
+    marginRight: s(18),
   },
-  detailCategory: {
+  topMenuText: {color: colors.textSoft, fontSize: f(34)},
+  brandLogo: {
     color: colors.accent,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 2,
-    marginBottom: space.sm,
+    fontSize: f(26),
+    fontWeight: '900',
+    letterSpacing: s(6),
   },
-  detailTitle: {
+  titles: {marginLeft: s(26), flex: 1},
+  tabTitle: {color: colors.text, fontSize: f(38), fontWeight: '700'},
+  tabSub: {color: colors.textSoft, fontSize: f(20), marginTop: 2},
+  topbarRight: {flexDirection: 'row', alignItems: 'center'},
+  search: {
+    width: s(400),
+    height: s(52),
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: s(12),
+    paddingHorizontal: s(12),
     color: colors.text,
-    fontSize: 30,
-    fontWeight: '800',
+    fontSize: f(20),
+    marginRight: s(22),
+    backgroundColor: '#0D1410',
   },
-  liveBadge: {
-    alignSelf: 'flex-start',
+  clock: {color: colors.textSoft, fontSize: f(24), marginRight: s(24)},
+  body: {flex: 1, flexDirection: 'row'},
+  panel: {
+    width: panelWidth,
+    borderRightWidth: 1,
+    borderRightColor: colors.line,
+    backgroundColor: 'rgba(27,38,30,0.35)',
+    paddingTop: s(12),
+  },
+  panelLabel: {
+    color: colors.textDim,
+    fontSize: f(15),
+    fontWeight: '700',
+    letterSpacing: s(2),
+    paddingHorizontal: s(12),
+    paddingBottom: s(12),
+  },
+  panelContent: {paddingHorizontal: s(12), paddingBottom: s(24)},
+  panelItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: s(14),
+    paddingVertical: s(13),
+    borderRadius: s(10),
+    marginBottom: s(3),
+  },
+  panelItemActive: {backgroundColor: 'rgba(0,230,118,0.18)'},
+  panelItemFocused: {borderColor: colors.accent, backgroundColor: colors.panelSoft},
+  panelItemLabel: {color: colors.textSoft, fontSize: f(26), flex: 1},
+  panelItemLabelActive: {color: colors.accent, fontWeight: '700'},
+  panelItemCount: {color: colors.textDim, fontSize: f(13), marginLeft: s(10)},
+  listPane: {flex: 1, paddingTop: s(14), paddingLeft: s(24), paddingRight: s(32)},
+  liveContent: {padding: s(6)},
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: s(12),
+    paddingVertical: s(9),
+    borderRadius: s(8),
+    marginBottom: s(4),
+  },
+  itemRowSelected: {backgroundColor: 'rgba(0,230,118,0.14)'},
+  itemRowFocused: {borderColor: colors.accent, backgroundColor: colors.panelSoft},
+  itemNum: {color: colors.textDim, fontSize: f(19), width: s(60)},
+  itemLogo: {width: s(72), height: s(56), marginRight: s(16), borderRadius: s(7)},
+  itemName: {flex: 1, color: colors.text, fontSize: f(28)},
+  gridRow: {flexDirection: 'row'},
+  gridContent: {paddingBottom: s(30)},
+  preview: {
+    width: previewWidth,
+    borderLeftWidth: 1,
+    borderLeftColor: colors.line,
+    marginLeft: s(24),
+    minWidth: 0,
+  },
+  previewScroll: {padding: s(24), paddingBottom: s(40)},
+  previewBadge: {
     color: colors.bg,
     backgroundColor: colors.accent,
-    fontSize: 10,
+    alignSelf: 'flex-start',
+    fontSize: f(13),
     fontWeight: '800',
-    letterSpacing: 2,
-    paddingHorizontal: space.sm,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-    marginTop: space.md,
+    letterSpacing: s(2),
+    paddingHorizontal: s(12),
+    paddingVertical: s(5),
+    borderRadius: 999,
   },
-  detailPlot: {
-    color: colors.textDim,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: space.md,
-    marginBottom: space.lg,
-    maxWidth: 640,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: space.lg,
-    paddingTop: space.md,
-  },
-  toolbar: {
+  previewTitle: {color: colors.text, fontSize: f(32), fontWeight: '700', marginTop: s(16)},
+  previewMeta: {color: colors.accent, fontSize: f(20), marginTop: s(6)},
+  previewPlot: {color: colors.textSoft, fontSize: f(20), lineHeight: f(30), marginTop: s(10)},
+  previewActions: {flexDirection: 'row', marginTop: s(18)},
+  detailHead: {
+    height: s(100),
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: space.md,
+    paddingHorizontal: s(60),
   },
-  search: {
-    flex: 1,
-    maxWidth: 460,
-    height: 44,
-    borderRadius: radius.pill,
-    backgroundColor: colors.panel,
-    borderWidth: 2,
-    borderColor: colors.line,
-    color: colors.text,
-    paddingHorizontal: space.md,
-    fontSize: 14,
-    marginRight: space.md,
-  },
-  gridRow: {
-    justifyContent: 'flex-start',
-  },
-  gridContent: {
-    paddingBottom: space.xl,
-  },
-  errorBox: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  epContent: {
-    padding: space.lg,
-    paddingBottom: space.xl,
-  },
-  epRow: {
+  detailTitle: {color: colors.text, fontSize: f(46), fontWeight: '700', marginLeft: s(24)},
+  epContent: {paddingHorizontal: s(60), paddingBottom: s(40)},
+  episode: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: space.md,
-    borderRadius: radius.md,
+    paddingHorizontal: s(20),
+    paddingVertical: s(16),
+    borderRadius: s(10),
     backgroundColor: colors.panel,
-    marginBottom: space.sm,
+    marginBottom: s(9),
   },
-  epRowFocused: {
-    backgroundColor: colors.panelSoft,
-  },
-  epNum: {
-    color: colors.accent,
-    fontSize: 16,
-    fontWeight: '800',
-    width: 46,
-  },
-  epInfo: {
-    flex: 1,
-    paddingRight: space.md,
-  },
-  epName: {
-    color: colors.text,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  epPlot: {
-    color: colors.textDim,
-    fontSize: 12,
-    marginTop: 3,
-    lineHeight: 17,
-  },
-  epSeason: {
-    color: colors.textDim,
-    fontSize: 11,
-  },
+  episodeFocused: {borderColor: colors.accent, backgroundColor: colors.panelSoft},
+  episodeNum: {color: colors.accent, fontSize: f(18), fontWeight: '800', width: s(66)},
+  episodeName: {flex: 1, color: colors.text, fontSize: f(22)},
+  // Largura usada apenas como referência de composição (LG: 1920px).
+  reference: {width: screenWidth},
 });

@@ -9,7 +9,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import {colors, radius, space} from '../theme';
+import {colors, f, radius, s, space} from '../theme';
 import type {Entry} from '../types';
 
 /** TouchableOpacity aceita as props de TV do runtime Kepler. */
@@ -112,7 +112,7 @@ export function Button({
   );
 }
 
-export function BrandMark({size = 46}: {size?: number}) {
+export function BrandMark({size = s(46)}: {size?: number}) {
   return (
     <View
       style={[
@@ -136,16 +136,16 @@ export function BrandMark({size = 46}: {size?: number}) {
   );
 }
 
+/** Marca no estilo da LG: RAPTOR + VIDEO PLAYER. */
 export function Brand({compact}: {compact?: boolean}) {
   return (
     <View style={styles.brand}>
-      <BrandMark size={compact ? 34 : 46} />
-      <View style={styles.brandText}>
-        <Text style={[styles.brandName, compact ? styles.brandNameCompact : null]}>
-          RAPTOR
-        </Text>
-        <Text style={styles.brandSub}>VIDEO PLAYER</Text>
-      </View>
+      <Text style={[styles.brandName, compact ? styles.brandNameCompact : null]}>
+        RAPTOR
+      </Text>
+      <Text style={[styles.brandSub, compact ? styles.brandSubCompact : null]}>
+        VIDEO PLAYER
+      </Text>
     </View>
   );
 }
@@ -170,7 +170,7 @@ export function Header({
             onPress={onBack}
             style={styles.backButton}
             focusedStyle={styles.backButtonFocused}>
-            <Text style={styles.backLabel}>Voltar</Text>
+            <Text style={styles.backLabel}>‹ Voltar</Text>
           </Focusable>
         ) : (
           <Brand compact />
@@ -211,6 +211,7 @@ export function Empty({
   );
 }
 
+/** Cartao 2:3 da grade, mesmo desenho da LG. */
 export function Tile({
   entry,
   onPress,
@@ -256,7 +257,7 @@ export function Tile({
 
 export const styles = StyleSheet.create({
   focusBase: {
-    borderWidth: 2,
+    borderWidth: s(3),
     borderColor: 'transparent',
   },
   focused: {
@@ -276,24 +277,24 @@ export const styles = StyleSheet.create({
   centerText: {
     marginTop: space.md,
     color: colors.textSoft,
-    fontSize: 15,
+    fontSize: f(20),
     textAlign: 'center',
   },
   emptyTitle: {
     color: colors.text,
-    fontSize: 20,
+    fontSize: f(32),
     fontWeight: '700',
     textAlign: 'center',
   },
   header: {
+    height: s(100),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
+    paddingHorizontal: s(38),
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    backgroundColor: colors.bgSoft,
+    backgroundColor: 'rgba(27,38,30,0.55)',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -304,41 +305,44 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitles: {
-    marginLeft: space.lg,
+    marginLeft: s(26),
   },
   headerTitle: {
     color: colors.text,
-    fontSize: 21,
+    fontSize: f(38),
     fontWeight: '700',
   },
   headerSub: {
-    color: colors.textDim,
-    fontSize: 12,
+    color: colors.textSoft,
+    fontSize: f(20),
     marginTop: 2,
   },
   brand: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
   },
   brandText: {
     marginLeft: space.sm,
   },
   brandName: {
-    color: colors.text,
-    fontSize: 22,
-    fontWeight: '800',
-    letterSpacing: 3,
+    color: colors.accent,
+    fontSize: f(30),
+    fontWeight: '900',
+    letterSpacing: s(10),
   },
   brandNameCompact: {
-    fontSize: 17,
-    letterSpacing: 2,
+    fontSize: f(26),
+    letterSpacing: s(6),
   },
   brandSub: {
-    color: colors.accent,
-    fontSize: 9,
+    color: colors.textDim,
+    fontSize: f(11),
     fontWeight: '700',
-    letterSpacing: 3,
-    marginTop: 1,
+    letterSpacing: s(4),
+    marginTop: 3,
+  },
+  brandSubCompact: {
+    fontSize: f(9),
+    letterSpacing: s(3),
   },
   mark: {
     backgroundColor: colors.accent,
@@ -346,24 +350,24 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   backButton: {
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.panel,
+    paddingHorizontal: s(20),
+    paddingVertical: s(12),
+    borderRadius: radius.md,
+    backgroundColor: colors.panelSoft,
   },
   backButtonFocused: {
     backgroundColor: colors.accentSoft,
   },
   backLabel: {
     color: colors.text,
-    fontSize: 14,
+    fontSize: f(23),
     fontWeight: '600',
   },
   button: {
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm + 2,
-    borderRadius: radius.pill,
-    backgroundColor: colors.panel,
+    paddingHorizontal: s(28),
+    paddingVertical: s(15),
+    borderRadius: radius.md,
+    backgroundColor: colors.panelSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: space.sm,
@@ -379,44 +383,47 @@ export const styles = StyleSheet.create({
     borderColor: colors.accent,
   },
   buttonPrimaryFocused: {
-    backgroundColor: '#57E8BC',
+    backgroundColor: '#69F0AE',
     borderColor: colors.focus,
   },
   buttonLabel: {
     color: colors.text,
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: f(17),
+    fontWeight: '700',
   },
   buttonLabelPrimary: {
-    color: colors.bg,
+    color: '#00210F',
     fontWeight: '800',
   },
   buttonLabelDanger: {
     color: colors.danger,
   },
   tile: {
+    // A largura vem da coluna do FlatList, entao a grade se ajusta sozinha.
     flex: 1,
-    marginRight: space.sm + 2,
-    marginBottom: space.sm + 2,
-    padding: space.sm,
+    minWidth: 0,
+    marginRight: s(20),
+    marginBottom: s(20),
+    padding: s(5),
     borderRadius: radius.md,
-    backgroundColor: colors.panel,
+    backgroundColor: 'transparent',
   },
   tileFocused: {
     backgroundColor: colors.panelSoft,
+    borderColor: colors.accent,
   },
   tileArt: {
-    height: 92,
-    borderRadius: radius.sm,
-    backgroundColor: colors.bgSoft,
+    height: s(324),
+    borderRadius: s(10),
+    backgroundColor: colors.panelSoft,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   tileLetter: {
-    color: colors.line,
-    fontSize: 34,
-    fontWeight: '800',
+    color: colors.textDim,
+    fontSize: f(34),
+    fontWeight: '900',
   },
   tileImage: {
     position: 'absolute',
@@ -427,23 +434,23 @@ export const styles = StyleSheet.create({
   },
   liveDot: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: s(8),
+    right: s(8),
+    width: s(14),
+    height: s(14),
+    borderRadius: s(7),
     backgroundColor: colors.danger,
   },
   tileName: {
     color: colors.text,
-    fontSize: 13,
+    fontSize: f(23),
     fontWeight: '600',
-    marginTop: space.xs + 2,
-    minHeight: 34,
+    marginTop: s(9),
+    minHeight: s(58),
   },
   tileSub: {
-    color: colors.textDim,
-    fontSize: 11,
+    color: colors.textSoft,
+    fontSize: f(17),
     marginTop: 2,
   },
 });
