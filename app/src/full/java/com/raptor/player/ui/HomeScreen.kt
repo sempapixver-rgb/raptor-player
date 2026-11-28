@@ -35,6 +35,7 @@ import com.raptor.player.data.Prefs
 import com.raptor.player.data.Session
 import com.raptor.player.data.clearSourceCache
 import com.raptor.player.data.createSource
+import com.raptor.player.data.invalidatePlaylistCache
 import com.raptor.player.data.displayName
 import com.raptor.player.data.key
 import com.raptor.player.ui.theme.RaptorGreen
@@ -237,6 +238,7 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
                         },
                         onRefresh = {
                             ContentStore.clearAll()
+                            invalidatePlaylistCache()
                             refreshTick++
                         },
                         onDataCleared = {

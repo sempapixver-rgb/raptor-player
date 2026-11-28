@@ -10,6 +10,9 @@ import java.io.File
 import java.io.IOException
 import java.net.URLDecoder
 import java.net.URLEncoder
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /** Fonte de conteúdo: Xtream Codes ou lista M3U (URL ou arquivo local). */
@@ -88,6 +91,16 @@ fun clearSourceCache() {
     synchronized(sourceLock) {
         cachedSourceKey = null
         cachedSource = null
+    }
+    invalidatePlaylistCache()
+}
+
+/** Botão "Atualizar": apaga também a cópia local da M3U. */
+fun invalidatePlaylistCache() {
+    runCatching {
+        RaptorApp.instance.cacheDir
+            .listFiles { file -> file.name.startsWith("raptor_m3u_") }
+            ?.forEach { file -> runCatching { file.delete() } }
     }
 }
 
@@ -336,41 +349,63 @@ class M3uSource(private val url: String) : PlaylistSource {
             }
         }
 
-        val first = runCatching { fetchEntries(target) }
-        first.getOrNull()?.let {
-            workingUrl = target
-            return@withContext it
-        }
+        // Mesmo mecanismo do base.apk: baixa a lista para um arquivo local
+        // uma vez por dia e parseia do disco. O texto da rede nunca fica na
+        // memória e abrir o app de novo não refaz o download.
+        val file = playlistCacheFile(target)
+        val stamp = File(file.absolutePath + ".date")
+        val today = SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(Date())
+        val valid = file.exists() && file.length() > 0 &&
+            stamp.exists() && stamp.readText().trim() == today
 
-        // Alguns provedores entregam o link em https, mas o servidor só
-        // responde em http. Nesse caso tentamos o mesmo endereço em http.
-        val fallback = httpFallback(target)
-        if (fallback != null) {
-            val second = runCatching { fetchEntries(fallback) }
-            second.getOrNull()?.let {
+        if (!valid) {
+            val first = runCatching { downloadPlaylist(target, file, stamp, today) }
+            if (first.isFailure) {
+                // Alguns provedores entregam https, mas só respondem em http.
+                val fallback = httpFallback(target)
+                    ?: throw first.exceptionOrNull() ?: IOException("Falha ao carregar a lista")
+                runCatching { downloadPlaylist(fallback, file, stamp, today) }.getOrThrow()
                 workingUrl = fallback
-                return@withContext it
+            } else {
+                workingUrl = target
             }
-            throw second.exceptionOrNull() ?: IOException("Falha ao carregar a lista")
         }
 
-        throw first.exceptionOrNull() ?: IOException("Falha ao carregar a lista")
+        file.bufferedReader().use { reader ->
+            M3uParser.parseLines(reader.lineSequence())
+        }
     }
 
-    private fun fetchEntries(target: String): List<MediaEntry> {
+    /** Arquivo local por URL, no mesmo padrão do `<user>.m3u` do referência. */
+    private fun playlistCacheFile(target: String): File = File(
+        RaptorApp.instance.cacheDir,
+        "raptor_m3u_${target.hashCode().toUInt().toString(16)}.m3u"
+    )
+
+    /** Download com buffer de 4 KB, igual ao LoadM3UItemsCommand do base.apk. */
+    private fun downloadPlaylist(target: String, file: File, stamp: File, today: String) {
         val request = Request.Builder()
             .url(target)
             .header("User-Agent", "Raptor/1.2 (Android)")
             .build()
-        return http.newCall(request).execute().use { response ->
+        http.newCall(request).execute().use { response ->
             if (!response.isSuccessful) {
                 throw IOException("Playlist respondeu HTTP ${response.code}")
             }
-            val body = response.body ?: return emptyList()
-            body.charStream().buffered().use { reader ->
-                M3uParser.parseLines(reader.lineSequence())
+            val source = response.body?.byteStream()
+                ?: throw IOException("Playlist vazia")
+            source.use { input ->
+                java.io.BufferedOutputStream(file.outputStream().buffered(4096)).use { out ->
+                    val buffer = ByteArray(4096)
+                    while (true) {
+                        val n = input.read(buffer)
+                        if (n <= -1) break
+                        out.write(buffer, 0, n)
+                    }
+                }
             }
         }
+        stamp.writeText(today)
     }
 
     private fun fetchText(target: String): String {
