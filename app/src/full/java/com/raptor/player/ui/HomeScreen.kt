@@ -83,7 +83,8 @@ fun HomeScreen(session: Session, onSwitch: () -> Unit) {
             kotlinx.coroutines.withTimeout(LOAD_TIMEOUT_MS) {
                 ContentStore.preloadCategories(source, session.key())
                 // No Android (mobile) seguimos o base.apk: carrega o catálogo
-                // inteiro de uma vez. Fire OS fica com o modelo antigo, estável.
+                // de uma vez quando ele cabe em memória. Listas gigantes
+                // continuam por pasta. Fire OS fica com o modelo antigo, estável.
                 if (BuildConfig.FLAVOR == "mobile") {
                     ContentStore.preloadCatalog(source, session.key())
                 }

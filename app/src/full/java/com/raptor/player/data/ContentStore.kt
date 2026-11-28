@@ -25,6 +25,9 @@ object ContentStore {
 
     private const val MAX_FOLDERS = 4
 
+    /** Listas gigantes (ex.: 300 mil entradas) não entram inteiras na memória. */
+    private const val MAX_PRELOAD_PER_KIND = 20_000
+
     private val lock = Any()
     private val mutexes = HashMap<String, Mutex>()
 
@@ -398,6 +401,10 @@ object ContentStore {
                 launch {
                     val all = runCatching { source.items(kind, null) }.getOrNull()
                         ?: return@launch
+                    // A lista de teste tem ~298 mil entradas. Nesse caso o
+                    // modelo do base.apk continua nas pastas sob demanda:
+                    // forçar tudo na memória travaria o Android justamente.
+                    if (all.size > MAX_PRELOAD_PER_KIND) return@launch
                     val lean = withContext(Dispatchers.Default) {
                         all.map { entry ->
                             MediaEntry(
